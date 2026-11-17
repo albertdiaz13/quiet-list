@@ -2,55 +2,74 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap">
 <style>
-/* Layout: one screen, two panes. Phones show one pane at a time and slide between them;
-   wide screens show the lists as a sidebar. The whole app is drenched in the open list's hue. */
+/* Layout: one screen, two panes. Phones show one pane at a time; wide screens show the lists as a sidebar.
+   Look: "jewel dark". Each list is a gemstone hue; the screen is a dark room lit by that stone.
+   Dark is the default. [data-theme="light"] is set from Settings (or from the phone, on "Match phone"). */
 :root {
   --h: 290;                         /* hue of the open list, set from script */
   /* lightness + chroma pairs; the hue is supplied per list */
-  --bg-lc: 0.955 0.032;
-  --surface-lc: 0.995 0.008;
-  --sunk-lc: 0.915 0.04;
-  --line-lc: 0.86 0.045;
-  --ink-lc: 0.25 0.045;
-  --muted-lc: 0.47 0.05;
-  --accent-lc: 0.5 0.17;
-  --on-accent-lc: 0.99 0.01;
-  --tile-lc: 0.5 0.15;
-  --on-tile-lc: 0.99 0.01;
-  --danger: oklch(0.53 0.2 25);
-  --on-danger: oklch(0.99 0.01 25);
-  --shadow: 0 1px 2px oklch(0.3 0.05 290 / 0.08), 0 6px 18px oklch(0.3 0.05 290 / 0.07);
-  --lift: 0 14px 34px oklch(0.25 0.06 290 / 0.26);
-  --scrim: oklch(0.2 0.04 290 / 0.45);
+  --bg-lc: 0.145 0.035;
+  --glow-lc: 0.5 0.19;
+  --surface-lc: 0.275 0.05;
+  --surface-hi-lc: 0.315 0.058;
+  --surface-lo-lc: 0.235 0.046;
+  --sunk-lc: 0.2 0.042;
+  --line-lc: 0.42 0.055;
+  --ink-lc: 0.97 0.012;
+  --muted-lc: 0.79 0.04;
+  --accent-lc: 0.83 0.13;
+  --on-accent-lc: 0.17 0.04;
+  --tile-lc: 0.52 0.2;
+  --tile2-lc: 0.34 0.16;
+  --on-tile-lc: 0.99 0.008;
+  --danger: oklch(0.7 0.19 22);
+  --on-danger: oklch(0.16 0.04 22);
+  --edge: oklch(1 0 0 / 0.09);                 /* hairline that catches the light */
+  --shine: oklch(1 0 0 / 0.1);
+  --glow-strength: 0.6;
+  --shadow: inset 0 1px 0 var(--shine), 0 12px 26px -10px oklch(0 0 0 / 0.6);
+  --lift: inset 0 1px 0 var(--shine), 0 22px 44px -10px oklch(0 0 0 / 0.75);
+  --scrim: oklch(0.06 0.03 290 / 0.68);
+  --grain: 0.07;
 
   --font-display: "Bricolage Grotesque", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  --r-row: 16px;
+  --r-row: 18px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --spring: cubic-bezier(0.3, 1.5, 0.5, 1);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-lc: 0.19 0.03; --surface-lc: 0.265 0.04; --sunk-lc: 0.15 0.028; --line-lc: 0.36 0.045;
-    --ink-lc: 0.95 0.02; --muted-lc: 0.75 0.045; --accent-lc: 0.8 0.12; --on-accent-lc: 0.18 0.04;
-    --tile-lc: 0.42 0.12; --on-tile-lc: 0.97 0.015;
-    --danger: oklch(0.72 0.17 25); --on-danger: oklch(0.17 0.04 25);
-    --shadow: 0 1px 2px oklch(0 0 0 / 0.3); --lift: 0 14px 34px oklch(0 0 0 / 0.55); --scrim: oklch(0 0 0 / 0.6);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg-lc: 0.19 0.03; --surface-lc: 0.265 0.04; --sunk-lc: 0.15 0.028; --line-lc: 0.36 0.045;
-  --ink-lc: 0.95 0.02; --muted-lc: 0.75 0.045; --accent-lc: 0.8 0.12; --on-accent-lc: 0.18 0.04;
-  --tile-lc: 0.42 0.12; --on-tile-lc: 0.97 0.015;
-  --danger: oklch(0.72 0.17 25); --on-danger: oklch(0.17 0.04 25);
-  --shadow: 0 1px 2px oklch(0 0 0 / 0.3); --lift: 0 14px 34px oklch(0 0 0 / 0.55); --scrim: oklch(0 0 0 / 0.6);
+  --vv-h: 100dvh;                   /* visible height and offset, kept current from script (keyboard aware) */
+  --vv-top: 0px;
   color-scheme: dark;
 }
-/* Colours are composed where the hue is known: the root, and each tile or swatch with its own hue. */
+:root[data-theme="light"] {
+  --bg-lc: 0.955 0.03;
+  --glow-lc: 0.84 0.11;
+  --surface-lc: 0.992 0.006;
+  --surface-hi-lc: 1 0;
+  --surface-lo-lc: 0.975 0.012;
+  --sunk-lc: 0.918 0.038;
+  --line-lc: 0.84 0.05;
+  --ink-lc: 0.22 0.05;
+  --muted-lc: 0.45 0.055;
+  --accent-lc: 0.47 0.2;
+  --on-accent-lc: 0.99 0.008;
+  --danger: oklch(0.53 0.21 25);
+  --on-danger: oklch(0.99 0.01 25);
+  --edge: oklch(0.3 0.08 290 / 0.1);
+  --shine: oklch(1 0 0 / 0.9);
+  --glow-strength: 0.75;
+  --shadow: inset 0 1px 0 var(--shine), 0 10px 22px -12px oklch(0.3 0.12 290 / 0.35);
+  --lift: inset 0 1px 0 var(--shine), 0 22px 40px -12px oklch(0.3 0.12 290 / 0.45);
+  --scrim: oklch(0.2 0.06 290 / 0.45);
+  --grain: 0.045;
+  color-scheme: light;
+}
+/* Colours are composed where the hue is known: the root, and anything with its own hue. */
 :root, .hue {
   --bg: oklch(var(--bg-lc) var(--h));
   --surface: oklch(var(--surface-lc) var(--h));
+  --surface-hi: oklch(var(--surface-hi-lc) var(--h));
+  --surface-lo: oklch(var(--surface-lo-lc) var(--h));
   --sunk: oklch(var(--sunk-lc) var(--h));
   --line: oklch(var(--line-lc) var(--h));
   --ink: oklch(var(--ink-lc) var(--h));
@@ -58,7 +77,14 @@
   --accent: oklch(var(--accent-lc) var(--h));
   --on-accent: oklch(var(--on-accent-lc) var(--h));
   --tile: oklch(var(--tile-lc) var(--h));
+  --tile2: oklch(var(--tile2-lc) calc(var(--h) + 28));
   --on-tile: oklch(var(--on-tile-lc) var(--h));
+  --jewel: linear-gradient(140deg, var(--tile), var(--tile2));
+  --jewel-glow: oklch(var(--tile-lc) var(--h) / 0.5);
+  --room:
+    radial-gradient(130% 62% at 12% -6%, oklch(var(--glow-lc) var(--h) / var(--glow-strength)), transparent 64%),
+    radial-gradient(95% 50% at 110% 102%, oklch(var(--glow-lc) calc(var(--h) + 42) / calc(var(--glow-strength) * 0.55)), transparent 66%),
+    var(--bg);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -66,166 +92,186 @@ html {
   height: 100%;
   padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
   background: var(--bg);
-  transition: background-color 0.4s var(--ease);
   -webkit-text-size-adjust: 100%;
 }
 body {
   height: 100%; margin: 0; overflow: hidden;
   background: var(--bg); color: var(--ink);
   font: 400 1.0625rem/1.4 var(--font-body);
-  transition: background-color 0.4s var(--ease);
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
 }
+/* A whisper of film grain over everything keeps the gradients from looking flat. */
+body::after {
+  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: var(--grain); mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; touch-action: manipulation; }
-h1, h2, p, ol, dl, dd, fieldset { margin: 0; padding: 0; border: 0; }
-ol { list-style: none; }
+h1, h2, h3, p, ol, ul, dl, dd, fieldset { margin: 0; padding: 0; border: 0; }
+ol, ul { list-style: none; }
 [hidden] { display: none !important; }
 svg { width: 24px; height: 24px; flex: none; display: block; }
 .sprite { position: absolute; width: 0; height: 0; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; background: var(--sunk); }
+kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; background: var(--sunk); border: 1px solid var(--edge); }
 
 /* ---------- panes ---------- */
 #app { position: relative; height: 100%; overflow: hidden; }
 .pane {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  transition: transform 0.34s var(--ease), opacity 0.34s var(--ease), visibility 0s linear 0.34s;
+  position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--room);
+  transition: transform 0.36s var(--ease), opacity 0.36s var(--ease), visibility 0s linear 0.36s;
 }
-#app[data-view="list"] #home { transform: translateX(-24%); opacity: 0; visibility: hidden; }
+#app[data-view="list"] #home { transform: translateX(-22%) scale(0.96); opacity: 0; visibility: hidden; }
 #app[data-view="home"] #list { transform: translateX(100%); visibility: hidden; }
 #app[data-view="home"] #home, #app[data-view="list"] #list { transition-delay: 0s; }
+/* sideways list switching: the open list and the incoming one travel together */
+#list { touch-action: pan-y pinch-zoom; }
+.pane.ghost { z-index: 1; pointer-events: none; }
+.pane.nav-drag { transition: none !important; }
+.pane.nav-settle { transition: transform 0.34s var(--ease) !important; }
 .bar {
-  display: flex; align-items: center; gap: 4px; min-height: 64px;
-  padding: 8px max(8px, env(safe-area-inset-right, 0px)) 4px max(8px, env(safe-area-inset-left, 0px));
-  touch-action: pan-y;
+  display: flex; align-items: center; gap: 4px; min-height: 68px;
+  padding: 10px max(8px, env(safe-area-inset-right, 0px)) 4px max(8px, env(safe-area-inset-left, 0px));
 }
 .scroll {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; position: relative;
-  padding: 4px max(16px, env(safe-area-inset-right, 0px)) 120px max(16px, env(safe-area-inset-left, 0px));
-  scrollbar-width: thin;
+  padding: 6px max(16px, env(safe-area-inset-right, 0px)) 128px max(16px, env(safe-area-inset-left, 0px));
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 }
 .icon-btn {
   width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--ink);
+  transition: background-color 0.2s, transform 0.2s var(--spring);
 }
-.icon-btn:hover { background: var(--sunk); }
-.icon-btn:active { transform: scale(0.92); }
+.icon-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); }
+.icon-btn:active { transform: scale(0.88); }
 
 /* ---------- home ---------- */
-.brand { flex: 1; display: flex; align-items: center; gap: 8px; padding-left: 8px;
-  font: 700 1.375rem/1 var(--font-display); letter-spacing: -0.02em; }
-.mark { width: 32px; height: 32px; color: var(--accent); }
-.tiles { display: grid; gap: 10px; }
+.brand { flex: 1; display: flex; align-items: center; gap: 10px; padding-left: 8px;
+  font: 800 1.5rem/1 var(--font-display); letter-spacing: -0.03em; }
+.mark { width: 38px; height: 38px; filter: drop-shadow(0 4px 10px oklch(0.75 0.16 60 / 0.35)); }
+.tiles { display: grid; gap: 12px; }
+.tile-row { position: relative; border-radius: 26px; background: var(--accent); color: var(--on-accent); }
+.tile-row[data-swipe="delete"] { background: var(--danger); color: var(--on-danger); }
 .tile {
-  position: relative; display: flex; align-items: stretch; border-radius: 22px;
-  background: var(--tile); color: var(--on-tile); box-shadow: var(--shadow);
-  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+  position: relative; display: flex; align-items: stretch; min-height: 92px; border-radius: 26px; overflow: hidden;
+  background: var(--jewel); color: var(--on-tile);
+  border: 1px solid oklch(1 0 0 / 0.16);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 -18px 30px -18px oklch(0 0 0 / 0.35), 0 16px 30px -14px var(--jewel-glow);
+  touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: box-shadow 0.25s;
+}
+/* a cut-gem highlight across the top-left corner */
+.tile::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(118deg, oklch(1 0 0 / 0.26) 0%, oklch(1 0 0 / 0.06) 34%, transparent 34.2%), radial-gradient(60% 90% at 100% 100%, oklch(0 0 0 / 0.22), transparent 70%);
 }
 .tile-open {
-  flex: 1; min-width: 0; text-align: left; padding: 18px 4px 18px 20px; border-radius: 22px 0 0 22px;
-  display: grid; gap: 2px; color: inherit;
+  position: relative; flex: 1; min-width: 0; text-align: left; padding: 20px 4px 20px 22px; display: grid; gap: 4px; align-content: center; color: inherit;
 }
-.tile-name { font: 700 1.375rem/1.15 var(--font-display); letter-spacing: -0.02em; overflow-wrap: anywhere; text-wrap: balance; }
-.tile-count { font-size: 0.875rem; opacity: 0.86; }
-.tile[aria-current="true"]::after {
-  content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 22px; margin-top: -11px;
-  border-radius: 3px; background: var(--on-tile); opacity: 0.9;
+.tile-name { font: 800 1.5rem/1.1 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; text-wrap: balance; text-shadow: 0 1px 12px oklch(0 0 0 / 0.25); }
+.tile-count { font-size: 0.875rem; font-weight: 600; opacity: 0.9; font-variant-numeric: tabular-nums; }
+.tile-row[aria-current="true"] .tile::after {
+  content: ""; position: absolute; left: 9px; top: 50%; width: 5px; height: 26px; margin-top: -13px;
+  border-radius: 3px; background: var(--on-tile); box-shadow: 0 0 12px var(--on-tile);
 }
-.tile:has(.tile-open:active) { transform: scale(0.98); }
-.tile :focus-visible { outline-color: var(--on-tile); outline-offset: -5px; }
+.tile:has(.tile-open:active) { box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 0 40px oklch(0 0 0 / 0.3), 0 6px 14px -10px var(--jewel-glow); }
+.tile :focus-visible { outline-color: var(--on-tile); outline-offset: -6px; border-radius: 22px; }
 .handle {
-  width: 48px; display: grid; place-items: center; flex: none; touch-action: none; cursor: grab;
-  color: inherit; opacity: 0.55; border-radius: 12px;
+  position: relative; width: 48px; display: grid; place-items: center; flex: none; touch-action: none; cursor: grab;
+  color: inherit; opacity: 0.6; border-radius: 12px;
 }
 .handle:hover, .handle:focus-visible { opacity: 1; }
 .ghost-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; margin-top: 10px;
-  border-radius: 22px; border: 2px dashed var(--line); color: var(--muted); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 60px; margin-top: 12px;
+  border-radius: 26px; border: 2px dashed var(--line); color: var(--muted); font-weight: 700;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
 }
-.ghost-btn:hover { color: var(--ink); border-color: var(--muted); }
+.ghost-btn:hover { color: var(--ink); border-color: var(--muted); background: oklch(var(--ink-lc) var(--h) / 0.05); }
 .fineprint { margin-top: 20px; font-size: 0.8125rem; color: var(--muted); text-align: center; }
+.link-btn { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 4px; }
 
 /* ---------- list header ---------- */
 .bar-title { flex: 1; min-width: 0; padding: 0 4px; }
-#title {
-  font: 800 1.75rem/1.1 var(--font-display); letter-spacing: -0.03em;
+.title {
+  font: 800 2.125rem/1.04 var(--font-display); letter-spacing: -0.04em;
   overflow-wrap: anywhere; text-wrap: balance; outline: none;
+  text-shadow: 0 2px 22px oklch(var(--glow-lc) var(--h) / 0.55);
 }
-#count { font-size: 0.875rem; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
-#pager { display: flex; justify-content: center; flex-wrap: wrap; min-height: 12px; padding: 0 16px; touch-action: pan-y; }
-#pager button { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; }
-#pager button::before {
-  content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--line);
-  transition: width 0.25s var(--spring), background-color 0.25s;
+.count { font-size: 0.875rem; font-weight: 600; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.pager { display: flex; justify-content: center; flex-wrap: wrap; min-height: 12px; padding: 0 16px; }
+.pager button, .pager span { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; }
+.pager button::before, .pager span::before {
+  content: ""; width: 8px; height: 8px; border-radius: 4px; background: oklch(var(--ink-lc) var(--h) / 0.28);
+  transition: width 0.3s var(--spring), background-color 0.25s, box-shadow 0.25s;
 }
-#pager button[aria-current="true"]::before { width: 20px; background: var(--accent); }
-#content.swap-next { animation: swap-next 0.3s var(--ease); }
-#content.swap-prev { animation: swap-prev 0.3s var(--ease); }
-@keyframes swap-next { from { opacity: 0; transform: translateX(28px); } }
-@keyframes swap-prev { from { opacity: 0; transform: translateX(-28px); } }
+.pager [aria-current="true"]::before { width: 22px; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
 
 /* ---------- capture ---------- */
 #pull {
   position: absolute; left: 0; right: 0; top: 0; height: 56px; opacity: 0; pointer-events: none;
-  display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-weight: 700;
 }
 #pull svg { transition: transform 0.25s var(--spring); }
-#pull.armed { color: var(--accent); }
-#pull.armed svg { transform: rotate(90deg) scale(1.2); }
+#pull.armed { color: var(--accent); text-shadow: 0 0 16px var(--accent); }
+#pull.armed svg { transform: rotate(90deg) scale(1.25); }
 #content.settle { transition: transform 0.3s var(--ease); }
-#capture {
-  display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 0 6px 0 14px; margin-bottom: 10px;
-  border-radius: var(--r-row); background: var(--sunk); border: 2px solid transparent;
-  transition: border-color 0.2s, background-color 0.2s;
+.capture {
+  display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 6px 0 16px; margin-bottom: 12px;
+  border-radius: var(--r-row); background: oklch(var(--sunk-lc) var(--h) / 0.72); border: 1.5px solid var(--edge);
+  box-shadow: inset 0 2px 8px oklch(0 0 0 / 0.22);
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.25s;
 }
-#capture:focus-within { border-color: var(--accent); background: var(--surface); }
-.capture-plus { color: var(--muted); }
-#capture:focus-within .capture-plus { color: var(--accent); }
-#thought { flex: 1; min-width: 0; height: 52px; border: 0; background: none; outline: none; padding: 0 8px; }
-#thought::placeholder { color: var(--muted); opacity: 1; }
+.capture:focus-within { border-color: var(--accent); background: var(--sunk); box-shadow: inset 0 2px 8px oklch(0 0 0 / 0.2), 0 0 0 4px oklch(var(--accent-lc) var(--h) / 0.2), 0 10px 30px -12px var(--accent); }
+.capture-plus { color: var(--muted); transition: color 0.2s, transform 0.3s var(--spring); }
+.capture:focus-within .capture-plus { color: var(--accent); transform: rotate(90deg); }
+.capture input, .capture .mock { flex: 1; min-width: 0; height: 56px; border: 0; background: none; outline: none; padding: 0 8px; }
+.capture .mock { display: flex; align-items: center; color: var(--muted); }
+.capture input::placeholder { color: var(--muted); opacity: 1; }
 #add-btn {
-  min-height: 40px; padding: 0 16px; border-radius: 12px; background: var(--accent); color: var(--on-accent);
-  font-weight: 700; transform: scale(0.6); opacity: 0; visibility: hidden;
+  min-height: 42px; padding: 0 18px; border-radius: 13px; background: var(--jewel); color: var(--on-tile);
+  font-weight: 700; transform: scale(0.6); opacity: 0; visibility: hidden; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 8px 18px -8px var(--jewel-glow);
   transition: transform 0.22s var(--spring), opacity 0.15s, visibility 0s linear 0.22s;
 }
-#capture.has-text #add-btn { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
+.capture.has-text #add-btn { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
 
 /* ---------- rows ---------- */
-.rows { display: grid; gap: 8px; }
-.row { position: relative; border-radius: var(--r-row); background: var(--accent); color: var(--on-accent); }
+.rows { display: grid; gap: 9px; }
+.row { position: relative; border-radius: var(--r-row); background: var(--jewel); color: var(--on-tile); }
 .row[data-swipe="delete"] { background: var(--danger); color: var(--on-danger); }
-.row[data-swipe] { overflow: hidden; }
-.reveal { position: absolute; top: 0; bottom: 0; width: 72px; display: grid; place-items: center; opacity: 0; }
+.row[data-swipe], .tile-row[data-swipe] { overflow: hidden; }
+.reveal { position: absolute; top: 0; bottom: 0; width: 76px; display: grid; place-items: center; opacity: 0; }
 .reveal svg { transition: transform 0.2s var(--spring); }
 .reveal.left { left: 0; } .reveal.right { right: 0; }
-.row[data-swipe="complete"] .reveal.left, .row[data-swipe="delete"] .reveal.right { opacity: 1; }
-.row[data-armed] .reveal svg { transform: scale(1.4); }
+[data-swipe="complete"] > .reveal.left, [data-swipe="delete"] > .reveal.right { opacity: 1; }
+[data-armed] > .reveal svg { transform: scale(1.45); }
 .card {
-  position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr) 44px; align-items: start; min-height: 56px;
-  border-radius: var(--r-row); background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
-  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) 44px; align-items: start; min-height: 60px;
+  border-radius: var(--r-row); background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); color: var(--ink);
+  border: 1px solid var(--edge); box-shadow: var(--shadow);
+  touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
-.card.spring { transition: transform 0.32s var(--spring); }
-.card.fling { transition: transform 0.2s ease-in; }
-.check { width: 48px; height: 56px; display: grid; place-items: center; cursor: pointer; }
+.spring { transition: transform 0.34s var(--spring); }
+.fling { transition: transform 0.2s ease-in; }
+.check { width: 50px; height: 58px; display: grid; place-items: center; cursor: pointer; }
 .check input {
-  appearance: none; -webkit-appearance: none; margin: 0; width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
-  border: 2.5px solid var(--muted); background: transparent; display: grid; place-items: center;
-  transition: background-color 0.15s, border-color 0.15s;
+  appearance: none; -webkit-appearance: none; margin: 0; width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  border: 2.5px solid oklch(var(--muted-lc) var(--h) / 0.75); background: oklch(0 0 0 / 0.12); display: grid; place-items: center;
+  box-shadow: inset 0 2px 4px oklch(0 0 0 / 0.25);
+  transition: border-color 0.15s, box-shadow 0.2s;
 }
 .check input::after {
-  content: ""; width: 11px; height: 6px; margin-top: -3px; border: solid var(--on-accent); border-width: 0 0 2.6px 2.6px;
-  transform: rotate(-45deg) scale(0); transition: transform 0.2s var(--spring);
+  content: ""; width: 12px; height: 6.5px; margin-top: -3px; border: solid var(--on-tile); border-width: 0 0 2.8px 2.8px;
+  transform: rotate(-45deg) scale(0); transition: transform 0.22s var(--spring);
 }
-.check input:checked { background: var(--accent); border-color: var(--accent); }
+.check input:checked { background: var(--jewel); border-color: transparent; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.35), 0 0 16px var(--jewel-glow); }
 .check input:checked::after { transform: rotate(-45deg) scale(1); }
 .check input:hover { border-color: var(--accent); }
-.row.completing .check input { animation: pop 0.34s var(--spring); }
-@keyframes pop { 40% { transform: scale(1.28); } }
+.row.completing .check input { animation: pop 0.36s var(--spring); }
+@keyframes pop { 40% { transform: scale(1.32); } }
 .text {
-  text-align: left; padding: 15px 2px 15px 0; min-height: 56px; width: 100%; border-radius: 8px;
+  text-align: left; padding: 17px 2px 17px 0; min-height: 58px; width: 100%; border-radius: 8px;
   white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; user-select: none; -webkit-user-select: none;
 }
 .text .t {
@@ -234,162 +280,212 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   transition: background-size 0.28s var(--ease), color 0.28s;
 }
 .row.completing .text .t, .row[data-done] .text .t { background-size: 100% 2px; color: var(--muted); }
-.row .handle { height: 56px; width: 44px; color: var(--muted); }
-.row.entering { animation: arrive 0.36s var(--spring); }
-@keyframes arrive { from { opacity: 0; transform: translateY(-14px) scale(0.96); } }
+.row .handle { height: 58px; width: 44px; color: var(--muted); }
+.row.entering { animation: arrive 0.4s var(--spring); }
+@keyframes arrive { from { opacity: 0; transform: translateY(-16px) scale(0.94); } }
 .dragging { z-index: 5; }
-.dragging .card, .tile.dragging { box-shadow: var(--lift); }
+.dragging .card, .dragging .tile { box-shadow: var(--lift), 0 0 0 1.5px var(--accent); }
 .sorting > :not(.dragging) { transition: transform 0.22s var(--ease); }
 .is-dragging, .is-dragging * { cursor: grabbing !important; }
 
 /* done rows are quieter and sit lower */
-.row[data-done] .card { background: var(--sunk); box-shadow: none; color: var(--muted); }
+.row[data-done] .card { background: oklch(var(--sunk-lc) var(--h) / 0.6); box-shadow: none; color: var(--muted); }
 .row[data-done] .text { cursor: default; }
-.row-x { width: 44px; height: 56px; display: grid; place-items: center; color: var(--muted); }
+.row-x { width: 44px; height: 58px; display: grid; place-items: center; color: var(--muted); }
 .row-x:hover { color: var(--danger); }
 
 /* editing in place */
-.card.editing { grid-template-columns: 48px minmax(0, 1fr); box-shadow: 0 0 0 2px var(--accent), var(--shadow); user-select: auto; -webkit-user-select: auto; }
+.card.editing { grid-template-columns: 50px minmax(0, 1fr); box-shadow: 0 0 0 2px var(--accent), 0 0 30px -6px var(--accent), var(--shadow); user-select: auto; -webkit-user-select: auto; }
 .edit-text {
   width: 100%; border: 0; outline: none; background: none; resize: none; overflow: hidden;
-  padding: 15px 14px 6px 0; min-height: 50px; line-height: 1.4; field-sizing: content;
+  padding: 17px 14px 6px 0; min-height: 52px; line-height: 1.4; field-sizing: content;
 }
 .edit-tools { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 8px 8px; }
 .edit-tools button {
   display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px; border-radius: 12px;
   font-size: 0.875rem; font-weight: 600; color: var(--muted);
 }
-.edit-tools button:hover:not(:disabled) { background: var(--sunk); color: var(--ink); }
+.edit-tools button:hover:not(:disabled) { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
 .edit-tools button:disabled { opacity: 0.35; cursor: default; }
 .edit-tools svg { width: 20px; height: 20px; }
 .edit-tools .tool-delete:hover { color: var(--danger); }
-.edit-tools .tool-save { margin-left: auto; background: var(--accent); color: var(--on-accent); padding: 0 18px; }
-.edit-tools .tool-save:hover { background: var(--accent); color: var(--on-accent); filter: brightness(1.08); }
+.edit-tools .tool-save, .edit-tools .tool-save:hover:not(:disabled) { margin-left: auto; background: var(--jewel); color: var(--on-tile); padding: 0 18px; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3); }
 
 /* ---------- done section + empty ---------- */
-.done-head { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; min-height: 48px; }
-#done-toggle, #clear-done { min-height: 44px; padding: 0 12px; border-radius: 12px; font-size: 0.9375rem; font-weight: 600; color: var(--muted); }
-#done-toggle { display: flex; align-items: center; gap: 6px; margin-left: -4px; }
-#done-toggle::before {
+.done-head { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; min-height: 48px; }
+#done-toggle, #clear-done, .done-mock { min-height: 44px; padding: 0 12px; border-radius: 12px; font-size: 0.9375rem; font-weight: 700; color: var(--muted); }
+#done-toggle, .done-mock { display: flex; align-items: center; gap: 6px; margin-left: -4px; }
+#done-toggle::before, .done-mock::before {
   content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2.4px 2.4px 0;
   transform: rotate(-45deg); transition: transform 0.2s var(--ease);
 }
 #done-toggle[aria-expanded="true"]::before { transform: rotate(45deg) translate(-2px, -2px); }
-#done-toggle:hover, #clear-done:hover { background: var(--sunk); color: var(--ink); }
+#done-toggle:hover, #clear-done:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
 #done { margin-top: 4px; }
-#empty { display: grid; justify-items: center; gap: 6px; padding: 40px 12px 16px; text-align: center; position: relative; }
+.empty { display: grid; justify-items: center; gap: 6px; padding: 44px 12px 16px; text-align: center; position: relative; }
 .empty-art {
-  width: 84px; height: 84px; border-radius: 30px; display: grid; place-items: center; margin-bottom: 10px;
-  background: var(--sunk); color: var(--accent); transform: rotate(-6deg);
+  width: 96px; height: 96px; border-radius: 32px; display: grid; place-items: center; margin-bottom: 12px;
+  background: linear-gradient(150deg, var(--surface-hi), var(--surface-lo)); border: 1px solid var(--edge);
+  box-shadow: var(--shadow), 0 0 60px -6px oklch(var(--glow-lc) var(--h) / 0.8); transform: rotate(-6deg);
 }
-.empty-art svg { width: 48px; height: 48px; }
-#empty.cheer .empty-art { animation: cheer 0.6s var(--spring); }
-@keyframes cheer { 0% { transform: rotate(-6deg) scale(0.5); } 60% { transform: rotate(8deg) scale(1.12); } }
-#empty h2 { font: 700 1.375rem/1.2 var(--font-display); letter-spacing: -0.02em; }
-#empty p { color: var(--muted); max-width: 30ch; text-wrap: balance; }
+.empty-art svg { width: 58px; height: 58px; }
+.empty.cheer .empty-art { animation: cheer 0.7s var(--spring); }
+@keyframes cheer { 0% { transform: rotate(-6deg) scale(0.4); } 60% { transform: rotate(9deg) scale(1.15); } }
+.empty h2 { font: 800 1.5rem/1.2 var(--font-display); letter-spacing: -0.03em; }
+.empty p { color: var(--muted); max-width: 30ch; text-wrap: balance; }
 .bit {
-  position: absolute; left: 50%; top: 82px; width: 9px; height: 9px; border-radius: 3px; pointer-events: none;
-  background: oklch(0.72 0.16 var(--bh)); animation: bit 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+  position: absolute; left: 50%; top: 92px; width: 9px; height: 9px; border-radius: 3px; pointer-events: none;
+  background: oklch(0.82 0.16 var(--bh)); box-shadow: 0 0 10px oklch(0.82 0.16 var(--bh)); animation: bit 0.9s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
 }
 @keyframes bit { to { transform: translate(var(--bx), var(--by)) rotate(var(--br)); opacity: 0; } }
 
 /* ---------- floating add button + toast ---------- */
 #fab {
-  position: absolute; right: max(20px, env(safe-area-inset-right, 0px)); bottom: 20px; width: 60px; height: 60px; border-radius: 22px;
-  display: grid; place-items: center; background: var(--accent); color: var(--on-accent); box-shadow: var(--lift);
-  transition: transform 0.25s var(--spring), opacity 0.2s, visibility 0s;
+  position: absolute; z-index: 3; right: max(20px, env(safe-area-inset-right, 0px)); bottom: 22px; width: 64px; height: 64px; border-radius: 24px;
+  display: grid; place-items: center; background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.2);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), inset 0 -10px 18px -10px oklch(0 0 0 / 0.4), 0 16px 34px -8px var(--jewel-glow), 0 6px 16px oklch(0 0 0 / 0.4);
+  transition: transform 0.28s var(--spring), opacity 0.2s, visibility 0s;
 }
-#fab svg { width: 28px; height: 28px; }
-#fab:active { transform: scale(0.9) rotate(90deg); }
-#list:has(#capture:focus-within) #fab, #list:has(.card.editing) #fab { transform: scale(0.4); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 0.25s; }
+#fab svg { width: 30px; height: 30px; filter: drop-shadow(0 1px 2px oklch(0 0 0 / 0.3)); }
+#fab:active { transform: scale(0.88) rotate(90deg); }
+#app[data-view="home"] #fab, #app:has(#capture:focus-within) #fab, #app:has(.card.editing) #fab { transform: scale(0.4); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 0.28s; }
 #toast {
-  position: absolute; left: 50%; bottom: 20px; z-index: 20; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 22px; z-index: 20; transform: translateX(-50%);
   display: flex; align-items: center; gap: 4px; max-width: min(440px, calc(100% - 32px)); width: max-content;
-  padding: 4px 4px 4px 18px; min-height: 52px; border-radius: 18px;
-  background: var(--ink); color: var(--bg); box-shadow: var(--lift); font-size: 0.9375rem;
-  animation: toast-in 0.3s var(--spring);
+  padding: 4px 4px 4px 18px; min-height: 54px; border-radius: 20px;
+  background: oklch(var(--ink-lc) var(--h) / 0.94); color: var(--bg); box-shadow: 0 18px 40px -10px oklch(0 0 0 / 0.7); font-size: 0.9375rem; font-weight: 600;
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  animation: toast-in 0.32s var(--spring);
 }
 #toast-text { flex: 1; min-width: 0; padding: 8px 8px 8px 0; }
-#toast-undo { min-height: 44px; padding: 0 16px; border-radius: 14px; font-weight: 700; color: inherit; background: oklch(0.6 0.02 290 / 0.28); flex: none; }
+#toast-undo { min-height: 44px; padding: 0 16px; border-radius: 15px; font-weight: 800; color: inherit; background: oklch(var(--bg-lc) var(--h) / 0.16); flex: none; }
 #toast-undo:focus-visible { outline-color: var(--bg); }
-@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 16px) scale(0.94); } }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 18px) scale(0.92); } }
+@media (max-width: 899px) { #app[data-view="list"] #toast { bottom: 98px; } }
 
-/* ---------- dialogs ---------- */
-dialog {
-  border: 0; padding: 22px; border-radius: 26px; width: min(440px, calc(100vw - 24px)); max-height: calc(100% - 24px);
-  background: var(--surface); color: var(--ink); box-shadow: var(--lift); margin-top: max(12px, 9vh);
+/* ---------- sheets (dialogs): fixed header, scrolling middle, pinned actions ---------- */
+dialog.sheet {
+  position: fixed; inset: auto 0 auto 0; top: calc(var(--vv-top) + 12px); margin: 0 auto; padding: 0;
+  width: min(460px, calc(100vw - 24px)); max-height: calc(var(--vv-h) - 24px);
+  border: 1px solid var(--edge); border-radius: 28px; overflow: hidden;
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); color: var(--ink);
+  box-shadow: var(--lift), 0 0 80px -20px oklch(var(--glow-lc) var(--h) / 0.7);
 }
-dialog::backdrop { background: var(--scrim); }
-dialog[open] { animation: sheet 0.28s var(--ease); }
-@keyframes sheet { from { opacity: 0; transform: translateY(-14px) scale(0.97); } }
-dialog h2 { font: 700 1.5rem/1.15 var(--font-display); letter-spacing: -0.02em; margin-bottom: 16px; }
+dialog.sheet[open] { display: flex; animation: sheet 0.3s var(--ease); }
+dialog.sheet.tall { height: calc(var(--vv-h) - 24px); max-height: 760px; }
+dialog.sheet::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+@keyframes sheet { from { opacity: 0; transform: translateY(-16px) scale(0.96); } }
+.sheet-frame { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 8px 6px 22px; }
+.sheet-head h2 { flex: 1; min-width: 0; }
+.sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 22px 18px; outline: none; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.sheet-body:first-child { padding-top: 24px; }
+.sheet-foot {
+  flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--edge); background: oklch(var(--sunk-lc) var(--h) / 0.7);
+}
+.sheet-foot .note { flex: 1; min-width: 0; }
+dialog h2 { font: 800 1.5rem/1.15 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+dialog h3 { font: 800 1.0625rem/1.2 var(--font-display); letter-spacing: -0.01em; margin: 24px 0 10px; }
+dialog section:first-child > h3 { margin-top: 6px; }
 dialog label, dialog legend { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
-#list-name { width: 100%; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); outline: none; }
-#list-name:focus { border-color: var(--accent); }
-dialog fieldset { margin-top: 16px; }
+.lead { margin-top: 10px; color: var(--muted); line-height: 1.5; }
+.field { width: 100%; height: 54px; padding: 0 14px; border-radius: 15px; border: 1.5px solid var(--line); background: var(--sunk); outline: none; margin-bottom: 10px; box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.18); }
+.field:focus { border-color: var(--accent); box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.18), 0 0 0 4px oklch(var(--accent-lc) var(--h) / 0.2); }
+.field::placeholder { color: var(--muted); opacity: 1; }
+dialog fieldset { margin-top: 12px; }
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
-.swatch { position: relative; width: 48px; height: 48px; display: grid; place-items: center; cursor: pointer; }
-.swatch input { appearance: none; -webkit-appearance: none; margin: 0; width: 38px; height: 38px; border-radius: 50%; background: var(--tile); cursor: pointer; transition: transform 0.2s var(--spring); }
-.swatch input:checked { transform: scale(0.82); box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--tile); }
-.swatch input:focus-visible { outline: 3px solid var(--ink); outline-offset: 7px; }
-.error { color: var(--danger); font-size: 0.875rem; min-height: 1.3em; margin-top: 8px; }
+.swatch { position: relative; width: 50px; height: 50px; display: grid; place-items: center; cursor: pointer; }
+.swatch input { appearance: none; -webkit-appearance: none; margin: 0; width: 40px; height: 40px; border-radius: 50%; background: var(--jewel); cursor: pointer; border: 1px solid oklch(1 0 0 / 0.2); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), 0 6px 14px -6px var(--jewel-glow); transition: transform 0.2s var(--spring); }
+.swatch input:checked { transform: scale(0.8); box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--tile), 0 0 18px var(--jewel-glow); }
+.swatch input:focus-visible { outline: 3px solid var(--ink); outline-offset: 8px; }
+.error { color: var(--danger); font-size: 0.875rem; min-height: 1.3em; margin-top: 4px; }
 .dialog-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .spacer { flex: 1; }
-.solid-btn, .quiet-btn, .danger-text { min-height: 48px; padding: 0 18px; border-radius: 14px; font-weight: 700; }
-.solid-btn { background: var(--accent); color: var(--on-accent); }
-.solid-btn.danger { background: var(--danger); color: var(--on-danger); }
+.solid-btn, .quiet-btn, .danger-text { min-height: 50px; padding: 0 20px; border-radius: 16px; font-weight: 800; transition: transform 0.15s var(--spring), filter 0.15s; }
+.solid-btn { background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.18); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.35), 0 10px 22px -10px var(--jewel-glow); }
+.solid-btn:active, .quiet-btn:active { transform: scale(0.95); }
+.solid-btn:disabled { filter: saturate(0.3) brightness(0.8); cursor: default; }
+.solid-btn.danger { background: var(--danger); color: var(--on-danger); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 10px 22px -10px var(--danger); }
 .quiet-btn { color: var(--muted); }
-.quiet-btn:hover { background: var(--sunk); color: var(--ink); }
+.quiet-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
 .danger-text { color: var(--danger); padding: 0 10px; }
 .danger-text:disabled { opacity: 0.4; cursor: default; }
-.confirm { margin-top: 14px; padding: 14px; border-radius: 16px; background: var(--bg); }
+.confirm { margin-top: 14px; padding: 14px; border-radius: 18px; background: var(--sunk); border: 1px solid var(--edge); }
 .note { font-size: 0.875rem; color: var(--muted); line-height: 1.5; }
-.stack { display: grid; gap: 6px; margin: 16px 0 4px; }
-.row-btn { min-height: 52px; padding: 0 16px; border-radius: 14px; background: var(--bg); text-align: left; font-weight: 600; }
-.row-btn:hover { background: var(--sunk); }
-dialog { overflow-y: auto; overscroll-behavior: contain; }
-dialog h3 { font: 700 1.0625rem/1.2 var(--font-display); margin: 22px 0 8px; }
-.field { width: 100%; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); outline: none; margin-bottom: 10px; }
-.field:focus { border-color: var(--accent); }
+.stack { display: grid; gap: 8px; margin: 12px 0 4px; }
+.row-btn { min-height: 54px; padding: 0 16px; border-radius: 16px; background: var(--sunk); border: 1px solid var(--edge); text-align: left; font-weight: 700; }
+.row-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); }
 #login-form .note { margin-bottom: 12px; }
-.copy-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 4px 4px 14px; border-radius: 14px; background: var(--bg); }
+.copy-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 4px 4px 14px; border-radius: 16px; background: var(--sunk); border: 1px solid var(--edge); }
 .copy-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; }
 .connections { display: grid; gap: 6px; margin-top: 8px; }
-.connections li { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--bg); }
+.connections li { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--sunk); border: 1px solid var(--edge); }
+.connections li.note { padding: 12px 14px; }
 .connections li > span { flex: 1; min-width: 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
 .connections small { display: block; color: var(--muted); }
-.link-btn { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 4px; }
-details { margin-top: 14px; }
-summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--muted); border-radius: 10px; }
+/* settings rows */
+.setting { display: flex; align-items: center; gap: 14px; min-height: 60px; padding: 10px 14px; margin-bottom: 8px; border-radius: 18px; background: var(--sunk); border: 1px solid var(--edge); }
+.setting > span { flex: 1; min-width: 0; font-weight: 700; }
+.setting small { display: block; font-weight: 400; font-size: 0.8125rem; color: var(--muted); margin-top: 2px; }
+.setting.stacked { display: block; margin-top: 0; }
+.setting.stacked legend { float: left; width: 100%; font-size: 1.0625rem; color: var(--ink); margin-bottom: 10px; }
+.switch {
+  position: relative; flex: none; width: 60px; height: 36px; border-radius: 18px; background: oklch(var(--ink-lc) var(--h) / 0.16); border: 1px solid var(--edge);
+  box-shadow: inset 0 2px 5px oklch(0 0 0 / 0.3); transition: background-color 0.2s;
+}
+.switch::before { content: ""; position: absolute; inset: -6px 0; }      /* taller touch target */
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; background: oklch(0.97 0.01 290);
+  box-shadow: 0 2px 6px oklch(0 0 0 / 0.4); transition: transform 0.25s var(--spring);
+}
+.switch[aria-checked="true"] { background: var(--jewel); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 0 18px -4px var(--jewel-glow); }
+.switch[aria-checked="true"]::after { transform: translateX(24px); }
+.segmented { clear: both; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 15px; background: oklch(0 0 0 / 0.16); }
+.segmented label { margin: 0; position: relative; }
+.segmented input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.segmented span { display: grid; place-items: center; min-height: 44px; padding: 0 6px; border-radius: 12px; font-size: 0.875rem; font-weight: 700; color: var(--muted); text-align: center; transition: background-color 0.2s, color 0.2s; }
+.segmented input:checked + span { background: linear-gradient(180deg, var(--surface-hi), var(--surface)); color: var(--ink); box-shadow: var(--shadow); }
+.segmented input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 1px; }
+details { margin-top: 18px; }
+summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 700; color: var(--muted); border-radius: 10px; }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 0.875rem; line-height: 1.5; padding: 4px 0 8px; }
 .keys dt { font-weight: 700; }
 .keys dd { color: var(--muted); }
 
 /* ---------- wide screens: lists become a sidebar ---------- */
 @media (min-width: 900px) {
-  #app { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+  #app { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
   .pane { position: relative; inset: auto; min-height: 0; }
   #app[data-view] #home, #app[data-view] #list { transform: none; opacity: 1; visibility: visible; }
-  #home { background: var(--sunk); transition: background-color 0.4s var(--ease); }
+  #home { border-right: 1px solid var(--edge); }
   #list { align-items: center; }
   #list > * { width: min(100%, 720px); }
-  #list-bar { padding-top: 28px; }
-  #back, #fab { display: none; }
-  #title { font-size: 2.5rem; }
+  #list-bar { padding-top: 30px; }
+  #back, #fab, .pane.ghost { display: none; }
+  .title { font-size: 2.75rem; }
   .bar-title { padding-left: 16px; }
-  #pager { display: none; }
+  .pager { display: none; }
   .scroll { padding-top: 12px; }
+  dialog.sheet { top: max(12px, 9vh); }
+  dialog.sheet.tall { max-height: min(760px, calc(100vh - 18vh)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* keep the toast clear of the floating add button on phones */
-@media (max-width: 899px) { #app[data-view="list"] #toast { bottom: 92px; } }
+/* small refinements */
+#login-form .dialog-actions { flex-wrap: nowrap; }
+#login-form .dialog-actions .quiet-btn { padding: 0 12px; min-width: 0; }
+:root[data-theme="light"] .mark, :root[data-theme="light"] .empty-art svg { filter: drop-shadow(0 2px 3px oklch(0.55 0.2 40 / 0.55)); }
 </style>
 <svg class="sprite" aria-hidden="true" focusable="false">
-  <symbol id="i-mark" viewBox="0 0 32 32"><circle cx="15" cy="15" r="9.5" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M14.5 20.5l4.2 4.6 9-11.4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <defs>
+    <linearGradient id="g-metal" x1="18%" y1="8%" x2="86%" y2="96%"><stop offset="0" stop-color="#fff6e0"/><stop offset=".38" stop-color="#ffd27a"/><stop offset=".72" stop-color="#ff9f6b"/><stop offset="1" stop-color="#ff6fae"/></linearGradient>
+  </defs>
+  <symbol id="i-mark" viewBox="0 0 32 32"><g fill="none" stroke="url(#g-metal)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.2" cy="14.6" r="8.6"/><path d="M14.5 18.9l4.4 5.1 8.6-11.1"/></g></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.7L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
   <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -406,7 +502,7 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   <section id="home" class="pane" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
-      <button id="open-settings" class="icon-btn" type="button" aria-label="Account and backup"><svg><use href="#i-gear"/></svg></button>
+      <button id="open-settings" class="icon-btn" type="button" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
     </header>
     <div id="home-scroll" class="scroll">
       <ol id="lists" class="tiles" aria-label="Your lists"></ol>
@@ -419,23 +515,23 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
     <header class="bar" id="list-bar">
       <button id="back" class="icon-btn" type="button" aria-label="All lists"><svg><use href="#i-back"/></svg></button>
       <div class="bar-title">
-        <h1 id="title" tabindex="-1"></h1>
-        <p id="count"></p>
+        <h1 id="title" class="title" tabindex="-1"></h1>
+        <p id="count" class="count"></p>
       </div>
       <button id="list-more" class="icon-btn" type="button" aria-label="List options"><svg><use href="#i-more"/></svg></button>
     </header>
-    <nav id="pager" aria-label="Switch list"></nav>
+    <nav id="pager" class="pager" aria-label="Switch list"></nav>
     <div id="scroller" class="scroll">
       <div id="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
       <div id="content">
-        <form id="capture" autocomplete="off">
+        <form id="capture" class="capture" autocomplete="off">
           <label class="sr" for="thought">Add to this list</label>
           <svg class="capture-plus" aria-hidden="true"><use href="#i-plus"/></svg>
           <input id="thought" type="text" maxlength="2000" enterkeyhint="done" autocapitalize="sentences" placeholder="Add a thought">
           <button id="add-btn" type="submit">Add</button>
         </form>
         <ol id="open" class="rows" aria-label="Open"></ol>
-        <div id="empty" hidden>
+        <div id="empty" class="empty" hidden>
           <div class="empty-art"><svg><use href="#i-mark"/></svg></div>
           <h2 id="empty-title"></h2>
           <p id="empty-text"></p>
@@ -449,8 +545,8 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
         </section>
       </div>
     </div>
-    <button id="fab" type="button" aria-label="Add a thought"><svg><use href="#i-plus"/></svg></button>
   </section>
+  <button id="fab" type="button" aria-label="Add a thought"><svg><use href="#i-plus"/></svg></button>
 
   <div id="toast" hidden>
     <span id="toast-text" role="status" aria-live="polite"></span>
@@ -459,112 +555,174 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   <p id="live" class="sr" role="status" aria-live="polite"></p>
 </div>
 
-<dialog id="list-dialog" aria-labelledby="list-dialog-title">
-  <form id="list-form" method="dialog">
-    <h2 id="list-dialog-title">New list</h2>
-    <label for="list-name">Name</label>
-    <input id="list-name" type="text" maxlength="80" autocomplete="off" enterkeyhint="done">
-    <fieldset>
-      <legend>Colour</legend>
-      <div id="swatches" class="swatches"></div>
-    </fieldset>
-    <p id="list-error" class="error" role="alert"></p>
-    <div class="dialog-actions">
+<dialog id="list-dialog" class="sheet" aria-labelledby="list-dialog-title">
+  <form id="list-form" method="dialog" class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="list-dialog-title">New list</h2>
+      <button type="button" id="list-cancel-x" class="icon-btn" aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <label for="list-name">Name</label>
+      <input id="list-name" class="field" type="text" maxlength="80" autocomplete="off" enterkeyhint="done">
+      <fieldset>
+        <legend>Colour</legend>
+        <div id="swatches" class="swatches"></div>
+      </fieldset>
+      <p id="list-error" class="error" role="alert"></p>
+      <div id="list-confirm" class="confirm" hidden>
+        <p id="list-confirm-text"></p>
+        <div class="dialog-actions">
+          <span class="spacer"></span>
+          <button type="button" id="list-confirm-no" class="quiet-btn">Keep it</button>
+          <button type="button" id="list-confirm-yes" class="solid-btn danger">Delete list</button>
+        </div>
+      </div>
+    </div>
+    <footer class="sheet-foot">
       <button type="button" id="list-delete" class="danger-text">Delete list</button>
       <span class="spacer"></span>
       <button type="button" id="list-cancel" class="quiet-btn">Cancel</button>
       <button type="submit" id="list-save" class="solid-btn">Save</button>
-    </div>
-    <div id="list-confirm" class="confirm" hidden>
-      <p id="list-confirm-text"></p>
-      <div class="dialog-actions">
-        <span class="spacer"></span>
-        <button type="button" id="list-confirm-no" class="quiet-btn">Keep it</button>
-        <button type="button" id="list-confirm-yes" class="solid-btn danger">Delete</button>
-      </div>
-    </div>
+    </footer>
   </form>
 </dialog>
 
-<dialog id="settings-dialog" aria-labelledby="settings-title">
-  <div class="settings">
-    <h2 id="settings-title">Account and backup</h2>
+<dialog id="confirm-dialog" class="sheet" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+  <div class="sheet-frame">
+    <div class="sheet-body">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-text" class="lead"></p>
+    </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" id="confirm-no" class="quiet-btn">Keep it</button>
+      <button type="button" id="confirm-yes" class="solid-btn danger">Delete list</button>
+    </footer>
+  </div>
+</dialog>
 
-    <section id="account" aria-label="Account">
-      <p id="account-none" class="note">This copy runs without a server, so lists stay in this browser on this device. Nothing syncs and no assistant can reach them.</p>
+<dialog id="quick-dialog" class="sheet hue" aria-labelledby="quick-title">
+  <form id="quick-form" class="sheet-frame" autocomplete="off">
+    <header class="sheet-head">
+      <h2 id="quick-title"></h2>
+      <button type="button" id="quick-close-x" class="icon-btn" aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <label class="sr" for="quick-text">Thought to add</label>
+      <input id="quick-text" class="field" type="text" maxlength="2000" enterkeyhint="send" autocapitalize="sentences" placeholder="Add a thought">
+      <p id="quick-status" class="note" role="status" aria-live="polite">Press Enter to add, and keep going.</p>
+    </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" id="quick-done" class="quiet-btn">Done</button>
+      <button type="submit" id="quick-add" class="solid-btn">Add</button>
+    </footer>
+  </form>
+</dialog>
 
-      <form id="login-form" hidden>
-        <p class="note" id="login-intro">Sign in to keep your lists on your account and see them on every device. The lists already in this browser stay here untouched.</p>
-        <label for="login-name">Username</label>
-        <input id="login-name" class="field" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="80">
-        <label for="login-password">Password</label>
-        <input id="login-password" class="field" type="password" autocomplete="current-password" maxlength="200">
-        <div id="setup-row" hidden>
-          <label for="login-setup">Setup code</label>
-          <input id="login-setup" class="field" type="password" autocomplete="off" maxlength="200">
-          <p class="note">The code chosen when this server was set up. Passwords need at least 12 characters.</p>
+<dialog id="settings-dialog" class="sheet tall" aria-labelledby="settings-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="settings-title">Settings</h2>
+      <button type="button" id="settings-close-x" class="icon-btn" aria-label="Close settings"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body" id="settings-body" tabindex="-1">
+      <section aria-labelledby="feel-title">
+        <h3 id="feel-title">Sound and look</h3>
+        <div class="setting">
+          <span id="sound-label">Sound effects<small>Short cues when you add, finish and move things.</small></span>
+          <button type="button" id="sound-toggle" class="switch" role="switch" aria-checked="true" aria-labelledby="sound-label"></button>
         </div>
-        <p id="login-error" class="error" role="alert"></p>
-        <div class="dialog-actions">
-          <button type="button" id="signup-toggle" class="quiet-btn" hidden>Create an account</button>
-          <span class="spacer"></span>
-          <button type="submit" id="login-submit" class="solid-btn">Sign in</button>
-        </div>
-      </form>
+        <fieldset class="setting stacked">
+          <legend>Appearance</legend>
+          <div class="segmented" id="theme-choice">
+            <label><input type="radio" name="theme" value="dark" id="theme-dark"><span>Dark</span></label>
+            <label><input type="radio" name="theme" value="light" id="theme-light"><span>Light</span></label>
+            <label><input type="radio" name="theme" value="auto" id="theme-auto"><span>Match phone</span></label>
+          </div>
+        </fieldset>
+      </section>
 
-      <div id="account-in" hidden>
-        <p class="note">Signed in as <b id="account-name"></b>. <span id="account-sync"></span></p>
-        <div id="migrate" class="confirm" hidden>
-          <p id="migrate-text"></p>
+      <section id="account" aria-labelledby="account-title">
+        <h3 id="account-title">Account</h3>
+        <p id="account-none" class="note">This copy runs without a server, so lists stay in this browser on this device. Nothing syncs and no assistant can reach them.</p>
+
+        <form id="login-form" hidden>
+          <p class="note" id="login-intro">Sign in to keep your lists on your account and see them on every device. The lists already in this browser stay here untouched.</p>
+          <label for="login-name">Username</label>
+          <input id="login-name" class="field" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="80">
+          <label for="login-password">Password</label>
+          <input id="login-password" class="field" type="password" autocomplete="current-password" maxlength="200">
+          <div id="setup-row" hidden>
+            <label for="login-setup">Setup code</label>
+            <input id="login-setup" class="field" type="password" autocomplete="off" maxlength="200">
+            <p class="note">The code chosen when this server was set up. Passwords need at least 12 characters.</p>
+          </div>
+          <p id="login-error" class="error" role="alert"></p>
+          <div class="dialog-actions">
+            <button type="button" id="signup-toggle" class="quiet-btn" hidden>Create an account</button>
+            <span class="spacer"></span>
+            <button type="submit" id="login-submit" class="solid-btn">Sign in</button>
+          </div>
+        </form>
+
+        <div id="account-in" hidden>
+          <p class="note">Signed in as <b id="account-name"></b>. <span id="account-sync"></span></p>
+          <div id="migrate" class="confirm" hidden>
+            <p id="migrate-text"></p>
+            <div class="dialog-actions">
+              <span class="spacer"></span>
+              <button type="button" id="migrate-no" class="quiet-btn">Not now</button>
+              <button type="button" id="migrate-yes" class="solid-btn">Copy to my account</button>
+            </div>
+          </div>
+          <div class="stack">
+            <button type="button" id="migrate-open" class="row-btn" hidden>Copy this browser’s own lists into my account</button>
+            <button type="button" id="logout" class="row-btn">Sign out on this device</button>
+          </div>
+          <h3>Assistants</h3>
+          <p class="note">To let an assistant read and add to your lists, give it this connector address. It will send you back here to approve it. It can never delete anything.</p>
+          <div class="copy-row"><code id="mcp-url"></code><button type="button" id="copy-mcp" class="quiet-btn">Copy</button></div>
+          <ul id="connections" class="connections" aria-label="Connected assistants"></ul>
+        </div>
+      </section>
+
+      <section aria-labelledby="backup-title">
+        <h3 id="backup-title">Backup</h3>
+        <p class="note" id="storage-note"></p>
+        <div class="stack">
+          <button type="button" id="export" class="row-btn">Download a backup file</button>
+          <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
+          <button type="button" id="import" class="row-btn">Restore from a backup file</button>
+          <button type="button" id="reset" class="row-btn">Reset to the sample lists</button>
+          <input type="file" id="file" accept="application/json,.json" hidden>
+        </div>
+        <div id="settings-confirm" class="confirm" hidden>
+          <p id="settings-confirm-text"></p>
           <div class="dialog-actions">
             <span class="spacer"></span>
-            <button type="button" id="migrate-no" class="quiet-btn">Not now</button>
-            <button type="button" id="migrate-yes" class="solid-btn">Copy to my account</button>
+            <button type="button" id="settings-confirm-no" class="quiet-btn">Cancel</button>
+            <button type="button" id="settings-confirm-yes" class="solid-btn danger">Replace</button>
           </div>
         </div>
-        <div class="stack">
-          <button type="button" id="migrate-open" class="row-btn" hidden>Copy this browser’s own lists into my account</button>
-          <button type="button" id="logout" class="row-btn">Sign out on this device</button>
-        </div>
-        <h3>Assistants</h3>
-        <p class="note">To let an assistant read and add to your lists, give it this connector address. It will send you back here to approve it. It can never delete anything.</p>
-        <div class="copy-row"><code id="mcp-url"></code><button type="button" id="copy-mcp" class="quiet-btn">Copy</button></div>
-        <ul id="connections" class="connections" aria-label="Connected assistants"></ul>
-      </div>
-    </section>
+      </section>
 
-    <h3>Backup</h3>
-    <p class="note" id="storage-note"></p>
-    <div class="stack">
-      <button type="button" id="export" class="row-btn">Download a backup file</button>
-      <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
-      <button type="button" id="import" class="row-btn">Restore from a backup file</button>
-      <button type="button" id="reset" class="row-btn">Reset to the sample lists</button>
-      <input type="file" id="file" accept="application/json,.json" hidden>
+      <details>
+        <summary>Gestures and shortcuts</summary>
+        <dl class="keys">
+          <dt>Add</dt><dd>Pull the list down, tap +, or press <kbd>N</kbd>. Paste several lines to add them all.</dd>
+          <dt>Done</dt><dd>Swipe a task right, or tick the circle.</dd>
+          <dt>Delete</dt><dd>Swipe a task left, or open it and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes.</dd>
+          <dt>Reorder</dt><dd>Hold and drag, drag the grip, or focus the grip and press <kbd>↑</kbd> <kbd>↓</kbd>.</dd>
+          <dt>Switch list</dt><dd>Swipe sideways anywhere that is not a task, use the dots, or press <kbd>[</kbd> <kbd>]</kbd>.</dd>
+          <dt>On the Lists screen</dt><dd>Swipe a list right to add to it without opening it (<kbd>+</kbd> when focused). Swipe left to delete it, after a confirmation (<kbd>Delete</kbd> when focused).</dd>
+        </dl>
+      </details>
     </div>
-    <div id="settings-confirm" class="confirm" hidden>
-      <p id="settings-confirm-text"></p>
-      <div class="dialog-actions">
-        <span class="spacer"></span>
-        <button type="button" id="settings-confirm-no" class="quiet-btn">Cancel</button>
-        <button type="button" id="settings-confirm-yes" class="solid-btn danger">Replace</button>
-      </div>
-    </div>
-    <p id="settings-status" class="note" role="status" aria-live="polite"></p>
-    <details>
-      <summary>Gestures and shortcuts</summary>
-      <dl class="keys">
-        <dt>Add</dt><dd>Pull the list down, tap +, or press <kbd>N</kbd>. Paste several lines to add them all.</dd>
-        <dt>Done</dt><dd>Swipe right, or tick the circle.</dd>
-        <dt>Delete</dt><dd>Swipe left, or open the item and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes.</dd>
-        <dt>Reorder</dt><dd>Hold and drag, drag the grip, or focus the grip and press <kbd>↑</kbd> <kbd>↓</kbd>.</dd>
-        <dt>Switch list</dt><dd>Swipe the title bar, use the dots, or press <kbd>[</kbd> <kbd>]</kbd>.</dd>
-      </dl>
-    </details>
-    <div class="dialog-actions">
-      <span class="spacer"></span>
+    <footer class="sheet-foot">
+      <p id="settings-status" class="note" role="status" aria-live="polite"></p>
       <button type="button" id="settings-close" class="solid-btn">Done</button>
-    </div>
+    </footer>
   </div>
 </dialog>
 <script type="module">
@@ -1016,9 +1174,138 @@ function createAccountSync({ storage, onChange, onStatus }) {
   };
 }
 
+// Sound cues, synthesized in the browser. No audio files, nothing downloaded.
+//
+// Rules this module keeps:
+//  - No audio engine exists until the person has touched or typed (browsers require that anyway),
+//    so nothing can play on page load.
+//  - A cue plays only when app code asks for it, and app code asks only from the person's own
+//    actions, never for changes arriving from another device.
+//  - Off means off: no engine is created or kept running.
+//  - iPhone's silent switch and the device volume still apply; this cannot override them.
+
+const NOTE = name => 440 * 2 ** (name / 12);          // semitones from A4
+const PENTATONIC = [3, 5, 7, 10, 12, 15, 17, 19, 22, 24];   // C major pentatonic, from C5
+
+function createSound({ enabled = true } = {}) {
+  let on = enabled;
+  let context = null, out = null, unlocked = false;
+
+  const report = () => { document.documentElement.dataset.audio = !on ? 'off' : context ? context.state : 'idle'; };
+
+  function engine() {
+    if (context || !on || !unlocked) return context;
+    const Engine = window.AudioContext || window.webkitAudioContext;
+    if (!Engine) return null;
+    try {
+      context = new Engine({ latencyHint: 'interactive' });
+      const limiter = context.createDynamicsCompressor();
+      limiter.threshold.value = -18; limiter.ratio.value = 6;
+      out = context.createGain();
+      out.gain.value = 0.5;
+      out.connect(limiter).connect(context.destination);
+      context.addEventListener('statechange', report);
+    } catch { context = null; }
+    return context;
+  }
+
+  // One soft voice: an oscillator through its own envelope.
+  function tone({ at = 0, from, to = from, length = 0.12, level = 0.2, shape = 'sine', attack = 0.006 }) {
+    const start = context.currentTime + at;
+    const osc = context.createOscillator(), gain = context.createGain();
+    osc.type = shape;
+    osc.frequency.setValueAtTime(from, start);
+    if (to !== from) osc.frequency.exponentialRampToValueAtTime(to, start + length);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(level, start + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+    osc.connect(gain).connect(out);
+    osc.start(start); osc.stop(start + length + 0.02);
+  }
+  // A breath of filtered noise, for movement.
+  function air({ at = 0, length = 0.14, from = 900, to = 2400, level = 0.08 }) {
+    const start = context.currentTime + at;
+    const frames = Math.ceil(context.sampleRate * length);
+    const buffer = context.createBuffer(1, frames, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
+    const source = context.createBufferSource(), filter = context.createBiquadFilter(), gain = context.createGain();
+    source.buffer = buffer;
+    filter.type = 'bandpass'; filter.Q.value = 1.4;
+    filter.frequency.setValueAtTime(from, start);
+    filter.frequency.exponentialRampToValueAtTime(to, start + length);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(level, start + length * 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
+    source.connect(filter).connect(gain).connect(out);
+    source.start(start);
+  }
+  const chime = (steps, { gap = 0.07, length = 0.22, level = 0.16, at = 0 } = {}) => steps.forEach((step, i) => {
+    tone({ at: at + i * gap, from: NOTE(step), length, level, shape: 'triangle' });
+    tone({ at: at + i * gap, from: NOTE(step + 12), length: length * 0.7, level: level * 0.25 });
+  });
+
+  const CUES = {
+    tick: () => tone({ from: 1500, to: 1100, length: 0.03, level: 0.07 }),
+    add: () => chime([7, 12], { gap: 0.055, length: 0.14 }),
+    done: () => chime([3, 7, 10, 15], { gap: 0.05, length: 0.24 }),
+    undone: () => chime([10, 5], { gap: 0.07, length: 0.16, level: 0.12 }),
+    delete: () => { tone({ from: 440, to: 130, length: 0.2, level: 0.18, shape: 'triangle' }); air({ length: 0.16, from: 1800, to: 500, level: 0.04 }); },
+    undo: () => { tone({ from: 180, to: 520, length: 0.18, level: 0.16, shape: 'triangle' }); tone({ at: 0.12, from: NOTE(12), length: 0.16, level: 0.1 }); },
+    lift: () => tone({ from: 260, to: 390, length: 0.07, level: 0.14, shape: 'triangle' }),
+    drop: () => { tone({ from: 300, to: 170, length: 0.09, level: 0.2, shape: 'triangle' }); tone({ at: 0.01, from: 900, to: 600, length: 0.04, level: 0.05 }); },
+    // Each list has its own note, so moving between lists plays a little scale.
+    nav: ({ index = 0, direction = 1 } = {}) => {
+      air({ length: 0.16, from: direction > 0 ? 700 : 2400, to: direction > 0 ? 2400 : 700, level: 0.05 });
+      chime([PENTATONIC[index % PENTATONIC.length]], { at: 0.05, length: 0.26, level: 0.13 });
+    },
+    open: () => chime([5, 12], { gap: 0.04, length: 0.12, level: 0.1 }),
+    back: () => chime([12, 5], { gap: 0.04, length: 0.12, level: 0.1 }),
+    pop: () => tone({ from: 520, to: 780, length: 0.06, level: 0.12 }),
+    close: () => tone({ from: 700, to: 460, length: 0.06, level: 0.1 }),
+    nope: () => { tone({ from: 150, length: 0.07, level: 0.2, shape: 'triangle' }); tone({ at: 0.1, from: 130, length: 0.09, level: 0.2, shape: 'triangle' }); },
+    clear: () => { chime([3, 7, 10, 15, 19, 22], { gap: 0.065, length: 0.3 }); chime([27], { at: 0.42, length: 0.6, level: 0.12 }); air({ at: 0.36, length: 0.5, from: 3000, to: 7000, level: 0.03 }); },
+  };
+
+  function play(name, detail) {
+    const cue = CUES[name];
+    let played = false;
+    if (cue && on && unlocked) {
+      const ctx = engine();
+      if (ctx) {
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        if (ctx.state !== 'closed') { try { cue(detail); played = true; } catch { /* a cue must never break the app */ } }
+      }
+    }
+    // Lets tests (and nothing else) observe which cues were asked for.
+    document.dispatchEvent(new CustomEvent('quiet:cue', { detail: { name, played } }));
+    return played;
+  }
+
+  // The first real touch or key press allows audio. Until then every cue is silently skipped.
+  const unlock = () => { unlocked = true; report(); };
+  for (const type of ['pointerdown', 'keydown']) addEventListener(type, unlock, { capture: true, once: true, passive: true });
+  // Stop the engine while the app is in the background; it resumes on the next cue.
+  document.addEventListener('visibilitychange', () => { if (document.hidden && context?.state === 'running') context.suspend().catch(() => {}); });
+  report();
+
+  return {
+    play,
+    get enabled() { return on; },
+    setEnabled(value) {
+      on = !!value;
+      if (!on && context) { context.close().catch(() => {}); context = null; out = null; }
+      report();
+    },
+  };
+}
+
 
 const $ = id => document.getElementById(id);
-const HUES = { lavender: 290, sage: 150, peach: 55, sky: 240, rose: 8, teal: 190 };
+// Stored colour keys are unchanged; each now shows as a gemstone.
+const HUES = { lavender: 292, sage: 158, peach: 62, sky: 258, rose: 12, teal: 200 };
+const GEMS = { lavender: 'Amethyst', sage: 'Emerald', peach: 'Amber', sky: 'Sapphire', rose: 'Ruby', teal: 'Lagoon' };
+const hueOf = list => HUES[list.color] ?? HUES.lavender;
 const UI_KEY = 'quiet-list-ui';
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -1037,6 +1324,24 @@ const resumed = sync.resume();
 if (resumed) { account = { username: resumed }; state = sync.current(); }
 let prefs = {};
 try { prefs = JSON.parse(storage.getItem(UI_KEY)) || {}; } catch { prefs = {}; }
+// Per-device preferences: sound is on unless switched off; dark is the default look.
+const sound = createSound({ enabled: prefs.sound !== false });
+const phoneIsLight = matchMedia('(prefers-color-scheme: light)');
+function applyTheme() {
+  const choice = ['dark', 'light', 'auto'].includes(prefs.theme) ? prefs.theme : 'dark';
+  document.documentElement.dataset.theme = choice === 'auto' ? (phoneIsLight.matches ? 'light' : 'dark') : choice;
+}
+applyTheme();
+// Sheets size themselves to the part of the screen that is actually visible (the keyboard shrinks it).
+function syncViewport() {
+  const view = window.visualViewport;
+  document.documentElement.style.setProperty('--vv-h', `${view ? view.height : innerHeight}px`);
+  document.documentElement.style.setProperty('--vv-top', `${view ? view.offsetTop : 0}px`);
+}
+syncViewport();
+addEventListener('resize', syncViewport);
+window.visualViewport?.addEventListener('resize', syncViewport);
+window.visualViewport?.addEventListener('scroll', syncViewport);
 
 let activeId = state.lists.some(l => l.id === prefs.activeId) ? prefs.activeId : state.lists[0].id;
 let view = 'list';
@@ -1074,6 +1379,15 @@ function announce(message) {
   const live = $('live');
   live.textContent = '';
   requestAnimationFrame(() => { live.textContent = message; });
+}
+function countText(list) {
+  const open = list.tasks.filter(t => !t.done).length, done = list.tasks.length - open;
+  return summary(list) + (done && open ? ` · ${done} done` : '');
+}
+function emptyWords(list) {
+  return list.tasks.length
+    ? ['All clear', 'Everything on this list is done.']
+    : ['Nothing here yet', 'Type a thought above. On a phone you can also pull the list down.'];
 }
 function summary(list) {
   const open = list.tasks.filter(t => !t.done).length;
@@ -1137,6 +1451,7 @@ function undo() {
   activeId = state.lists.some(l => l.id === wanted) ? wanted : state.lists[0].id;
   editingId = null;
   hideToast();
+  sound.play('undo');
   if (!saved) showToast('Could not save in this browser. Download a backup before closing.');
   render();
   announce('Restored.');
@@ -1221,9 +1536,9 @@ function renderList() {
   if (editingId && !openTasks.some(t => t.id === editingId)) editingId = null;
 
   $('title').textContent = list.name;
-  $('count').textContent = summary(list) + (doneTasks.length && openTasks.length ? ` · ${doneTasks.length} done` : '');
+  $('count').textContent = countText(list);
   document.title = `${list.name} · Quiet List`;
-  document.documentElement.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+  document.documentElement.style.setProperty('--h', hueOf(list));
   paintBrowserChrome();
 
   openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
@@ -1231,10 +1546,7 @@ function renderList() {
   doneEl.replaceChildren(...doneTasks.map(t => rowEl(t)));
 
   $('empty').hidden = openTasks.length > 0;
-  $('empty-title').textContent = list.tasks.length ? 'All clear' : 'Nothing here yet';
-  $('empty-text').textContent = list.tasks.length
-    ? 'Everything on this list is done.'
-    : 'Type a thought above. On a phone you can also pull the list down.';
+  [$('empty-title').textContent, $('empty-text').textContent] = emptyWords(list);
 
   $('done-wrap').hidden = !doneTasks.length;
   $('done-toggle').textContent = `${doneTasks.length} done`;
@@ -1257,16 +1569,20 @@ function renderList() {
 
 function renderHome() {
   listsEl.replaceChildren(...state.lists.map(list => {
-    const li = el('li', 'tile hue');
+    const li = el('li', 'tile-row hue');
     li.dataset.id = list.id;
-    li.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+    li.style.setProperty('--h', hueOf(list));
     if (list.id === activeId) li.setAttribute('aria-current', 'true');
+    const left = el('span', 'reveal left'); left.append(icon('i-plus'));
+    const right = el('span', 'reveal right'); right.append(icon('i-trash'));
+    const tile = el('div', 'tile');
     const open = el('button', 'tile-open'); open.type = 'button'; open.dataset.fk = 'l:' + list.id;
     open.append(el('span', 'tile-name', list.name), el('span', 'tile-count', summary(list)));
     const handle = el('button', 'handle'); handle.type = 'button'; handle.dataset.fk = 'lh:' + list.id;
     handle.setAttribute('aria-label', `Reorder list: ${list.name}. Use the up and down arrow keys.`);
     handle.append(icon('i-grip'));
-    li.append(open, handle);
+    tile.append(open, handle);
+    li.append(left, right, tile);
     return li;
   }));
 }
@@ -1293,7 +1609,7 @@ function paintBrowserChrome() {
     themeMeta.content = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
   } catch { /* cosmetic only */ }
 }
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', paintBrowserChrome);
+phoneIsLight.addEventListener('change', () => { applyTheme(); paintBrowserChrome(); });
 
 function autosize(area) {
   if (CSS.supports('field-sizing', 'content')) return;
@@ -1321,7 +1637,7 @@ function showHome({ focus = true } = {}) {
   setHash('lists');
   if (focus && !wide.matches) document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`)?.focus();
 }
-function openList(listId, { replace = false, direction = 0, focus = false } = {}) {
+function openList(listId, { replace = false, focus = false } = {}) {
   if (!state.lists.some(l => l.id === listId)) return;
   const changed = listId !== activeId;
   activeId = listId;
@@ -1331,20 +1647,13 @@ function openList(listId, { replace = false, direction = 0, focus = false } = {}
   applyView();
   render({ flip: false });
   if (changed) scroller.scrollTop = 0;
-  if (changed && direction && !calm.matches) {
-    content.classList.remove('swap-next', 'swap-prev');
-    void content.offsetWidth;
-    content.classList.add(direction > 0 ? 'swap-next' : 'swap-prev');
-  }
   setHash('list-' + listId, replace);
   if (focus) $('title').focus({ preventScroll: true });
 }
 function stepList(direction) {
-  const i = state.lists.findIndex(l => l.id === activeId);
-  const next = state.lists[i + direction];
-  if (!next) return false;
-  openList(next.id, { replace: true, direction });
-  announce(next.name);
+  const next = state.lists[state.lists.findIndex(l => l.id === activeId) + direction];
+  if (!next || navBusy) return false;
+  slideToList(next, direction);
   return true;
 }
 function route() {
@@ -1377,6 +1686,7 @@ async function setDone(taskId, done, li, { swiped = false } = {}) {
   if (!task || !act({ type: 'update_item', listId: list.id, itemId: taskId, done })) { render(); return; }
   announce((done ? 'Done: ' : 'Reopened: ') + task.text);
   const cleared = done && !list.tasks.some(t => !t.done);
+  sound.play(cleared ? 'clear' : done ? 'done' : 'undone');
   if (done) {
     buzz(12);
     if (!calm.matches && li) {
@@ -1397,6 +1707,7 @@ function thoughtOrNext() {
 async function removeTask(taskId, li) {
   const list = current();
   if (!act({ type: 'delete_item', listId: list.id, itemId: taskId }, { toast: 'Deleted', undo: true })) return;
+  sound.play('delete');
   if (editingId === taskId) editingId = null;
   if (li) await collapse(li);
   render();
@@ -1411,6 +1722,7 @@ function shiftTask(taskId, direction, focusKey) {
   if (from < 0 || to < 0 || to >= open.length) return;
   const beforeId = direction < 0 ? open[to].id : open[to + 1]?.id ?? null;
   if (!act({ type: 'move_item', listId: list.id, itemId: taskId, beforeId })) return;
+  sound.play('tick');
   render({ focus: focusKey });
   announce(`Moved to ${to + 1} of ${open.length}.`);
 }
@@ -1420,6 +1732,7 @@ function shiftList(listId, direction) {
   if (to < 0 || to >= state.lists.length) return;
   const beforeId = direction < 0 ? state.lists[to].id : state.lists[to + 1]?.id ?? null;
   if (!act({ type: 'move_list', listId, beforeId })) return;
+  sound.play('tick');
   render({ focus: 'lh:' + listId });
   announce(`Moved to ${to + 1} of ${state.lists.length}.`);
 }
@@ -1495,7 +1808,7 @@ function startDrag(li, pointer, { scrollBox, onDrop }) {
   let y = y0, to = from, frame = 0;
   gesture = 'drag';
   li.classList.add('dragging'); ol.classList.add('sorting'); document.body.classList.add('is-dragging');
-  buzz(8);
+  buzz(8); sound.play('lift');
 
   const update = () => {
     const dy = (y - y0) + (scrollBox.scrollTop - scroll0);
@@ -1534,6 +1847,7 @@ function startDrag(li, pointer, { scrollBox, onDrop }) {
     ol.classList.remove('sorting'); document.body.classList.remove('is-dragging');
     gesture = null;
     suppressClick(li);
+    sound.play('drop');
     if (event.type === 'pointerup' && to !== from) {
       const rest = items.filter(node => node !== li);
       onDrop(li.dataset.id, rest[to]?.dataset.id ?? null);
@@ -1549,7 +1863,7 @@ function startDrag(li, pointer, { scrollBox, onDrop }) {
   update();
 }
 
-function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
+function watchItems(container, { scrollBox, itemSelector, onDrop, swipe, cardSelector = '.card', fling = true }) {
   container.addEventListener('pointerdown', event => {
     if (event.button || gesture) return;
     const li = event.target.closest(itemSelector);
@@ -1562,7 +1876,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
       startDrag(li, event, { scrollBox, onDrop });
       return;
     }
-    const card = li.querySelector('.card');
+    const card = li.querySelector(cardSelector);
     const x0 = event.clientX, y0 = event.clientY;
     let mode = null, dx = 0, armed = false, lastY = y0;
 
@@ -1594,7 +1908,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
       li.dataset.swipe = dx > 0 ? 'complete' : 'delete';
       card.style.transform = `translateX(${dx}px)`;
       const now = Math.abs(dx) > Math.min(96, li.offsetWidth * 0.3);
-      if (now !== armed) { armed = now; li.toggleAttribute('data-armed', armed); if (armed) buzz(6); }
+      if (now !== armed) { armed = now; li.toggleAttribute('data-armed', armed); if (armed) { buzz(6); sound.play('tick'); } }
     };
     const settle = () => {
       card.classList.add('spring');
@@ -1610,6 +1924,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
       suppressClick(li);
       if (!armed) { settle(); return; }
       const action = dx > 0 ? 'complete' : 'delete';
+      if (!fling) { settle(); swipe(li, action); return; }     // the item stays; the action opens something
       if (!calm.matches) {
         card.classList.add('fling');
         card.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`;
@@ -1640,9 +1955,12 @@ watchItems(content, {
 });
 watchItems(listsEl, {
   scrollBox: $('home-scroll'),
-  itemSelector: '.tile',
+  itemSelector: '.tile-row',
+  cardSelector: '.tile',
+  fling: false,
   onDrop: (listId, beforeId) => { act({ type: 'move_list', listId, beforeId }); render(); },
-  swipe: null,
+  // Right: add to this list without opening it. Left: delete the whole list, after asking.
+  swipe: (li, action) => { if (action === 'delete') askDeleteList(li.dataset.id); else openQuickAdd(li.dataset.id); },
 });
 
 // Once a gesture owns the touch, stop the page from scrolling underneath it.
@@ -1673,7 +1991,7 @@ scroller.addEventListener('touchmove', event => {
   if (armed !== hint.classList.contains('armed')) {
     hint.classList.toggle('armed', armed);
     $('pull-text').textContent = armed ? 'Release to add' : 'Pull to add';
-    if (armed) buzz(6);
+    if (armed) { buzz(6); sound.play('tick'); }
   }
 }, { passive: false });
 const endPull = event => {
@@ -1685,29 +2003,145 @@ const endPull = event => {
   $('pull').style.opacity = '0';
   $('pull').classList.remove('armed');
   $('pull-text').textContent = 'Pull to add';
-  if (armed) focusCapture();
+  if (armed) { sound.play('pop'); focusCapture(); }
 };
 scroller.addEventListener('touchend', endPull);
 scroller.addEventListener('touchcancel', endPull);
 
-/* ---------- touch: swipe the title bar to change list ---------- */
-for (const zone of [$('list-bar'), $('pager')]) {
-  zone.addEventListener('pointerdown', event => {
-    if (event.button || wide.matches) return;
-    const x0 = event.clientX, y0 = event.clientY;
-    const up = ev => {
-      if (ev.pointerId !== event.pointerId) return;
-      removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-      const dx = ev.clientX - x0, dy = ev.clientY - y0;
-      if (ev.type === 'pointerup' && Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        suppressClick(zone);
-        if (stepList(dx < 0 ? 1 : -1)) buzz(6);
-      }
-    };
-    addEventListener('pointerup', up);
-    addEventListener('pointercancel', up);
-  });
+/* ---------- touch: swipe sideways between lists ----------
+   How this stays out of the way of the other gestures:
+   - a touch that starts on a task belongs to that task (done / delete / hold-to-drag), never to this;
+   - each touch commits to one axis in its first 10px, so a vertical drag can only scroll or pull-to-add;
+   - touches that start within 24px of the screen edge are left to the phone's own back gesture. */
+let navBusy = false;
+
+// A stand-in for the neighbouring list, in its own colour, that travels in beside the open one.
+function ghostPane(list) {
+  const pane = el('section', 'pane ghost hue nav-drag');
+  pane.style.setProperty('--h', hueOf(list));
+  pane.setAttribute('aria-hidden', 'true');
+  pane.inert = true;
+  const open = list.tasks.filter(t => !t.done), doneCount = list.tasks.length - open.length;
+  const bar = el('header', 'bar');
+  const back = el('span', 'icon-btn'); back.append(icon('i-back'));
+  const titles = el('div', 'bar-title'); titles.append(el('div', 'title', list.name), el('p', 'count', countText(list)));
+  const more = el('span', 'icon-btn'); more.append(icon('i-more'));
+  bar.append(back, titles, more);
+  const dots = el('nav', 'pager');
+  if (state.lists.length > 1 && state.lists.length <= 8) {
+    for (const other of state.lists) { const dot = el('span'); if (other.id === list.id) dot.setAttribute('aria-current', 'true'); dots.append(dot); }
+  }
+  const scroll = el('div', 'scroll');
+  const capture = el('div', 'capture'); const plus = icon('i-plus'); plus.classList.add('capture-plus');
+  capture.append(plus, el('span', 'mock', 'Add a thought'));
+  const rows = el('ol', 'rows'); rows.append(...open.slice(0, 14).map((task, i) => rowEl(task, i, open)));
+  scroll.append(capture, rows);
+  if (!open.length) {
+    const [title, text] = emptyWords(list);
+    const empty = el('div', 'empty'); const art = el('div', 'empty-art'); art.append(icon('i-mark'));
+    empty.append(art, el('h2', '', title), el('p', '', text));
+    scroll.append(empty);
+  }
+  if (doneCount) { const head = el('div', 'done-head'); head.append(el('span', 'done-mock', `${doneCount} done`)); scroll.append(head); }
+  pane.append(bar, dots, scroll);
+  return pane;
 }
+function landOnList(target, direction, ghost) {
+  openList(target.id, { replace: true });
+  listPane.classList.remove('nav-settle');
+  listPane.classList.add('nav-drag');
+  listPane.style.transform = '';
+  void listPane.offsetWidth;
+  requestAnimationFrame(() => { listPane.classList.remove('nav-drag'); ghost?.remove(); navBusy = false; if (gesture === 'nav') gesture = null; });
+  announce(target.name);
+}
+// Finishes a switch: both panes glide the rest of the way, then the real list takes over.
+function settleNav(target, direction, ghost) {
+  navBusy = true;
+  gesture = 'nav';
+  sound.play('nav', { index: state.lists.indexOf(target), direction });
+  buzz(6);
+  if (calm.matches || !ghost) { landOnList(target, direction, ghost); return; }
+  const width = listPane.offsetWidth;
+  for (const pane of [listPane, ghost]) { pane.classList.remove('nav-drag'); pane.classList.add('nav-settle'); }
+  void listPane.offsetWidth;
+  listPane.style.transform = `translateX(${-direction * width}px)`;
+  ghost.style.transform = 'translateX(0px)';
+  setTimeout(() => landOnList(target, direction, ghost), 350);
+}
+function cancelNav(direction, ghost) {
+  const width = listPane.offsetWidth;
+  for (const pane of [listPane, ghost]) { pane?.classList.remove('nav-drag'); pane?.classList.add('nav-settle'); }
+  void listPane.offsetWidth;
+  listPane.style.transform = '';
+  if (ghost) ghost.style.transform = `translateX(${direction * width}px)`;
+  setTimeout(() => { ghost?.remove(); listPane.classList.remove('nav-settle'); if (gesture === 'nav') gesture = null; }, calm.matches ? 0 : 350);
+}
+// Used by the dots, the [ and ] keys, and anything else that is not a drag.
+function slideToList(target, direction) {
+  if (navBusy || target.id === activeId) return;
+  if (wide.matches || calm.matches || view !== 'list') {
+    sound.play('nav', { index: state.lists.indexOf(target), direction });
+    openList(target.id, { replace: true });
+    announce(target.name);
+    return;
+  }
+  const ghost = ghostPane(target);
+  ghost.style.transform = `translateX(${direction * listPane.offsetWidth}px)`;
+  app.append(ghost);
+  listPane.classList.add('nav-drag');
+  void ghost.offsetWidth;
+  settleNav(target, direction, ghost);
+}
+
+listPane.addEventListener('pointerdown', event => {
+  if (event.button || event.pointerType === 'mouse' || wide.matches || view !== 'list' || gesture || navBusy) return;
+  if (event.target.closest('.row')) return;                                   // tasks keep their own swipes
+  if (event.target === document.activeElement && event.target.matches('input, textarea')) return;   // moving the text cursor
+  const x0 = event.clientX, y0 = event.clientY, width = listPane.offsetWidth;
+  if (x0 < 24 || x0 > width - 24) return;                                     // the phone's own edge gestures
+  let mode = null, dx = 0, ghost = null, ghostDirection = 0, lastX = x0, lastTime = event.timeStamp, speed = 0;
+  const neighbour = direction => state.lists[state.lists.findIndex(l => l.id === activeId) + direction];
+  const detach = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
+  const move = ev => {
+    if (ev.pointerId !== event.pointerId) return;
+    dx = ev.clientX - x0;
+    const dy = ev.clientY - y0;
+    if (!mode) {
+      if (Math.hypot(dx, dy) < 10) return;
+      if (gesture || Math.abs(dx) < Math.abs(dy) * 1.4) { detach(); return; }   // vertical: scrolling or pull-to-add owns it
+      mode = 'nav'; gesture = 'nav';
+      listPane.classList.add('nav-drag');
+    }
+    ev.preventDefault();
+    if (ev.timeStamp > lastTime) { speed = (ev.clientX - lastX) / (ev.timeStamp - lastTime); lastX = ev.clientX; lastTime = ev.timeStamp; }
+    const direction = dx < 0 ? 1 : -1;
+    const target = neighbour(direction);
+    if (direction !== ghostDirection) {
+      ghost?.remove();
+      ghost = target ? ghostPane(target) : null;
+      if (ghost) app.append(ghost);
+      ghostDirection = direction;
+    }
+    const shown = target ? dx : dx * 0.2;                                     // nothing that way: resist
+    listPane.style.transform = `translateX(${shown}px)`;
+    if (ghost) ghost.style.transform = `translateX(${shown + direction * width}px)`;
+  };
+  const up = ev => {
+    if (ev.pointerId !== event.pointerId) return;
+    detach();
+    if (mode !== 'nav') return;
+    suppressClick(listPane);
+    const direction = dx < 0 ? 1 : -1;
+    const target = neighbour(direction);
+    const flicked = Math.abs(speed) > 0.45 && Math.sign(speed) === Math.sign(dx);
+    if (ev.type === 'pointerup' && target && (Math.abs(dx) > width * 0.3 || flicked)) settleNav(target, direction, ghost);
+    else cancelNav(direction, ghost);
+  };
+  addEventListener('pointermove', move, { passive: false });
+  addEventListener('pointerup', up);
+  addEventListener('pointercancel', up);
+});
 
 /* ---------- capture ---------- */
 function focusCapture() {
@@ -1729,7 +2163,7 @@ $('capture').addEventListener('submit', event => {
   render();
   scroller.scrollTop = 0;
   thought.focus({ preventScroll: true });
-  buzz(8);
+  buzz(8); sound.play('add');
   announce('Added: ' + task.text);
 });
 // Pasting several lines drops each one in as its own thought.
@@ -1741,10 +2175,10 @@ thought.addEventListener('paste', event => {
   const list = current();
   const ops = [...lines].reverse().map(line => ({ type: 'add_item', listId: list.id, id: crypto.randomUUID(), text: line.slice(0, 2000), top: true }));
   const ok = act(ops, { toast: `Added ${plural(lines.length, 'thought')}`, undo: true });
-  if (ok) render();
+  if (ok) { sound.play('add'); render(); }
 });
 thought.addEventListener('keydown', event => { if (event.key === 'Escape') thought.blur(); });
-$('fab').addEventListener('click', focusCapture);
+$('fab').addEventListener('click', () => { sound.play('pop'); focusCapture(); });
 
 /* ---------- list pane events ---------- */
 content.addEventListener('change', event => {
@@ -1809,31 +2243,115 @@ content.addEventListener('focusout', event => {
   addEventListener('pointercancel', lifted);
 });
 
-$('done-toggle').addEventListener('click', () => { doneOpen = !doneOpen; savePrefs(); render({ flip: false }); });
+$('done-toggle').addEventListener('click', () => { doneOpen = !doneOpen; sound.play('tick'); savePrefs(); render({ flip: false }); });
 $('clear-done').addEventListener('click', () => {
   const list = current();
   const count = list.tasks.filter(t => t.done).length;
-  if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { render(); thought.focus({ preventScroll: true }); }
+  if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { sound.play('delete'); render(); thought.focus({ preventScroll: true }); }
 });
-$('back').addEventListener('click', () => showHome());
+$('back').addEventListener('click', () => { sound.play('back'); showHome(); });
 $('pager').addEventListener('click', event => {
   const dot = event.target.closest('button');
   if (!dot || dot.dataset.id === activeId) return;
   const from = state.lists.findIndex(l => l.id === activeId), to = state.lists.findIndex(l => l.id === dot.dataset.id);
-  openList(dot.dataset.id, { replace: true, direction: to - from });
-  document.querySelector(`[data-fk="p:${CSS.escape(activeId)}"]`)?.focus();
+  slideToList(state.lists[to], Math.sign(to - from));
 });
 
 /* ---------- home events ---------- */
 listsEl.addEventListener('click', event => {
   const open = event.target.closest('.tile-open');
-  if (open) openList(open.closest('.tile').dataset.id, { focus: !wide.matches });
+  if (open) { sound.play('open'); openList(open.closest('.tile-row').dataset.id, { focus: !wide.matches }); }
 });
 listsEl.addEventListener('keydown', event => {
-  const handle = event.target.closest('.handle');
+  const row = event.target.closest('.tile-row');
+  if (!row) return;
   const arrow = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
-  if (handle && arrow) { event.preventDefault(); shiftList(handle.closest('.tile').dataset.id, arrow); }
+  if (event.target.closest('.handle') && arrow) { event.preventDefault(); shiftList(row.dataset.id, arrow); }
+  // Keyboard equivalents of the two swipes.
+  else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); askDeleteList(row.dataset.id); }
+  else if (event.key === '+' || event.key === '=') { event.preventDefault(); openQuickAdd(row.dataset.id); }
 });
+
+/* ---------- sheets ---------- */
+function openSheet(dialog) {
+  if (dialog.open) return;
+  syncViewport();
+  dialog.showModal();
+  sound.play('pop');
+}
+// Tapping the dimmed area outside a sheet closes it, like pressing Escape.
+for (const dialog of document.querySelectorAll('dialog.sheet')) {
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+}
+
+/* ---------- deleting a whole list (swipe left on the Lists screen, or Delete on the keyboard) ---------- */
+const confirmDialog = $('confirm-dialog');
+let pendingDeleteId = null;
+function askDeleteList(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return;
+  if (state.lists.length === 1) {
+    sound.play('nope');
+    showToast('This is your only list, so it stays. Make another one first.');
+    return;
+  }
+  const open = list.tasks.filter(t => !t.done).length, done = list.tasks.length - open;
+  pendingDeleteId = listId;
+  $('confirm-title').textContent = `Delete “${list.name}”?`;
+  $('confirm-text').textContent = list.tasks.length
+    ? `This deletes the list and the ${plural(list.tasks.length, 'task')} in it (${open} open, ${done} done). Your other lists are not affected. You can undo for a few seconds afterwards.`
+    : 'This list is empty. Your other lists are not affected.';
+  openSheet(confirmDialog);
+  $('confirm-no').focus();
+}
+function deleteListNow(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return false;
+  const index = state.lists.indexOf(list);
+  if (!act({ type: 'delete_list', listId }, { toast: `Deleted “${list.name}”`, undo: true })) return false;
+  sound.play('delete');
+  if (activeId === listId) {
+    activeId = state.lists[Math.min(index, state.lists.length - 1)].id;
+    savePrefs();
+    if (view === 'list') { if (wide.matches) openList(activeId, { replace: true }); else showHome(); }
+  }
+  render();
+  return true;
+}
+$('confirm-no').addEventListener('click', () => confirmDialog.close());
+$('confirm-yes').addEventListener('click', () => { confirmDialog.close(); if (pendingDeleteId) deleteListNow(pendingDeleteId); });
+confirmDialog.addEventListener('close', () => { pendingDeleteId = null; });
+
+/* ---------- quick add (swipe right on the Lists screen, or + on the keyboard) ---------- */
+const quickDialog = $('quick-dialog');
+let quickListId = null, quickCount = 0;
+function openQuickAdd(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return;
+  quickListId = listId; quickCount = 0;
+  quickDialog.style.setProperty('--h', hueOf(list));
+  $('quick-title').textContent = `Add to ${list.name}`;
+  $('quick-text').value = '';
+  $('quick-status').textContent = 'Press Enter to add, and keep going.';
+  openSheet(quickDialog);
+  $('quick-text').focus();
+}
+$('quick-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const input = $('quick-text');
+  if (!input.value.trim() || !state.lists.some(l => l.id === quickListId)) { input.focus(); return; }
+  try {
+    act({ type: 'add_item', listId: quickListId, id: crypto.randomUUID(), text: input.value, top: true }, { throws: true });
+    quickCount += 1;
+    input.value = '';
+    $('quick-status').textContent = `Added ${plural(quickCount, 'thought')}. Keep going, or tap Done.`;
+    sound.play('add'); buzz(8);
+    render({ flip: false, focus: 'none' });
+  } catch (error) { $('quick-status').textContent = error.message; sound.play('nope'); }
+  input.focus();
+});
+$('quick-done').addEventListener('click', () => quickDialog.close());
+$('quick-close-x').addEventListener('click', () => quickDialog.close());
 
 /* ---------- list dialog (new, rename, recolour, delete) ---------- */
 const listDialog = $('list-dialog');
@@ -1842,7 +2360,7 @@ $('swatches').replaceChildren(...COLORS.map(color => {
   const label = el('label', 'swatch hue');
   label.style.setProperty('--h', HUES[color]);
   const radio = el('input'); radio.type = 'radio'; radio.name = 'color'; radio.value = color; radio.id = 'color-' + color;
-  radio.setAttribute('aria-label', color[0].toUpperCase() + color.slice(1));
+  radio.setAttribute('aria-label', GEMS[color]);
   label.append(radio);
   return label;
 }));
@@ -1858,13 +2376,14 @@ function openListDialog(mode) {
   $('list-delete').hidden = mode === 'new';
   $('list-delete').disabled = state.lists.length === 1;
   $('list-save').textContent = mode === 'new' ? 'Create' : 'Save';
-  listDialog.showModal();
+  openSheet(listDialog);
   $('list-name').focus();
   if (mode !== 'new') $('list-name').select();
 }
 $('new-list').addEventListener('click', () => openListDialog('new'));
 $('list-more').addEventListener('click', () => openListDialog('edit'));
 $('list-cancel').addEventListener('click', () => listDialog.close());
+$('list-cancel-x').addEventListener('click', () => listDialog.close());
 $('list-form').addEventListener('submit', event => {
   event.preventDefault();
   const name = $('list-name').value;
@@ -1874,6 +2393,7 @@ $('list-form').addEventListener('submit', event => {
       const id = crypto.randomUUID();
       act({ type: 'add_list', id, name, color }, { throws: true });
       listDialog.close();
+      sound.play('add');
       openList(id, { focus: true });
       focusCapture();
     } else {
@@ -1888,21 +2408,15 @@ $('list-form').addEventListener('submit', event => {
 });
 $('list-delete').addEventListener('click', () => {
   const list = current();
-  $('list-confirm-text').textContent = `Delete “${list.name}”${list.tasks.length ? ` and its ${plural(list.tasks.length, 'item')}` : ''}?`;
+  $('list-confirm-text').textContent = list.tasks.length
+    ? `Delete “${list.name}” and the ${plural(list.tasks.length, 'task')} in it? You can undo for a few seconds afterwards.`
+    : `Delete “${list.name}”? It is empty.`;
   $('list-confirm').hidden = false;
   $('list-confirm-no').focus();
+  $('list-confirm').scrollIntoView({ block: 'nearest' });
 });
 $('list-confirm-no').addEventListener('click', () => { $('list-confirm').hidden = true; $('list-delete').focus(); });
-$('list-confirm-yes').addEventListener('click', () => {
-  const list = current();
-  const index = state.lists.indexOf(list);
-  if (!act({ type: 'delete_list', listId: list.id }, { toast: `Deleted “${list.name}”`, undo: true })) return;
-  listDialog.close();
-  activeId = state.lists[Math.min(index, state.lists.length - 1)].id;
-  savePrefs();
-  if (wide.matches) openList(activeId, { replace: true }); else showHome();
-  render({ flip: false });
-});
+$('list-confirm-yes').addEventListener('click', () => { listDialog.close(); deleteListNow(activeId); });
 
 /* ---------- backup dialog ---------- */
 const settingsDialog = $('settings-dialog');
@@ -1910,14 +2424,33 @@ let pendingReplace = null;
 const settingsStatus = message => { $('settings-status').textContent = message; };
 $('open-settings').addEventListener('click', () => {
   $('settings-confirm').hidden = true;
+  $('sound-toggle').setAttribute('aria-checked', String(sound.enabled));
+  $('theme-' + (['light', 'auto'].includes(prefs.theme) ? prefs.theme : 'dark')).checked = true;
   renderAccount();
   // Ask the server again each time this screen opens, so a setting changed on the server
   // (such as sign-up being switched on) shows without reloading the app.
   if (!STANDALONE) refreshServerInfo().then(changed => { if (changed && settingsDialog.open) renderAccount(); });
   settingsStatus(storage.volatile ? 'This browser is blocking storage here, so lists will be gone when the page closes.' : '');
-  settingsDialog.showModal();
+  openSheet(settingsDialog);
+  $('settings-body').scrollTop = 0;
 });
 $('settings-close').addEventListener('click', () => settingsDialog.close());
+$('settings-close-x').addEventListener('click', () => settingsDialog.close());
+$('sound-toggle').addEventListener('click', () => {
+  const next = !sound.enabled;
+  sound.setEnabled(next);
+  prefs.sound = next;
+  savePrefs();
+  $('sound-toggle').setAttribute('aria-checked', String(next));
+  settingsStatus(next ? 'Sound effects are on.' : 'Sound effects are off.');
+  if (next) sound.play('done');                 // a taste of what was just switched on
+});
+$('theme-choice').addEventListener('change', event => {
+  prefs.theme = event.target.value;
+  savePrefs();
+  applyTheme();
+  paintBrowserChrome();
+});
 $('export').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
   const link = el('a'); link.href = url; link.download = 'quiet-list-backup.json';
@@ -2070,7 +2603,8 @@ function offerLocalMove() {
   $('migrate-text').textContent = `This browser has ${plural(local.state.lists.length, 'list')} with ${plural(tasks, 'item')} saved from before you signed in. Copy them into your account? They are added beside what is already there, and the originals stay in this browser.`;
   $('migrate').hidden = false;
   $('migrate-open').hidden = true;
-  if (!settingsDialog.open) { renderAccount(); settingsDialog.showModal(); }
+  if (!settingsDialog.open) { renderAccount(); openSheet(settingsDialog); }
+  $('migrate').scrollIntoView({ block: 'nearest' });
   $('migrate-yes').focus();
 }
 function rememberMoveAsked() {
@@ -2106,6 +2640,7 @@ $('login-form').addEventListener('submit', async event => {
     if (!(await enterAccount(result.data.user.username))) { error.textContent = 'Signed in, but your lists could not be loaded. Check the connection and try again.'; return; }
     renderAccount();
     settingsStatus('Signed in. Your lists now sync.');
+    sound.play('done');
   } catch {
     error.textContent = 'Could not reach the server. Check the connection and try again.';
   } finally { $('login-submit').disabled = false; }

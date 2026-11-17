@@ -1,9 +1,13 @@
 import { COLORS, STORAGE_KEY, applyOp, validate, sample } from './model.js';
 import { createLocalStore, safeStorage } from './store.js';
 import { createAccountSync, api } from './sync.js';
+import { createSound } from './sound.js';
 
 const $ = id => document.getElementById(id);
-const HUES = { lavender: 290, sage: 150, peach: 55, sky: 240, rose: 8, teal: 190 };
+// Stored colour keys are unchanged; each now shows as a gemstone.
+const HUES = { lavender: 292, sage: 158, peach: 62, sky: 258, rose: 12, teal: 200 };
+const GEMS = { lavender: 'Amethyst', sage: 'Emerald', peach: 'Amber', sky: 'Sapphire', rose: 'Ruby', teal: 'Lagoon' };
+const hueOf = list => HUES[list.color] ?? HUES.lavender;
 const UI_KEY = 'quiet-list-ui';
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -22,6 +26,24 @@ const resumed = sync.resume();
 if (resumed) { account = { username: resumed }; state = sync.current(); }
 let prefs = {};
 try { prefs = JSON.parse(storage.getItem(UI_KEY)) || {}; } catch { prefs = {}; }
+// Per-device preferences: sound is on unless switched off; dark is the default look.
+const sound = createSound({ enabled: prefs.sound !== false });
+const phoneIsLight = matchMedia('(prefers-color-scheme: light)');
+function applyTheme() {
+  const choice = ['dark', 'light', 'auto'].includes(prefs.theme) ? prefs.theme : 'dark';
+  document.documentElement.dataset.theme = choice === 'auto' ? (phoneIsLight.matches ? 'light' : 'dark') : choice;
+}
+applyTheme();
+// Sheets size themselves to the part of the screen that is actually visible (the keyboard shrinks it).
+function syncViewport() {
+  const view = window.visualViewport;
+  document.documentElement.style.setProperty('--vv-h', `${view ? view.height : innerHeight}px`);
+  document.documentElement.style.setProperty('--vv-top', `${view ? view.offsetTop : 0}px`);
+}
+syncViewport();
+addEventListener('resize', syncViewport);
+window.visualViewport?.addEventListener('resize', syncViewport);
+window.visualViewport?.addEventListener('scroll', syncViewport);
 
 let activeId = state.lists.some(l => l.id === prefs.activeId) ? prefs.activeId : state.lists[0].id;
 let view = 'list';
@@ -59,6 +81,15 @@ function announce(message) {
   const live = $('live');
   live.textContent = '';
   requestAnimationFrame(() => { live.textContent = message; });
+}
+function countText(list) {
+  const open = list.tasks.filter(t => !t.done).length, done = list.tasks.length - open;
+  return summary(list) + (done && open ? ` · ${done} done` : '');
+}
+function emptyWords(list) {
+  return list.tasks.length
+    ? ['All clear', 'Everything on this list is done.']
+    : ['Nothing here yet', 'Type a thought above. On a phone you can also pull the list down.'];
 }
 function summary(list) {
   const open = list.tasks.filter(t => !t.done).length;
@@ -122,6 +153,7 @@ function undo() {
   activeId = state.lists.some(l => l.id === wanted) ? wanted : state.lists[0].id;
   editingId = null;
   hideToast();
+  sound.play('undo');
   if (!saved) showToast('Could not save in this browser. Download a backup before closing.');
   render();
   announce('Restored.');
@@ -206,9 +238,9 @@ function renderList() {
   if (editingId && !openTasks.some(t => t.id === editingId)) editingId = null;
 
   $('title').textContent = list.name;
-  $('count').textContent = summary(list) + (doneTasks.length && openTasks.length ? ` · ${doneTasks.length} done` : '');
+  $('count').textContent = countText(list);
   document.title = `${list.name} · Quiet List`;
-  document.documentElement.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+  document.documentElement.style.setProperty('--h', hueOf(list));
   paintBrowserChrome();
 
   openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
@@ -216,10 +248,7 @@ function renderList() {
   doneEl.replaceChildren(...doneTasks.map(t => rowEl(t)));
 
   $('empty').hidden = openTasks.length > 0;
-  $('empty-title').textContent = list.tasks.length ? 'All clear' : 'Nothing here yet';
-  $('empty-text').textContent = list.tasks.length
-    ? 'Everything on this list is done.'
-    : 'Type a thought above. On a phone you can also pull the list down.';
+  [$('empty-title').textContent, $('empty-text').textContent] = emptyWords(list);
 
   $('done-wrap').hidden = !doneTasks.length;
   $('done-toggle').textContent = `${doneTasks.length} done`;
@@ -242,16 +271,20 @@ function renderList() {
 
 function renderHome() {
   listsEl.replaceChildren(...state.lists.map(list => {
-    const li = el('li', 'tile hue');
+    const li = el('li', 'tile-row hue');
     li.dataset.id = list.id;
-    li.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+    li.style.setProperty('--h', hueOf(list));
     if (list.id === activeId) li.setAttribute('aria-current', 'true');
+    const left = el('span', 'reveal left'); left.append(icon('i-plus'));
+    const right = el('span', 'reveal right'); right.append(icon('i-trash'));
+    const tile = el('div', 'tile');
     const open = el('button', 'tile-open'); open.type = 'button'; open.dataset.fk = 'l:' + list.id;
     open.append(el('span', 'tile-name', list.name), el('span', 'tile-count', summary(list)));
     const handle = el('button', 'handle'); handle.type = 'button'; handle.dataset.fk = 'lh:' + list.id;
     handle.setAttribute('aria-label', `Reorder list: ${list.name}. Use the up and down arrow keys.`);
     handle.append(icon('i-grip'));
-    li.append(open, handle);
+    tile.append(open, handle);
+    li.append(left, right, tile);
     return li;
   }));
 }
@@ -278,7 +311,7 @@ function paintBrowserChrome() {
     themeMeta.content = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
   } catch { /* cosmetic only */ }
 }
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', paintBrowserChrome);
+phoneIsLight.addEventListener('change', () => { applyTheme(); paintBrowserChrome(); });
 
 function autosize(area) {
   if (CSS.supports('field-sizing', 'content')) return;
@@ -306,7 +339,7 @@ function showHome({ focus = true } = {}) {
   setHash('lists');
   if (focus && !wide.matches) document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`)?.focus();
 }
-function openList(listId, { replace = false, direction = 0, focus = false } = {}) {
+function openList(listId, { replace = false, focus = false } = {}) {
   if (!state.lists.some(l => l.id === listId)) return;
   const changed = listId !== activeId;
   activeId = listId;
@@ -316,20 +349,13 @@ function openList(listId, { replace = false, direction = 0, focus = false } = {}
   applyView();
   render({ flip: false });
   if (changed) scroller.scrollTop = 0;
-  if (changed && direction && !calm.matches) {
-    content.classList.remove('swap-next', 'swap-prev');
-    void content.offsetWidth;
-    content.classList.add(direction > 0 ? 'swap-next' : 'swap-prev');
-  }
   setHash('list-' + listId, replace);
   if (focus) $('title').focus({ preventScroll: true });
 }
 function stepList(direction) {
-  const i = state.lists.findIndex(l => l.id === activeId);
-  const next = state.lists[i + direction];
-  if (!next) return false;
-  openList(next.id, { replace: true, direction });
-  announce(next.name);
+  const next = state.lists[state.lists.findIndex(l => l.id === activeId) + direction];
+  if (!next || navBusy) return false;
+  slideToList(next, direction);
   return true;
 }
 function route() {
@@ -362,6 +388,7 @@ async function setDone(taskId, done, li, { swiped = false } = {}) {
   if (!task || !act({ type: 'update_item', listId: list.id, itemId: taskId, done })) { render(); return; }
   announce((done ? 'Done: ' : 'Reopened: ') + task.text);
   const cleared = done && !list.tasks.some(t => !t.done);
+  sound.play(cleared ? 'clear' : done ? 'done' : 'undone');
   if (done) {
     buzz(12);
     if (!calm.matches && li) {
@@ -382,6 +409,7 @@ function thoughtOrNext() {
 async function removeTask(taskId, li) {
   const list = current();
   if (!act({ type: 'delete_item', listId: list.id, itemId: taskId }, { toast: 'Deleted', undo: true })) return;
+  sound.play('delete');
   if (editingId === taskId) editingId = null;
   if (li) await collapse(li);
   render();
@@ -396,6 +424,7 @@ function shiftTask(taskId, direction, focusKey) {
   if (from < 0 || to < 0 || to >= open.length) return;
   const beforeId = direction < 0 ? open[to].id : open[to + 1]?.id ?? null;
   if (!act({ type: 'move_item', listId: list.id, itemId: taskId, beforeId })) return;
+  sound.play('tick');
   render({ focus: focusKey });
   announce(`Moved to ${to + 1} of ${open.length}.`);
 }
@@ -405,6 +434,7 @@ function shiftList(listId, direction) {
   if (to < 0 || to >= state.lists.length) return;
   const beforeId = direction < 0 ? state.lists[to].id : state.lists[to + 1]?.id ?? null;
   if (!act({ type: 'move_list', listId, beforeId })) return;
+  sound.play('tick');
   render({ focus: 'lh:' + listId });
   announce(`Moved to ${to + 1} of ${state.lists.length}.`);
 }
@@ -480,7 +510,7 @@ function startDrag(li, pointer, { scrollBox, onDrop }) {
   let y = y0, to = from, frame = 0;
   gesture = 'drag';
   li.classList.add('dragging'); ol.classList.add('sorting'); document.body.classList.add('is-dragging');
-  buzz(8);
+  buzz(8); sound.play('lift');
 
   const update = () => {
     const dy = (y - y0) + (scrollBox.scrollTop - scroll0);
@@ -519,6 +549,7 @@ function startDrag(li, pointer, { scrollBox, onDrop }) {
     ol.classList.remove('sorting'); document.body.classList.remove('is-dragging');
     gesture = null;
     suppressClick(li);
+    sound.play('drop');
     if (event.type === 'pointerup' && to !== from) {
       const rest = items.filter(node => node !== li);
       onDrop(li.dataset.id, rest[to]?.dataset.id ?? null);
@@ -534,7 +565,7 @@ function startDrag(li, pointer, { scrollBox, onDrop }) {
   update();
 }
 
-function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
+function watchItems(container, { scrollBox, itemSelector, onDrop, swipe, cardSelector = '.card', fling = true }) {
   container.addEventListener('pointerdown', event => {
     if (event.button || gesture) return;
     const li = event.target.closest(itemSelector);
@@ -547,7 +578,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
       startDrag(li, event, { scrollBox, onDrop });
       return;
     }
-    const card = li.querySelector('.card');
+    const card = li.querySelector(cardSelector);
     const x0 = event.clientX, y0 = event.clientY;
     let mode = null, dx = 0, armed = false, lastY = y0;
 
@@ -579,7 +610,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
       li.dataset.swipe = dx > 0 ? 'complete' : 'delete';
       card.style.transform = `translateX(${dx}px)`;
       const now = Math.abs(dx) > Math.min(96, li.offsetWidth * 0.3);
-      if (now !== armed) { armed = now; li.toggleAttribute('data-armed', armed); if (armed) buzz(6); }
+      if (now !== armed) { armed = now; li.toggleAttribute('data-armed', armed); if (armed) { buzz(6); sound.play('tick'); } }
     };
     const settle = () => {
       card.classList.add('spring');
@@ -595,6 +626,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
       suppressClick(li);
       if (!armed) { settle(); return; }
       const action = dx > 0 ? 'complete' : 'delete';
+      if (!fling) { settle(); swipe(li, action); return; }     // the item stays; the action opens something
       if (!calm.matches) {
         card.classList.add('fling');
         card.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`;
@@ -625,9 +657,12 @@ watchItems(content, {
 });
 watchItems(listsEl, {
   scrollBox: $('home-scroll'),
-  itemSelector: '.tile',
+  itemSelector: '.tile-row',
+  cardSelector: '.tile',
+  fling: false,
   onDrop: (listId, beforeId) => { act({ type: 'move_list', listId, beforeId }); render(); },
-  swipe: null,
+  // Right: add to this list without opening it. Left: delete the whole list, after asking.
+  swipe: (li, action) => { if (action === 'delete') askDeleteList(li.dataset.id); else openQuickAdd(li.dataset.id); },
 });
 
 // Once a gesture owns the touch, stop the page from scrolling underneath it.
@@ -658,7 +693,7 @@ scroller.addEventListener('touchmove', event => {
   if (armed !== hint.classList.contains('armed')) {
     hint.classList.toggle('armed', armed);
     $('pull-text').textContent = armed ? 'Release to add' : 'Pull to add';
-    if (armed) buzz(6);
+    if (armed) { buzz(6); sound.play('tick'); }
   }
 }, { passive: false });
 const endPull = event => {
@@ -670,29 +705,145 @@ const endPull = event => {
   $('pull').style.opacity = '0';
   $('pull').classList.remove('armed');
   $('pull-text').textContent = 'Pull to add';
-  if (armed) focusCapture();
+  if (armed) { sound.play('pop'); focusCapture(); }
 };
 scroller.addEventListener('touchend', endPull);
 scroller.addEventListener('touchcancel', endPull);
 
-/* ---------- touch: swipe the title bar to change list ---------- */
-for (const zone of [$('list-bar'), $('pager')]) {
-  zone.addEventListener('pointerdown', event => {
-    if (event.button || wide.matches) return;
-    const x0 = event.clientX, y0 = event.clientY;
-    const up = ev => {
-      if (ev.pointerId !== event.pointerId) return;
-      removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
-      const dx = ev.clientX - x0, dy = ev.clientY - y0;
-      if (ev.type === 'pointerup' && Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        suppressClick(zone);
-        if (stepList(dx < 0 ? 1 : -1)) buzz(6);
-      }
-    };
-    addEventListener('pointerup', up);
-    addEventListener('pointercancel', up);
-  });
+/* ---------- touch: swipe sideways between lists ----------
+   How this stays out of the way of the other gestures:
+   - a touch that starts on a task belongs to that task (done / delete / hold-to-drag), never to this;
+   - each touch commits to one axis in its first 10px, so a vertical drag can only scroll or pull-to-add;
+   - touches that start within 24px of the screen edge are left to the phone's own back gesture. */
+let navBusy = false;
+
+// A stand-in for the neighbouring list, in its own colour, that travels in beside the open one.
+function ghostPane(list) {
+  const pane = el('section', 'pane ghost hue nav-drag');
+  pane.style.setProperty('--h', hueOf(list));
+  pane.setAttribute('aria-hidden', 'true');
+  pane.inert = true;
+  const open = list.tasks.filter(t => !t.done), doneCount = list.tasks.length - open.length;
+  const bar = el('header', 'bar');
+  const back = el('span', 'icon-btn'); back.append(icon('i-back'));
+  const titles = el('div', 'bar-title'); titles.append(el('div', 'title', list.name), el('p', 'count', countText(list)));
+  const more = el('span', 'icon-btn'); more.append(icon('i-more'));
+  bar.append(back, titles, more);
+  const dots = el('nav', 'pager');
+  if (state.lists.length > 1 && state.lists.length <= 8) {
+    for (const other of state.lists) { const dot = el('span'); if (other.id === list.id) dot.setAttribute('aria-current', 'true'); dots.append(dot); }
+  }
+  const scroll = el('div', 'scroll');
+  const capture = el('div', 'capture'); const plus = icon('i-plus'); plus.classList.add('capture-plus');
+  capture.append(plus, el('span', 'mock', 'Add a thought'));
+  const rows = el('ol', 'rows'); rows.append(...open.slice(0, 14).map((task, i) => rowEl(task, i, open)));
+  scroll.append(capture, rows);
+  if (!open.length) {
+    const [title, text] = emptyWords(list);
+    const empty = el('div', 'empty'); const art = el('div', 'empty-art'); art.append(icon('i-mark'));
+    empty.append(art, el('h2', '', title), el('p', '', text));
+    scroll.append(empty);
+  }
+  if (doneCount) { const head = el('div', 'done-head'); head.append(el('span', 'done-mock', `${doneCount} done`)); scroll.append(head); }
+  pane.append(bar, dots, scroll);
+  return pane;
 }
+function landOnList(target, direction, ghost) {
+  openList(target.id, { replace: true });
+  listPane.classList.remove('nav-settle');
+  listPane.classList.add('nav-drag');
+  listPane.style.transform = '';
+  void listPane.offsetWidth;
+  requestAnimationFrame(() => { listPane.classList.remove('nav-drag'); ghost?.remove(); navBusy = false; if (gesture === 'nav') gesture = null; });
+  announce(target.name);
+}
+// Finishes a switch: both panes glide the rest of the way, then the real list takes over.
+function settleNav(target, direction, ghost) {
+  navBusy = true;
+  gesture = 'nav';
+  sound.play('nav', { index: state.lists.indexOf(target), direction });
+  buzz(6);
+  if (calm.matches || !ghost) { landOnList(target, direction, ghost); return; }
+  const width = listPane.offsetWidth;
+  for (const pane of [listPane, ghost]) { pane.classList.remove('nav-drag'); pane.classList.add('nav-settle'); }
+  void listPane.offsetWidth;
+  listPane.style.transform = `translateX(${-direction * width}px)`;
+  ghost.style.transform = 'translateX(0px)';
+  setTimeout(() => landOnList(target, direction, ghost), 350);
+}
+function cancelNav(direction, ghost) {
+  const width = listPane.offsetWidth;
+  for (const pane of [listPane, ghost]) { pane?.classList.remove('nav-drag'); pane?.classList.add('nav-settle'); }
+  void listPane.offsetWidth;
+  listPane.style.transform = '';
+  if (ghost) ghost.style.transform = `translateX(${direction * width}px)`;
+  setTimeout(() => { ghost?.remove(); listPane.classList.remove('nav-settle'); if (gesture === 'nav') gesture = null; }, calm.matches ? 0 : 350);
+}
+// Used by the dots, the [ and ] keys, and anything else that is not a drag.
+function slideToList(target, direction) {
+  if (navBusy || target.id === activeId) return;
+  if (wide.matches || calm.matches || view !== 'list') {
+    sound.play('nav', { index: state.lists.indexOf(target), direction });
+    openList(target.id, { replace: true });
+    announce(target.name);
+    return;
+  }
+  const ghost = ghostPane(target);
+  ghost.style.transform = `translateX(${direction * listPane.offsetWidth}px)`;
+  app.append(ghost);
+  listPane.classList.add('nav-drag');
+  void ghost.offsetWidth;
+  settleNav(target, direction, ghost);
+}
+
+listPane.addEventListener('pointerdown', event => {
+  if (event.button || event.pointerType === 'mouse' || wide.matches || view !== 'list' || gesture || navBusy) return;
+  if (event.target.closest('.row')) return;                                   // tasks keep their own swipes
+  if (event.target === document.activeElement && event.target.matches('input, textarea')) return;   // moving the text cursor
+  const x0 = event.clientX, y0 = event.clientY, width = listPane.offsetWidth;
+  if (x0 < 24 || x0 > width - 24) return;                                     // the phone's own edge gestures
+  let mode = null, dx = 0, ghost = null, ghostDirection = 0, lastX = x0, lastTime = event.timeStamp, speed = 0;
+  const neighbour = direction => state.lists[state.lists.findIndex(l => l.id === activeId) + direction];
+  const detach = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
+  const move = ev => {
+    if (ev.pointerId !== event.pointerId) return;
+    dx = ev.clientX - x0;
+    const dy = ev.clientY - y0;
+    if (!mode) {
+      if (Math.hypot(dx, dy) < 10) return;
+      if (gesture || Math.abs(dx) < Math.abs(dy) * 1.4) { detach(); return; }   // vertical: scrolling or pull-to-add owns it
+      mode = 'nav'; gesture = 'nav';
+      listPane.classList.add('nav-drag');
+    }
+    ev.preventDefault();
+    if (ev.timeStamp > lastTime) { speed = (ev.clientX - lastX) / (ev.timeStamp - lastTime); lastX = ev.clientX; lastTime = ev.timeStamp; }
+    const direction = dx < 0 ? 1 : -1;
+    const target = neighbour(direction);
+    if (direction !== ghostDirection) {
+      ghost?.remove();
+      ghost = target ? ghostPane(target) : null;
+      if (ghost) app.append(ghost);
+      ghostDirection = direction;
+    }
+    const shown = target ? dx : dx * 0.2;                                     // nothing that way: resist
+    listPane.style.transform = `translateX(${shown}px)`;
+    if (ghost) ghost.style.transform = `translateX(${shown + direction * width}px)`;
+  };
+  const up = ev => {
+    if (ev.pointerId !== event.pointerId) return;
+    detach();
+    if (mode !== 'nav') return;
+    suppressClick(listPane);
+    const direction = dx < 0 ? 1 : -1;
+    const target = neighbour(direction);
+    const flicked = Math.abs(speed) > 0.45 && Math.sign(speed) === Math.sign(dx);
+    if (ev.type === 'pointerup' && target && (Math.abs(dx) > width * 0.3 || flicked)) settleNav(target, direction, ghost);
+    else cancelNav(direction, ghost);
+  };
+  addEventListener('pointermove', move, { passive: false });
+  addEventListener('pointerup', up);
+  addEventListener('pointercancel', up);
+});
 
 /* ---------- capture ---------- */
 function focusCapture() {
@@ -714,7 +865,7 @@ $('capture').addEventListener('submit', event => {
   render();
   scroller.scrollTop = 0;
   thought.focus({ preventScroll: true });
-  buzz(8);
+  buzz(8); sound.play('add');
   announce('Added: ' + task.text);
 });
 // Pasting several lines drops each one in as its own thought.
@@ -726,10 +877,10 @@ thought.addEventListener('paste', event => {
   const list = current();
   const ops = [...lines].reverse().map(line => ({ type: 'add_item', listId: list.id, id: crypto.randomUUID(), text: line.slice(0, 2000), top: true }));
   const ok = act(ops, { toast: `Added ${plural(lines.length, 'thought')}`, undo: true });
-  if (ok) render();
+  if (ok) { sound.play('add'); render(); }
 });
 thought.addEventListener('keydown', event => { if (event.key === 'Escape') thought.blur(); });
-$('fab').addEventListener('click', focusCapture);
+$('fab').addEventListener('click', () => { sound.play('pop'); focusCapture(); });
 
 /* ---------- list pane events ---------- */
 content.addEventListener('change', event => {
@@ -794,31 +945,115 @@ content.addEventListener('focusout', event => {
   addEventListener('pointercancel', lifted);
 });
 
-$('done-toggle').addEventListener('click', () => { doneOpen = !doneOpen; savePrefs(); render({ flip: false }); });
+$('done-toggle').addEventListener('click', () => { doneOpen = !doneOpen; sound.play('tick'); savePrefs(); render({ flip: false }); });
 $('clear-done').addEventListener('click', () => {
   const list = current();
   const count = list.tasks.filter(t => t.done).length;
-  if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { render(); thought.focus({ preventScroll: true }); }
+  if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { sound.play('delete'); render(); thought.focus({ preventScroll: true }); }
 });
-$('back').addEventListener('click', () => showHome());
+$('back').addEventListener('click', () => { sound.play('back'); showHome(); });
 $('pager').addEventListener('click', event => {
   const dot = event.target.closest('button');
   if (!dot || dot.dataset.id === activeId) return;
   const from = state.lists.findIndex(l => l.id === activeId), to = state.lists.findIndex(l => l.id === dot.dataset.id);
-  openList(dot.dataset.id, { replace: true, direction: to - from });
-  document.querySelector(`[data-fk="p:${CSS.escape(activeId)}"]`)?.focus();
+  slideToList(state.lists[to], Math.sign(to - from));
 });
 
 /* ---------- home events ---------- */
 listsEl.addEventListener('click', event => {
   const open = event.target.closest('.tile-open');
-  if (open) openList(open.closest('.tile').dataset.id, { focus: !wide.matches });
+  if (open) { sound.play('open'); openList(open.closest('.tile-row').dataset.id, { focus: !wide.matches }); }
 });
 listsEl.addEventListener('keydown', event => {
-  const handle = event.target.closest('.handle');
+  const row = event.target.closest('.tile-row');
+  if (!row) return;
   const arrow = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
-  if (handle && arrow) { event.preventDefault(); shiftList(handle.closest('.tile').dataset.id, arrow); }
+  if (event.target.closest('.handle') && arrow) { event.preventDefault(); shiftList(row.dataset.id, arrow); }
+  // Keyboard equivalents of the two swipes.
+  else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); askDeleteList(row.dataset.id); }
+  else if (event.key === '+' || event.key === '=') { event.preventDefault(); openQuickAdd(row.dataset.id); }
 });
+
+/* ---------- sheets ---------- */
+function openSheet(dialog) {
+  if (dialog.open) return;
+  syncViewport();
+  dialog.showModal();
+  sound.play('pop');
+}
+// Tapping the dimmed area outside a sheet closes it, like pressing Escape.
+for (const dialog of document.querySelectorAll('dialog.sheet')) {
+  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+}
+
+/* ---------- deleting a whole list (swipe left on the Lists screen, or Delete on the keyboard) ---------- */
+const confirmDialog = $('confirm-dialog');
+let pendingDeleteId = null;
+function askDeleteList(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return;
+  if (state.lists.length === 1) {
+    sound.play('nope');
+    showToast('This is your only list, so it stays. Make another one first.');
+    return;
+  }
+  const open = list.tasks.filter(t => !t.done).length, done = list.tasks.length - open;
+  pendingDeleteId = listId;
+  $('confirm-title').textContent = `Delete “${list.name}”?`;
+  $('confirm-text').textContent = list.tasks.length
+    ? `This deletes the list and the ${plural(list.tasks.length, 'task')} in it (${open} open, ${done} done). Your other lists are not affected. You can undo for a few seconds afterwards.`
+    : 'This list is empty. Your other lists are not affected.';
+  openSheet(confirmDialog);
+  $('confirm-no').focus();
+}
+function deleteListNow(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return false;
+  const index = state.lists.indexOf(list);
+  if (!act({ type: 'delete_list', listId }, { toast: `Deleted “${list.name}”`, undo: true })) return false;
+  sound.play('delete');
+  if (activeId === listId) {
+    activeId = state.lists[Math.min(index, state.lists.length - 1)].id;
+    savePrefs();
+    if (view === 'list') { if (wide.matches) openList(activeId, { replace: true }); else showHome(); }
+  }
+  render();
+  return true;
+}
+$('confirm-no').addEventListener('click', () => confirmDialog.close());
+$('confirm-yes').addEventListener('click', () => { confirmDialog.close(); if (pendingDeleteId) deleteListNow(pendingDeleteId); });
+confirmDialog.addEventListener('close', () => { pendingDeleteId = null; });
+
+/* ---------- quick add (swipe right on the Lists screen, or + on the keyboard) ---------- */
+const quickDialog = $('quick-dialog');
+let quickListId = null, quickCount = 0;
+function openQuickAdd(listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) return;
+  quickListId = listId; quickCount = 0;
+  quickDialog.style.setProperty('--h', hueOf(list));
+  $('quick-title').textContent = `Add to ${list.name}`;
+  $('quick-text').value = '';
+  $('quick-status').textContent = 'Press Enter to add, and keep going.';
+  openSheet(quickDialog);
+  $('quick-text').focus();
+}
+$('quick-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const input = $('quick-text');
+  if (!input.value.trim() || !state.lists.some(l => l.id === quickListId)) { input.focus(); return; }
+  try {
+    act({ type: 'add_item', listId: quickListId, id: crypto.randomUUID(), text: input.value, top: true }, { throws: true });
+    quickCount += 1;
+    input.value = '';
+    $('quick-status').textContent = `Added ${plural(quickCount, 'thought')}. Keep going, or tap Done.`;
+    sound.play('add'); buzz(8);
+    render({ flip: false, focus: 'none' });
+  } catch (error) { $('quick-status').textContent = error.message; sound.play('nope'); }
+  input.focus();
+});
+$('quick-done').addEventListener('click', () => quickDialog.close());
+$('quick-close-x').addEventListener('click', () => quickDialog.close());
 
 /* ---------- list dialog (new, rename, recolour, delete) ---------- */
 const listDialog = $('list-dialog');
@@ -827,7 +1062,7 @@ $('swatches').replaceChildren(...COLORS.map(color => {
   const label = el('label', 'swatch hue');
   label.style.setProperty('--h', HUES[color]);
   const radio = el('input'); radio.type = 'radio'; radio.name = 'color'; radio.value = color; radio.id = 'color-' + color;
-  radio.setAttribute('aria-label', color[0].toUpperCase() + color.slice(1));
+  radio.setAttribute('aria-label', GEMS[color]);
   label.append(radio);
   return label;
 }));
@@ -843,13 +1078,14 @@ function openListDialog(mode) {
   $('list-delete').hidden = mode === 'new';
   $('list-delete').disabled = state.lists.length === 1;
   $('list-save').textContent = mode === 'new' ? 'Create' : 'Save';
-  listDialog.showModal();
+  openSheet(listDialog);
   $('list-name').focus();
   if (mode !== 'new') $('list-name').select();
 }
 $('new-list').addEventListener('click', () => openListDialog('new'));
 $('list-more').addEventListener('click', () => openListDialog('edit'));
 $('list-cancel').addEventListener('click', () => listDialog.close());
+$('list-cancel-x').addEventListener('click', () => listDialog.close());
 $('list-form').addEventListener('submit', event => {
   event.preventDefault();
   const name = $('list-name').value;
@@ -859,6 +1095,7 @@ $('list-form').addEventListener('submit', event => {
       const id = crypto.randomUUID();
       act({ type: 'add_list', id, name, color }, { throws: true });
       listDialog.close();
+      sound.play('add');
       openList(id, { focus: true });
       focusCapture();
     } else {
@@ -873,21 +1110,15 @@ $('list-form').addEventListener('submit', event => {
 });
 $('list-delete').addEventListener('click', () => {
   const list = current();
-  $('list-confirm-text').textContent = `Delete “${list.name}”${list.tasks.length ? ` and its ${plural(list.tasks.length, 'item')}` : ''}?`;
+  $('list-confirm-text').textContent = list.tasks.length
+    ? `Delete “${list.name}” and the ${plural(list.tasks.length, 'task')} in it? You can undo for a few seconds afterwards.`
+    : `Delete “${list.name}”? It is empty.`;
   $('list-confirm').hidden = false;
   $('list-confirm-no').focus();
+  $('list-confirm').scrollIntoView({ block: 'nearest' });
 });
 $('list-confirm-no').addEventListener('click', () => { $('list-confirm').hidden = true; $('list-delete').focus(); });
-$('list-confirm-yes').addEventListener('click', () => {
-  const list = current();
-  const index = state.lists.indexOf(list);
-  if (!act({ type: 'delete_list', listId: list.id }, { toast: `Deleted “${list.name}”`, undo: true })) return;
-  listDialog.close();
-  activeId = state.lists[Math.min(index, state.lists.length - 1)].id;
-  savePrefs();
-  if (wide.matches) openList(activeId, { replace: true }); else showHome();
-  render({ flip: false });
-});
+$('list-confirm-yes').addEventListener('click', () => { listDialog.close(); deleteListNow(activeId); });
 
 /* ---------- backup dialog ---------- */
 const settingsDialog = $('settings-dialog');
@@ -895,14 +1126,33 @@ let pendingReplace = null;
 const settingsStatus = message => { $('settings-status').textContent = message; };
 $('open-settings').addEventListener('click', () => {
   $('settings-confirm').hidden = true;
+  $('sound-toggle').setAttribute('aria-checked', String(sound.enabled));
+  $('theme-' + (['light', 'auto'].includes(prefs.theme) ? prefs.theme : 'dark')).checked = true;
   renderAccount();
   // Ask the server again each time this screen opens, so a setting changed on the server
   // (such as sign-up being switched on) shows without reloading the app.
   if (!STANDALONE) refreshServerInfo().then(changed => { if (changed && settingsDialog.open) renderAccount(); });
   settingsStatus(storage.volatile ? 'This browser is blocking storage here, so lists will be gone when the page closes.' : '');
-  settingsDialog.showModal();
+  openSheet(settingsDialog);
+  $('settings-body').scrollTop = 0;
 });
 $('settings-close').addEventListener('click', () => settingsDialog.close());
+$('settings-close-x').addEventListener('click', () => settingsDialog.close());
+$('sound-toggle').addEventListener('click', () => {
+  const next = !sound.enabled;
+  sound.setEnabled(next);
+  prefs.sound = next;
+  savePrefs();
+  $('sound-toggle').setAttribute('aria-checked', String(next));
+  settingsStatus(next ? 'Sound effects are on.' : 'Sound effects are off.');
+  if (next) sound.play('done');                 // a taste of what was just switched on
+});
+$('theme-choice').addEventListener('change', event => {
+  prefs.theme = event.target.value;
+  savePrefs();
+  applyTheme();
+  paintBrowserChrome();
+});
 $('export').addEventListener('click', () => {
   const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
   const link = el('a'); link.href = url; link.download = 'quiet-list-backup.json';
@@ -1055,7 +1305,8 @@ function offerLocalMove() {
   $('migrate-text').textContent = `This browser has ${plural(local.state.lists.length, 'list')} with ${plural(tasks, 'item')} saved from before you signed in. Copy them into your account? They are added beside what is already there, and the originals stay in this browser.`;
   $('migrate').hidden = false;
   $('migrate-open').hidden = true;
-  if (!settingsDialog.open) { renderAccount(); settingsDialog.showModal(); }
+  if (!settingsDialog.open) { renderAccount(); openSheet(settingsDialog); }
+  $('migrate').scrollIntoView({ block: 'nearest' });
   $('migrate-yes').focus();
 }
 function rememberMoveAsked() {
@@ -1091,6 +1342,7 @@ $('login-form').addEventListener('submit', async event => {
     if (!(await enterAccount(result.data.user.username))) { error.textContent = 'Signed in, but your lists could not be loaded. Check the connection and try again.'; return; }
     renderAccount();
     settingsStatus('Signed in. Your lists now sync.');
+    sound.play('done');
   } catch {
     error.textContent = 'Could not reach the server. Check the connection and try again.';
   } finally { $('login-submit').disabled = false; }

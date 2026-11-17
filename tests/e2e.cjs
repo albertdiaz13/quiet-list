@@ -17,6 +17,9 @@ const previewServer = http.createServer((req, res) => {
 let previewBase;
 
 const results = [];
+// Collects which sound cues the app asked for, and whether the engine accepted them.
+const CUE_RECORDER = () => { window.__cues = []; document.addEventListener('quiet:cue', e => window.__cues.push(e.detail.name + (e.detail.played ? '' : ':skipped'))); };
+const cues = page => page.evaluate(() => window.__cues.splice(0));
 let base;
 const openTexts = page => page.$$eval('#open .row .t, #open .row .edit-text', nodes => nodes.map(n => n.value ?? n.textContent));
 const center = async (page, selector) => {
@@ -43,7 +46,10 @@ async function finger(page, points, { hold = 0, steps = 10 } = {}) {
 
 async function run(name, contextOptions, body, url = '/') {
   const browser = await chromium.launch();
-  const context = await browser.newContext(contextOptions);
+  const { theme, ...deviceOptions } = contextOptions;
+  const context = await browser.newContext(deviceOptions);
+  if (contextOptions.theme) await context.addInitScript(theme => { if (!localStorage.getItem('quiet-list-ui')) localStorage.setItem('quiet-list-ui', JSON.stringify({ theme })); }, contextOptions.theme);
+  await context.addInitScript(CUE_RECORDER);
   const page = await context.newPage();
   const problems = [];
   page.on('console', m => { if (['error', 'warning'].includes(m.type())) problems.push(m.text()); });
@@ -71,7 +77,8 @@ const layoutChecks = async page => {
   const realSmall = small.filter(r => r.w < 28 || r.h < 28);
   assert.deepEqual(realSmall, [], 'touch targets');
   const unnamed = await page.$$eval('button, input, textarea', nodes => nodes.filter(n => n.type !== 'file' && !n.hidden
-    && !(n.getAttribute('aria-label') || n.textContent.trim() || (n.id && document.querySelector(`label[for="${n.id}"]`)))).map(n => n.outerHTML.slice(0, 80)));
+    && !(n.getAttribute('aria-label') || n.textContent.trim() || (n.id && document.querySelector(`label[for="${n.id}"]`))
+      || n.closest('label')?.textContent.trim() || document.getElementById(n.getAttribute('aria-labelledby') || '')?.textContent.trim())).map(n => n.outerHTML.slice(0, 80)));
   assert.deepEqual(unnamed, [], 'every control has an accessible name');
 };
 
@@ -156,7 +163,7 @@ const touchFlows = async page => {
   assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
   assert.equal(await page.evaluate(() => document.getElementById('list').inert), true);
   await layoutChecks(page);
-  await page.tap('.tile:nth-child(4) .tile-open');
+  await page.tap('.tile-row:nth-child(4) .tile-open');
   await page.waitForTimeout(450);
   assert.equal(await page.textContent('#title'), 'Gift ideas');
   assert.equal(await page.textContent('#empty-title'), 'Nothing here yet');
@@ -251,8 +258,8 @@ const keyboardFlows = async page => {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
   assert.equal(await page.textContent('#title'), 'Errands');
-  assert.equal(await page.locator('.tile').count(), 5);
-  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--h')), '240');
+  assert.equal(await page.locator('.tile-row').count(), 5);
+  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--h')), '258');
   await page.click('#list-more');
   await page.fill('#list-name', '   ');
   await page.click('#list-save');
@@ -264,14 +271,14 @@ const keyboardFlows = async page => {
   await page.click('#list-delete');
   await page.click('#list-confirm-yes');
   await page.waitForTimeout(300);
-  assert.equal(await page.locator('.tile').count(), 4);
+  assert.equal(await page.locator('.tile-row').count(), 4);
   await page.click('#toast-undo');
-  assert.equal(await page.locator('.tile').count(), 5);
+  assert.equal(await page.locator('.tile-row').count(), 5);
   await page.keyboard.press('[');
   assert.equal(await page.textContent('#title'), 'Gift ideas');
 
   // done section: show, reopen, clear
-  await page.click('.tile:nth-child(1) .tile-open');
+  await page.click('.tile-row:nth-child(1) .tile-open');
   await page.click('#done-toggle');
   assert.equal(await page.locator('#done .row').count(), 2);
   await page.click('#done .row:nth-child(1) .check');
@@ -373,6 +380,7 @@ async function accountFlows() {
   const problems = [];
   const device = async (name, options) => {
     const context = await browser.newContext(options);
+    await context.addInitScript(CUE_RECORDER);
     const page = await context.newPage();
     page.on('console', m => { if (m.type() === 'error' && !/ERR_INTERNET_DISCONNECTED|Failed to load resource: the server responded with a status of 401/.test(m.text())) problems.push(`${name}: ${m.text()}`); });
     page.on('pageerror', e => problems.push(`${name} pageerror: ${e.message}`));
@@ -423,14 +431,16 @@ async function accountFlows() {
       await closeSettings(B);
       await waitFor(async () => (await titles(B)).length === 5, 'lists on second device');
       await B.evaluate(() => document.getElementById('back').click());
-      await B.tap('.tile:nth-child(2) .tile-open');
+      await B.tap('.tile-row:nth-child(2) .tile-open');
       await waitFor(async () => (await openTexts(B))[0] === 'Written before signing in', 'migrated item visible on phone 2');
     });
 
     await step('A task added on phone 2 appears on phone 1 without a reload', async () => {
-      await A.tap('.tile:nth-child(2) .tile-open');
+      await A.tap('.tile-row:nth-child(2) .tile-open');
+      await A.evaluate(() => window.__cues.splice(0));
       await addThought(B, 'Added on the Pixel');
       await waitFor(async () => (await openTexts(A))[0] === 'Added on the Pixel', 'phone 1 receives it');
+      assert.deepEqual(await A.evaluate(() => window.__cues), [], 'a change arriving from another device makes no sound');
     });
 
     await step('Swipe-complete on phone 1 shows as done on phone 2', async () => {
@@ -507,7 +517,7 @@ async function accountFlows() {
       await waitFor(async () => (await openTexts(A))[0] === 'Edited by the assistant', 'phone 1 shows the edit');
       await call('complete_task', { list_id: listId, task_id: tasks[0].id });
       await waitFor(async () => !(await openTexts(A)).includes('Thought while offline'), 'phone 1 shows completion');
-      await B.tap('.tile:nth-child(2) .tile-open');
+      await B.tap('.tile-row:nth-child(2) .tile-open');
       await waitFor(async () => (await openTexts(B))[0] === 'Edited by the assistant', 'phone 2 too');
     });
 
@@ -541,6 +551,241 @@ async function accountFlows() {
   await browser.close();
 }
 
+
+/* ---------- this round: paging between lists, list swipes, sound, settings sheet ---------- */
+const inView = (page, selector) => page.evaluate(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth && r.height > 0; }, selector);
+const title = page => page.textContent('#title');
+
+const pagingAndSound = async page => {
+  // nothing may sound, and no audio engine may exist, before the first touch
+  assert.equal(await page.getAttribute('html', 'data-audio'), 'idle');
+  assert.deepEqual(await cues(page), []);
+  const start = await openTexts(page);
+  const blank = async () => { const box = await page.locator('#open').boundingBox(); return { x: 195, y: box.y + box.height + 70 }; };   // empty space under the tasks
+
+  // 1. swipe left on empty space: next list slides in
+  let from = await blank();
+  await finger(page, [from, { x: from.x - 190, y: from.y + 6 }]);
+  assert.equal(await title(page), 'Weekend');
+  assert.ok((await cues(page)).includes('nav'), 'list switch has its own cue');
+  assert.equal(await page.locator('.pane.ghost').count(), 0, 'the travelling copy is removed');
+  assert.equal(await page.evaluate(() => document.getElementById('list').style.transform), '');
+  // 2. swipe right on the add field (not focused): back again
+  const field = await center(page, '#capture');
+  await finger(page, [field, { x: field.x + 190, y: field.y }]);
+  assert.equal(await title(page), 'Brain dump');
+  assert.notEqual(await page.evaluate(() => document.activeElement.id), 'thought', 'the swipe did not open the keyboard');
+  // 3. a short or slow sideways nudge springs back
+  from = await blank();
+  await finger(page, [from, { x: from.x - 60, y: from.y }], { steps: 30 });
+  assert.equal(await title(page), 'Brain dump');
+  // 4. first list has nothing to its left: resists and stays
+  await finger(page, [from, { x: from.x + 200, y: from.y }]);
+  assert.equal(await title(page), 'Brain dump');
+};
+
+const gestureConflicts = async page => {
+  const start = await openTexts(page);
+  const blankY = async () => { const box = await page.locator('#open').boundingBox(); return box.y + box.height + 70; };
+  // edge start: ignored by list paging
+  let y = await blankY();
+  await finger(page, [{ x: 10, y }, { x: 250, y }]);
+  assert.equal(await title(page), 'Brain dump', 'left-edge start does nothing');
+  await finger(page, [{ x: 382, y }, { x: 120, y }]);
+  assert.equal(await title(page), 'Brain dump', 'right-edge start does nothing');
+  // a sideways swipe that starts ON a task acts on the task, and never changes list
+  let row = await center(page, '#open .row:nth-child(1) .text');
+  await finger(page, [row, { x: row.x - 190, y: row.y }]);
+  assert.equal(await title(page), 'Brain dump');
+  assert.deepEqual(await openTexts(page), start.slice(1), 'task deleted by its own swipe');
+  await page.tap('#toast-undo'); await page.waitForTimeout(500);
+  row = await center(page, '#open .row:nth-child(2) .text');
+  await finger(page, [row, { x: row.x + 190, y: row.y }]);
+  assert.equal(await title(page), 'Brain dump');
+  assert.equal((await openTexts(page)).length, start.length - 1, 'task completed by its own swipe');
+  // a vertical drag on empty space never changes list, even when it wanders sideways
+  y = await blankY();
+  await finger(page, [{ x: 200, y }, { x: 150, y: y - 160 }]);
+  assert.equal(await title(page), 'Brain dump');
+  await page.evaluate(() => { document.getElementById('scroller').scrollTop = 0; });
+  // pull-to-add still works from empty space, and does not page
+  y = await blankY();
+  await finger(page, [{ x: 200, y: y - 40 }, { x: 214, y: y + 170 }]);
+  assert.equal(await title(page), 'Brain dump');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'thought', 'pull-to-add focused the add field');
+  await page.evaluate(() => document.activeElement.blur());
+  // a sideways swipe right after still pages (no gesture got stuck)
+  y = await blankY();
+  await finger(page, [{ x: 300, y }, { x: 100, y }]);
+  assert.equal(await title(page), 'Weekend');
+  // hold-to-drag on a task still reorders on the new list
+  const names = await openTexts(page);
+  const last = await center(page, '#open .row:nth-child(3) .text'), first = await center(page, '#open .row:nth-child(1) .text');
+  await finger(page, [last, { x: last.x, y: first.y - 14 }], { hold: 560 });
+  assert.deepEqual(await openTexts(page), [names[2], names[0], names[1]]);
+  assert.equal(await title(page), 'Weekend');
+  // dots still work, with the slide
+  await page.tap('#pager button:nth-child(4)'); await page.waitForTimeout(600);
+  assert.equal(await title(page), 'Gift ideas');
+};
+
+const listSwipes = async page => {
+  await page.tap('#back'); await page.waitForTimeout(500);
+  await cues(page);
+  const tile = n => center(page, `.tile-row:nth-child(${n}) .tile-open`);
+  // swipe LEFT on a list: asks first, says tasks go too, and Keep it changes nothing
+  let t = await tile(2);
+  await finger(page, [t, { x: t.x - 170, y: t.y }]);
+  assert.equal(await page.isVisible('#confirm-dialog'), true);
+  assert.equal(await page.textContent('#confirm-title'), 'Delete “Weekend”?');
+  assert.match(await page.textContent('#confirm-text'), /deletes the list and the 3 tasks in it \(3 open, 0 done\)/);
+  assert.equal(await page.locator('.tile-row').count(), 4, 'nothing is deleted before the answer');
+  assert.ok(await inView(page, '#confirm-yes') && await inView(page, '#confirm-no'));
+  await page.tap('#confirm-no'); await page.waitForTimeout(300);
+  assert.equal(await page.locator('.tile-row').count(), 4);
+  assert.equal(await page.getAttribute('#app', 'data-view'), 'home', 'the swipe did not open the list');
+  // confirm: gone, with Undo
+  await finger(page, [t, { x: t.x - 170, y: t.y }]);
+  await page.tap('#confirm-yes'); await page.waitForTimeout(500);
+  assert.deepEqual(await page.$$eval('.tile-name', n => n.map(x => x.textContent)), ['Brain dump', 'Someday', 'Gift ideas']);
+  assert.ok((await cues(page)).includes('delete'));
+  await page.tap('#toast-undo'); await page.waitForTimeout(500);
+  assert.deepEqual(await page.$$eval('.tile-name', n => n.map(x => x.textContent)), ['Brain dump', 'Weekend', 'Someday', 'Gift ideas']);
+  assert.equal(await page.textContent('.tile-row:nth-child(2) .tile-count'), '3 open', 'its tasks came back with it');
+  // a short swipe springs back and asks nothing
+  t = await tile(2);
+  await finger(page, [t, { x: t.x - 40, y: t.y }]);
+  assert.equal(await page.isVisible('#confirm-dialog'), false);
+
+  // swipe RIGHT on a list: quick add without opening it
+  t = await tile(4);
+  await finger(page, [t, { x: t.x + 170, y: t.y }]);
+  assert.equal(await page.isVisible('#quick-dialog'), true);
+  assert.equal(await page.textContent('#quick-title'), 'Add to Gift ideas');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'quick-text');
+  await page.keyboard.type('A candle'); await page.keyboard.press('Enter');
+  await page.keyboard.type('Good socks'); await page.keyboard.press('Enter');
+  assert.match(await page.textContent('#quick-status'), /Added 2 thoughts/);
+  assert.ok(await inView(page, '#quick-done'));
+  await page.tap('#quick-done'); await page.waitForTimeout(300);
+  assert.equal(await page.textContent('.tile-row:nth-child(4) .tile-count'), '2 open');
+  assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
+  await page.tap('.tile-row:nth-child(4) .tile-open'); await page.waitForTimeout(500);
+  assert.deepEqual(await openTexts(page), ['Good socks', 'A candle']);
+  // vertical scrolling over the tiles and hold-to-drag reordering still work
+  await page.tap('#back'); await page.waitForTimeout(500);
+  const a = await tile(1), c = await tile(3);
+  await finger(page, [a, { x: a.x, y: c.y + 20 }], { hold: 560 });
+  assert.deepEqual(await page.$$eval('.tile-name', n => n.map(x => x.textContent)), ['Weekend', 'Someday', 'Brain dump', 'Gift ideas']);
+  assert.equal(await page.isVisible('#confirm-dialog') || await page.isVisible('#quick-dialog'), false);
+};
+
+const onlyListCannotGo = async page => {
+  await page.click('#open-settings'); await page.click('#reset'); await page.click('#settings-confirm-yes');
+  for (let i = 0; i < 3; i++) { await page.focus('.tile-row:nth-child(1) .tile-open'); await page.keyboard.press('Delete'); await page.click('#confirm-yes'); await page.waitForTimeout(250); }
+  assert.equal(await page.locator('.tile-row').count(), 1);
+  await page.focus('.tile-row .tile-open'); await page.keyboard.press('Delete'); await page.waitForTimeout(200);
+  assert.equal(await page.isVisible('#confirm-dialog'), false);
+  assert.match(await page.textContent('#toast-text'), /only list/);
+  assert.equal(await page.locator('.tile-row').count(), 1);
+  // keyboard quick add
+  await page.focus('.tile-row .tile-open'); await page.keyboard.press('+');
+  await page.keyboard.type('From the keyboard'); await page.keyboard.press('Enter'); await page.keyboard.press('Escape');
+  assert.match(await page.textContent('.tile-row .tile-count'), /open/);
+};
+
+const soundRules = async page => {
+  assert.equal(await page.getAttribute('html', 'data-audio'), 'idle', 'no audio engine before a touch');
+  await page.waitForTimeout(600);
+  assert.deepEqual(await cues(page), [], 'silent on load');
+  await page.tap('#fab');
+  await page.keyboard.type('Hear this'); await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+  let heard = await cues(page);
+  assert.ok(heard.includes('add') && !heard.some(c => c.endsWith(':skipped')), 'cues play after the first touch: ' + heard);
+  assert.notEqual(await page.getAttribute('html', 'data-audio'), 'idle');
+  await page.tap('#title');
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(900);
+  assert.ok((await cues(page)).includes('done'));
+  // switch off in Settings: clearly labelled, takes effect at once, survives a reload
+  await page.tap('#back'); await page.waitForTimeout(400);
+  await page.tap('#open-settings'); await page.waitForTimeout(400);
+  assert.equal(await page.getAttribute('#sound-toggle', 'aria-checked'), 'true');
+  assert.match(await page.textContent('#sound-label'), /Sound effects/);
+  await page.tap('#sound-toggle');
+  assert.equal(await page.getAttribute('#sound-toggle', 'aria-checked'), 'false');
+  assert.equal(await page.getAttribute('html', 'data-audio'), 'off');
+  await page.tap('#settings-close'); await page.waitForTimeout(300);
+  await cues(page);
+  await page.tap('.tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(400);
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(900);
+  heard = await cues(page);
+  assert.ok(heard.length > 0 && heard.every(c => c.endsWith(':skipped')), 'every cue is skipped when off: ' + heard);
+  await page.reload(); await page.waitForSelector('#open .row');
+  await page.tap('#fab'); await page.keyboard.type('Still quiet'); await page.keyboard.press('Enter'); await page.waitForTimeout(300);
+  assert.ok((await cues(page)).every(c => c.endsWith(':skipped')), 'still off after reload');
+  assert.equal(await page.getAttribute('html', 'data-audio'), 'off');
+  // back on: plays a sample
+  await page.tap('#title'); await page.tap('#back'); await page.waitForTimeout(400);
+  await page.tap('#open-settings'); await page.waitForTimeout(400);
+  await page.tap('#sound-toggle');
+  assert.ok((await cues(page)).includes('done'), 'turning sound on plays a sample');
+};
+
+const settingsSheet = keyboardOpen => async page => {
+  await page.tap('#back'); await page.waitForTimeout(450);
+  await page.tap('#open-settings'); await page.waitForTimeout(450);
+  const m = await page.evaluate(() => { const d = document.getElementById('settings-dialog').getBoundingClientRect(), b = document.getElementById('settings-body'); return { top: d.top, bottom: d.bottom, vh: innerHeight, scrolls: b.scrollHeight > b.clientHeight + 20, dialogScrolls: document.getElementById('settings-dialog').scrollHeight > document.getElementById('settings-dialog').clientHeight + 1 }; });
+  assert.ok(m.top >= 0 && m.bottom <= m.vh, `sheet fits the screen (${Math.round(m.top)}..${Math.round(m.bottom)} of ${m.vh})`);
+  assert.ok(m.scrolls, 'the middle scrolls');
+  assert.ok(!m.dialogScrolls, 'only the middle scrolls, not the whole sheet');
+  assert.ok(await inView(page, '#settings-close'), 'Done is on screen without scrolling');
+  assert.ok(await inView(page, '#settings-close-x'), 'so is the close button');
+  const done = await page.locator('#settings-close').boundingBox();
+  assert.ok(done.height >= 44 && done.width >= 64, 'Done is a full-size target');
+  // scroll the middle to the very end: Done has not moved, and the last control is reachable
+  await page.evaluate(() => { const b = document.getElementById('settings-body'); b.scrollTop = b.scrollHeight; });
+  assert.ok(await inView(page, '#settings-close'));
+  assert.deepEqual(await page.locator('#settings-close').boundingBox(), done);
+  if (!keyboardOpen) { assert.ok(await inView(page, '#reset'), 'bottom of the content can be scrolled into view'); }
+  // the page behind does not scroll sideways or grow
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  // Done really dismisses
+  await page.tap('#settings-close'); await page.waitForTimeout(300);
+  assert.equal(await page.isVisible('#settings-dialog'), false);
+  // so does the X, and so does tapping outside
+  await page.tap('#open-settings'); await page.waitForTimeout(300); await page.tap('#settings-close-x'); await page.waitForTimeout(300);
+  assert.equal(await page.isVisible('#settings-dialog'), false);
+  if (!keyboardOpen) {
+    await page.tap('#open-settings'); await page.waitForTimeout(300);
+    await page.touchscreen.tap(4, await page.evaluate(() => innerHeight - 3)); await page.waitForTimeout(300);
+    assert.equal(await page.isVisible('#settings-dialog'), false, 'tap outside closes');
+    // appearance: light theme applies, persists, and keeps text readable
+    await page.tap('#open-settings'); await page.waitForTimeout(300);
+    await page.check('#theme-light', { force: true });
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'light');
+    await page.tap('#settings-close');
+    await page.reload(); await page.waitForSelector('#open .row');
+    assert.equal(await page.getAttribute('html', 'data-theme'), 'light');
+  }
+};
+
+const shrinkLikeKeyboard = async page => {
+  // An on-screen keyboard leaves roughly this much of a phone visible.
+  await page.setViewportSize({ width: 390, height: 360 });
+  await page.waitForTimeout(200);
+  await settingsSheet(true)(page);
+  // signing in with the keyboard up: the field being typed in and Done are both visible
+  await page.tap('#open-settings'); await page.waitForTimeout(300);
+  await page.focus('#login-password');
+  await page.evaluate(() => document.getElementById('login-password').scrollIntoView({ block: 'center' }));
+  assert.ok(await inView(page, '#login-password') && await inView(page, '#settings-close'));
+  // the smaller sheets fit too
+  await page.tap('#settings-close'); await page.waitForTimeout(300);
+  await page.tap('#new-list'); await page.waitForTimeout(300);
+  assert.ok(await inView(page, '#list-save') && await inView(page, '#list-name'), 'New list sheet: name and Create visible');
+  await page.tap('#list-cancel');
+};
+
 (async () => {
   const { startServer } = await import('../server/node.js');
   const running = await startServer({ port: 0, setupCode: SETUP, passwordIterations: 1000 });
@@ -551,8 +796,16 @@ async function accountFlows() {
   await run('Pixel 7 size, touch flows', devices['Pixel 7'], touchFlows);
   await run('Desktop, keyboard and mouse flows', { viewport: { width: 1280, height: 800 } }, keyboardFlows);
   await run('Reduced motion', { viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' }, reducedMotion);
-  await run('Small phone (320px), dark', { ...devices['iPhone SE'], viewport: { width: 320, height: 568 }, colorScheme: 'dark' }, smallAndDark);
-  await run('Phone, light contrast', devices['Pixel 7'], smallAndDark);
+  await run('Small phone (320px), dark', { ...devices['iPhone SE'], viewport: { width: 320, height: 568 } }, smallAndDark);
+  await run('Phone, light theme contrast', { ...devices['Pixel 7'], theme: 'light' }, smallAndDark);
+  await run('Paging between lists by swiping anywhere off a task', devices['iPhone 13'], pagingAndSound);
+  await run('Gesture conflicts: tasks, edges, scrolling, pull-to-add, hold-to-drag', devices['iPhone 13'], gestureConflicts);
+  await run('List swipes: left asks then deletes, right quick-adds', devices['Pixel 7'], listSwipes);
+  await run('Only list cannot be deleted; keyboard equivalents', { viewport: { width: 1280, height: 800 } }, onlyListCannotGo);
+  await run('Sound: silent until touched, switch off and on, persists', devices['iPhone 13'], soundRules);
+  await run('Settings sheet on iPhone SE (375x667)', { ...devices['iPhone 13'], viewport: { width: 375, height: 667 } }, settingsSheet(false));
+  await run('Settings sheet on a very small phone (320x568)', { ...devices['iPhone 13'], viewport: { width: 320, height: 568 } }, settingsSheet(false));
+  await run('Sheets with the keyboard open (390x360 visible)', devices['iPhone 13'], shrinkLikeKeyboard);
   await run('Single-file preview bundle', devices['iPhone 13'], previewBundle, '/preview');
   await accountFlows();
   running.server.close(); previewServer.close();

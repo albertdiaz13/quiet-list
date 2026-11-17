@@ -1,7 +1,7 @@
 // Offline shell for the installed app. Caches only the app's own static files; never
 // requests to /api, /oauth or /mcp, so no list data or sign-in traffic is stored here.
-const CACHE = 'quiet-list-shell-v3';
-const SHELL = ['./', 'style.css', 'app.js', 'model.js', 'store.js', 'sync.js', 'manifest.webmanifest',
+const CACHE = 'quiet-list-shell-v4';
+const SHELL = ['./', 'style.css', 'app.js', 'model.js', 'store.js', 'sync.js', 'sound.js', 'manifest.webmanifest',
   'fonts/bricolage-grotesque-latin.woff2', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', event => {

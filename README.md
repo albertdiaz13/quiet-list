@@ -6,11 +6,31 @@ A touch-first brain-dump list app: undated lists, one tap to capture, no upsells
 **Status: built and tested locally; the Cloudflare database exists; the Worker is not deployed yet.**
 Until it is deployed (steps below), there is no link that works on your phone with sync, and no assistant is connected.
 
+## Using it
+
+| Action | Touch | Without gestures |
+| --- | --- | --- |
+| Add | Pull the list down, or tap **+** | Type in "Add a thought" and press Enter; `N` jumps there. Pasting several lines adds each one. |
+| Done / reopen | Swipe a task right | Tick the circle |
+| Delete a task | Swipe a task left | Open the task, then Delete. Undo in the toast or Ctrl/⌘+Z |
+| Reorder | Hold and drag, or drag the grip | Arrow keys on the grip; Up / Down while editing |
+| Switch list | Swipe sideways anywhere that is not a task | Dots under the title, `[` `]`, the Lists screen |
+| Add to a list without opening it | On the Lists screen, swipe the list right | Focus the list and press `+` |
+| Delete a whole list | On the Lists screen, swipe the list left, then confirm | Focus the list and press `Delete`, or List options → Delete list |
+
+How the gestures stay apart: a touch that starts on a task belongs to that task; a sideways touch that starts anywhere else
+switches list; every touch commits to one direction in its first 10px, so a vertical drag only scrolls or pulls-to-add; touches
+that start within 24px of the screen edge are left to the phone's own back gesture.
+
+Settings (top right of the Lists screen) has **Sound effects** (on by default, per device) and **Appearance** (Dark, Light, Match phone).
+Sounds are synthesized in the browser, play only in response to your own touches, never on load and never for changes arriving
+from another device. The phone's volume and iPhone's silent switch still apply.
+
 ## What exists
 
 | Piece | State |
 | --- | --- |
-| Gesture-driven app (add, done, delete, reorder, lists) | Working. Unchanged from the previous version. |
+| Gesture-driven app (add, done, delete, reorder, lists, paging, list swipes, sound) | Working. |
 | Local mode (no sign-in) | Working. Lists stay in one browser, as before. |
 | Accounts | Working locally. Username + password, sign-up gated by a setup code you choose. |
 | Sync across devices | Working locally. Two browser sessions on one account see each other's changes within about 8 seconds; offline changes queue and send later. |

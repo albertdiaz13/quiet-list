@@ -1911,6 +1911,9 @@ const settingsStatus = message => { $('settings-status').textContent = message; 
 $('open-settings').addEventListener('click', () => {
   $('settings-confirm').hidden = true;
   renderAccount();
+  // Ask the server again each time this screen opens, so a setting changed on the server
+  // (such as sign-up being switched on) shows without reloading the app.
+  if (!STANDALONE) refreshServerInfo().then(changed => { if (changed && settingsDialog.open) renderAccount(); });
   settingsStatus(storage.volatile ? 'This browser is blocking storage here, so lists will be gone when the page closes.' : '');
   settingsDialog.showModal();
 });
@@ -2119,6 +2122,16 @@ $('copy-mcp').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText($('mcp-url').textContent); settingsStatus('Connector address copied.'); }
   catch { settingsStatus('Copy was blocked. Select the address and copy it by hand.'); }
 });
+
+async function refreshServerInfo() {
+  try {
+    const result = await api('GET', '/api/session');
+    if (!result.ok || !result.data || !('user' in result.data)) return false;
+    const changed = !server || server.signupOpen !== !!result.data.signupOpen || server.mcpUrl !== result.data.mcpUrl;
+    server = { signupOpen: !!result.data.signupOpen, mcpUrl: result.data.mcpUrl };
+    return changed;
+  } catch { return false; }
+}
 
 // Ask the server who we are. A copy without a server (a plain file host, the preview) stays local.
 async function checkSession() {

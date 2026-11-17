@@ -3,9 +3,8 @@
 A touch-first brain-dump list app: undated lists, one tap to capture, no upsells.
 "Quiet List" is a working title.
 
-**Status: built and tested on this machine only. Nothing is deployed.** No hosting account, domain,
-database or credential has been created. Until you deploy it (steps below), there is no link that works on
-your phone with sync, and no assistant is connected.
+**Status: built and tested locally; the Cloudflare database exists; the Worker is not deployed yet.**
+Until it is deployed (steps below), there is no link that works on your phone with sync, and no assistant is connected.
 
 ## What exists
 
@@ -34,42 +33,19 @@ enter the setup code. Data is stored in `data/quiet-list.sqlite`. Without `SETUP
 Why Cloudflare: one account, HTTPS included, a database included, no card needed on the free plan, and no server to maintain.
 Free limits (100,000 requests and 5 million database row reads a day at the time of writing) are far above one person's use. Check current limits before relying on them.
 
-You need a Cloudflare account (yours; I did not create one) and Node 22 on a computer.
+Already done on the owner's Cloudflare account: the D1 database `quiet-list` exists with its tables, and its id is in `wrangler.toml`.
+What is left is deploying the Worker. The simplest way is to let Cloudflare build straight from this repository:
 
-```bash
-npm install
-```
+1. Cloudflare dashboard → **Workers & Pages** → **Create** → **Import a repository**.
+2. Connect GitHub when asked and allow access to the `quiet-list` repository only.
+3. Pick `quiet-list`. Keep the project name **quiet-list** (it must match `wrangler.toml`). Leave the build command empty and the deploy command as `npx wrangler deploy`.
+4. **Save and Deploy**. Later pushes to `main` redeploy automatically.
+5. In the Worker's **Settings → Variables and Secrets**, add a **Secret** named `SETUP_CODE` with a long random phrase of your own.
 
-```bash
-npx wrangler login
-```
+Deploying from a computer instead also works: `npx wrangler login`, then `npx wrangler deploy`, then `npx wrangler secret put SETUP_CODE`.
 
-```bash
-npx wrangler d1 create quiet-list
-```
-
-Copy the `database_id` it prints into `wrangler.toml`, then:
-
-```bash
-npx wrangler d1 migrations apply quiet-list --remote
-```
-
-```bash
-npx wrangler secret put SETUP_CODE
-```
-
-(Type a long random phrase when asked. It is stored by Cloudflare, not in this folder.)
-
-```bash
-npx wrangler deploy
-```
-
-It prints an address like `https://quiet-list.<your-subdomain>.workers.dev`. Open it, create your account with the setup code,
-then **remove the setup code** so nobody else can ever sign up:
-
-```bash
-npx wrangler secret delete SETUP_CODE
-```
+The address is `https://quiet-list.<your-subdomain>.workers.dev`. Open it, create your account with the setup code,
+then **delete the `SETUP_CODE` secret** (same settings page) so nobody else can ever sign up.
 
 Install on the phone:
 

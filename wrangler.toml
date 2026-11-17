@@ -1,4 +1,5 @@
-# Cloudflare Workers + D1 deployment. Nothing is deployed until you run `npx wrangler deploy`.
+# Cloudflare Workers + D1 deployment. The D1 database exists with its schema applied.
+# The Worker deploys when this repository is imported in the Cloudflare dashboard, or with `npx wrangler deploy`.
 name = "quiet-list"
 main = "server/worker.js"
 compatibility_date = "2025-09-01"
@@ -12,5 +13,5 @@ run_worker_first = true          # every request passes through the server so it
 [[d1_databases]]
 binding = "DB"
 database_name = "quiet-list"
-database_id = "00000000-0000-0000-0000-000000000000"   # replace with the id printed by `npx wrangler d1 create quiet-list`
+database_id = "099ec871-2479-44c5-9f31-60115b84a75e"   # an identifier, not a secret; useless without account sign-in
 migrations_dir = "server/migrations"

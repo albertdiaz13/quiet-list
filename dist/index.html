@@ -1,4 +1,150 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Quiet List · Room for everything</title><link rel="stylesheet" href="style.css"></head><body>
-<div class="shell"><aside><a class="brand" href="#">◒ <span>Quiet List<small>ROOM FOR EVERYTHING</small></span></a><p class="eyebrow">YOUR SPACES</p><nav id="lists" aria-label="Your lists"></nav><button id="new-list" class="new-list">＋ New space</button><div class="aside-foot"><p>No deadlines. No catching up.<br>Just a place to put things.</p><button id="export">Export backup ↗</button><button id="import">Import backup</button><input type="file" id="file" accept="application/json" hidden><small>Local prototype · stored in this browser.<br>No cloud sync or AI connection yet.</small></div></aside>
-<main><header><div><span class="pill">A little less in your head</span><h1 id="title"></h1><p id="subtitle"></p></div><button id="rename" class="subtle" aria-label="Rename current list">Rename</button></header><form id="capture"><label class="sr" for="thought">Add a thought</label><textarea id="thought" rows="2" maxlength="2000" placeholder="What’s on your mind?" required></textarea><div class="capture-bottom"><span>It doesn’t need a plan yet.</span><button type="submit">Let it land <span>↗</span></button></div></form><div class="toolbar"><h2 id="section-title">Open thoughts</h2><label><input id="show-done" type="checkbox"> Show completed</label></div><div id="tasks"></div><div id="empty"><div class="orb">✧</div><h2>A little breathing room.</h2><p>Drop a thought here and carry one less thing.</p></div><footer><span id="count"></span><span>One thing at a time is still forward.</span></footer><p id="status" role="status" aria-live="polite"></p></main></div>
-<dialog id="editor"><form method="dialog" id="edit-form"><h2 id="edit-title">New space</h2><label for="edit-text" id="edit-label">Name</label><textarea id="edit-text" rows="3" required maxlength="2000"></textarea><p id="edit-error" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel" class="subtle">Cancel</button><button id="save" type="submit">Save</button></div></form></dialog><script type="module" src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<title>Quiet List</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-mark" viewBox="0 0 32 32"><circle cx="15" cy="15" r="9.5" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M14.5 20.5l4.2 4.6 9-11.4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.7L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5.5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.5" cy="12" r="1.9"/></g></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9" cy="6.5" r="1.6"/><circle cx="15" cy="6.5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="17.5" r="1.6"/><circle cx="15" cy="17.5" r="1.6"/></g></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 6L5 10l4 4M5 10h9a5 5 0 010 10h-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5L12 6l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5L12 18l5.5-5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="8" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2.4"/></symbol>
+</svg>
+
+<div id="app" data-view="list">
+  <section id="home" class="pane" aria-label="All lists">
+    <header class="bar">
+      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
+      <button id="open-settings" class="icon-btn" type="button" aria-label="Backup and about"><svg><use href="#i-gear"/></svg></button>
+    </header>
+    <div id="home-scroll" class="scroll">
+      <ol id="lists" class="tiles" aria-label="Your lists"></ol>
+      <button id="new-list" class="ghost-btn" type="button"><svg><use href="#i-plus"/></svg>New list</button>
+      <p class="fineprint">Saved in this browser only. No account, no sync.</p>
+    </div>
+  </section>
+
+  <section id="list" class="pane" aria-labelledby="title">
+    <header class="bar" id="list-bar">
+      <button id="back" class="icon-btn" type="button" aria-label="All lists"><svg><use href="#i-back"/></svg></button>
+      <div class="bar-title">
+        <h1 id="title" tabindex="-1"></h1>
+        <p id="count"></p>
+      </div>
+      <button id="list-more" class="icon-btn" type="button" aria-label="List options"><svg><use href="#i-more"/></svg></button>
+    </header>
+    <nav id="pager" aria-label="Switch list"></nav>
+    <div id="scroller" class="scroll">
+      <div id="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
+      <div id="content">
+        <form id="capture" autocomplete="off">
+          <label class="sr" for="thought">Add to this list</label>
+          <svg class="capture-plus" aria-hidden="true"><use href="#i-plus"/></svg>
+          <input id="thought" type="text" maxlength="2000" enterkeyhint="done" autocapitalize="sentences" placeholder="Add a thought">
+          <button id="add-btn" type="submit">Add</button>
+        </form>
+        <ol id="open" class="rows" aria-label="Open"></ol>
+        <div id="empty" hidden>
+          <div class="empty-art"><svg><use href="#i-mark"/></svg></div>
+          <h2 id="empty-title"></h2>
+          <p id="empty-text"></p>
+        </div>
+        <section id="done-wrap" aria-label="Done" hidden>
+          <div class="done-head">
+            <button id="done-toggle" type="button" aria-expanded="false" aria-controls="done"></button>
+            <button id="clear-done" type="button" hidden>Clear done</button>
+          </div>
+          <ol id="done" class="rows" aria-label="Done" hidden></ol>
+        </section>
+      </div>
+    </div>
+    <button id="fab" type="button" aria-label="Add a thought"><svg><use href="#i-plus"/></svg></button>
+  </section>
+
+  <div id="toast" hidden>
+    <span id="toast-text" role="status" aria-live="polite"></span>
+    <button id="toast-undo" type="button">Undo</button>
+  </div>
+  <p id="live" class="sr" role="status" aria-live="polite"></p>
+</div>
+
+<dialog id="list-dialog" aria-labelledby="list-dialog-title">
+  <form id="list-form" method="dialog">
+    <h2 id="list-dialog-title">New list</h2>
+    <label for="list-name">Name</label>
+    <input id="list-name" type="text" maxlength="80" autocomplete="off" enterkeyhint="done">
+    <fieldset>
+      <legend>Colour</legend>
+      <div id="swatches" class="swatches"></div>
+    </fieldset>
+    <p id="list-error" class="error" role="alert"></p>
+    <div class="dialog-actions">
+      <button type="button" id="list-delete" class="danger-text">Delete list</button>
+      <span class="spacer"></span>
+      <button type="button" id="list-cancel" class="quiet-btn">Cancel</button>
+      <button type="submit" id="list-save" class="solid-btn">Save</button>
+    </div>
+    <div id="list-confirm" class="confirm" hidden>
+      <p id="list-confirm-text"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="list-confirm-no" class="quiet-btn">Keep it</button>
+        <button type="button" id="list-confirm-yes" class="solid-btn danger">Delete</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <div class="settings">
+    <h2 id="settings-title">Backup and about</h2>
+    <p class="note" id="storage-note">Your lists live in this browser on this device. There is no account, no sync between devices and no assistant connection yet. Clearing site data removes them, so keep a backup.</p>
+    <div class="stack">
+      <button type="button" id="export" class="row-btn">Download a backup file</button>
+      <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
+      <button type="button" id="import" class="row-btn">Restore from a backup file</button>
+      <button type="button" id="reset" class="row-btn">Reset to the sample lists</button>
+      <input type="file" id="file" accept="application/json,.json" hidden>
+    </div>
+    <div id="settings-confirm" class="confirm" hidden>
+      <p id="settings-confirm-text"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="settings-confirm-no" class="quiet-btn">Cancel</button>
+        <button type="button" id="settings-confirm-yes" class="solid-btn danger">Replace</button>
+      </div>
+    </div>
+    <p id="settings-status" class="note" role="status" aria-live="polite"></p>
+    <details>
+      <summary>Gestures and shortcuts</summary>
+      <dl class="keys">
+        <dt>Add</dt><dd>Pull the list down, tap +, or press <kbd>N</kbd>. Paste several lines to add them all.</dd>
+        <dt>Done</dt><dd>Swipe right, or tick the circle.</dd>
+        <dt>Delete</dt><dd>Swipe left, or open the item and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes.</dd>
+        <dt>Reorder</dt><dd>Hold and drag, drag the grip, or focus the grip and press <kbd>↑</kbd> <kbd>↓</kbd>.</dd>
+        <dt>Switch list</dt><dd>Swipe the title bar, use the dots, or press <kbd>[</kbd> <kbd>]</kbd>.</dd>
+      </dl>
+    </details>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="settings-close" class="solid-btn">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

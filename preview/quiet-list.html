@@ -1,0 +1,1696 @@
+<title>Quiet List</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap">
+<style>
+/* Layout: one screen, two panes. Phones show one pane at a time and slide between them;
+   wide screens show the lists as a sidebar. The whole app is drenched in the open list's hue. */
+:root {
+  --h: 290;                         /* hue of the open list, set from script */
+  /* lightness + chroma pairs; the hue is supplied per list */
+  --bg-lc: 0.955 0.032;
+  --surface-lc: 0.995 0.008;
+  --sunk-lc: 0.915 0.04;
+  --line-lc: 0.86 0.045;
+  --ink-lc: 0.25 0.045;
+  --muted-lc: 0.47 0.05;
+  --accent-lc: 0.5 0.17;
+  --on-accent-lc: 0.99 0.01;
+  --tile-lc: 0.5 0.15;
+  --on-tile-lc: 0.99 0.01;
+  --danger: oklch(0.53 0.2 25);
+  --on-danger: oklch(0.99 0.01 25);
+  --shadow: 0 1px 2px oklch(0.3 0.05 290 / 0.08), 0 6px 18px oklch(0.3 0.05 290 / 0.07);
+  --lift: 0 14px 34px oklch(0.25 0.06 290 / 0.26);
+  --scrim: oklch(0.2 0.04 290 / 0.45);
+
+  --font-display: "Bricolage Grotesque", ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --r-row: 16px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-lc: 0.19 0.03; --surface-lc: 0.265 0.04; --sunk-lc: 0.15 0.028; --line-lc: 0.36 0.045;
+    --ink-lc: 0.95 0.02; --muted-lc: 0.75 0.045; --accent-lc: 0.8 0.12; --on-accent-lc: 0.18 0.04;
+    --tile-lc: 0.42 0.12; --on-tile-lc: 0.97 0.015;
+    --danger: oklch(0.72 0.17 25); --on-danger: oklch(0.17 0.04 25);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.3); --lift: 0 14px 34px oklch(0 0 0 / 0.55); --scrim: oklch(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg-lc: 0.19 0.03; --surface-lc: 0.265 0.04; --sunk-lc: 0.15 0.028; --line-lc: 0.36 0.045;
+  --ink-lc: 0.95 0.02; --muted-lc: 0.75 0.045; --accent-lc: 0.8 0.12; --on-accent-lc: 0.18 0.04;
+  --tile-lc: 0.42 0.12; --on-tile-lc: 0.97 0.015;
+  --danger: oklch(0.72 0.17 25); --on-danger: oklch(0.17 0.04 25);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3); --lift: 0 14px 34px oklch(0 0 0 / 0.55); --scrim: oklch(0 0 0 / 0.6);
+  color-scheme: dark;
+}
+/* Colours are composed where the hue is known: the root, and each tile or swatch with its own hue. */
+:root, .hue {
+  --bg: oklch(var(--bg-lc) var(--h));
+  --surface: oklch(var(--surface-lc) var(--h));
+  --sunk: oklch(var(--sunk-lc) var(--h));
+  --line: oklch(var(--line-lc) var(--h));
+  --ink: oklch(var(--ink-lc) var(--h));
+  --muted: oklch(var(--muted-lc) var(--h));
+  --accent: oklch(var(--accent-lc) var(--h));
+  --on-accent: oklch(var(--on-accent-lc) var(--h));
+  --tile: oklch(var(--tile-lc) var(--h));
+  --on-tile: oklch(var(--on-tile-lc) var(--h));
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  height: 100%;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  background: var(--bg);
+  transition: background-color 0.4s var(--ease);
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  height: 100%; margin: 0; overflow: hidden;
+  background: var(--bg); color: var(--ink);
+  font: 400 1.0625rem/1.4 var(--font-body);
+  transition: background-color 0.4s var(--ease);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; padding: 0; touch-action: manipulation; }
+h1, h2, p, ol, dl, dd, fieldset { margin: 0; padding: 0; border: 0; }
+ol { list-style: none; }
+[hidden] { display: none !important; }
+svg { width: 24px; height: 24px; flex: none; display: block; }
+.sprite { position: absolute; width: 0; height: 0; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; background: var(--sunk); }
+
+/* ---------- panes ---------- */
+#app { position: relative; height: 100%; overflow: hidden; }
+.pane {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  transition: transform 0.34s var(--ease), opacity 0.34s var(--ease), visibility 0s linear 0.34s;
+}
+#app[data-view="list"] #home { transform: translateX(-24%); opacity: 0; visibility: hidden; }
+#app[data-view="home"] #list { transform: translateX(100%); visibility: hidden; }
+#app[data-view="home"] #home, #app[data-view="list"] #list { transition-delay: 0s; }
+.bar {
+  display: flex; align-items: center; gap: 4px; min-height: 64px;
+  padding: 8px max(8px, env(safe-area-inset-right, 0px)) 4px max(8px, env(safe-area-inset-left, 0px));
+  touch-action: pan-y;
+}
+.scroll {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; position: relative;
+  padding: 4px max(16px, env(safe-area-inset-right, 0px)) 120px max(16px, env(safe-area-inset-left, 0px));
+  scrollbar-width: thin;
+}
+.icon-btn {
+  width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--ink);
+}
+.icon-btn:hover { background: var(--sunk); }
+.icon-btn:active { transform: scale(0.92); }
+
+/* ---------- home ---------- */
+.brand { flex: 1; display: flex; align-items: center; gap: 8px; padding-left: 8px;
+  font: 700 1.375rem/1 var(--font-display); letter-spacing: -0.02em; }
+.mark { width: 32px; height: 32px; color: var(--accent); }
+.tiles { display: grid; gap: 10px; }
+.tile {
+  position: relative; display: flex; align-items: stretch; border-radius: 22px;
+  background: var(--tile); color: var(--on-tile); box-shadow: var(--shadow);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.tile-open {
+  flex: 1; min-width: 0; text-align: left; padding: 18px 4px 18px 20px; border-radius: 22px 0 0 22px;
+  display: grid; gap: 2px; color: inherit;
+}
+.tile-name { font: 700 1.375rem/1.15 var(--font-display); letter-spacing: -0.02em; overflow-wrap: anywhere; text-wrap: balance; }
+.tile-count { font-size: 0.875rem; opacity: 0.86; }
+.tile[aria-current="true"]::after {
+  content: ""; position: absolute; left: 8px; top: 50%; width: 5px; height: 22px; margin-top: -11px;
+  border-radius: 3px; background: var(--on-tile); opacity: 0.9;
+}
+.tile:has(.tile-open:active) { transform: scale(0.98); }
+.tile :focus-visible { outline-color: var(--on-tile); outline-offset: -5px; }
+.handle {
+  width: 48px; display: grid; place-items: center; flex: none; touch-action: none; cursor: grab;
+  color: inherit; opacity: 0.55; border-radius: 12px;
+}
+.handle:hover, .handle:focus-visible { opacity: 1; }
+.ghost-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; margin-top: 10px;
+  border-radius: 22px; border: 2px dashed var(--line); color: var(--muted); font-weight: 600;
+}
+.ghost-btn:hover { color: var(--ink); border-color: var(--muted); }
+.fineprint { margin-top: 20px; font-size: 0.8125rem; color: var(--muted); text-align: center; }
+
+/* ---------- list header ---------- */
+.bar-title { flex: 1; min-width: 0; padding: 0 4px; }
+#title {
+  font: 800 1.75rem/1.1 var(--font-display); letter-spacing: -0.03em;
+  overflow-wrap: anywhere; text-wrap: balance; outline: none;
+}
+#count { font-size: 0.875rem; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+#pager { display: flex; justify-content: center; flex-wrap: wrap; min-height: 12px; padding: 0 16px; touch-action: pan-y; }
+#pager button { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; }
+#pager button::before {
+  content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--line);
+  transition: width 0.25s var(--spring), background-color 0.25s;
+}
+#pager button[aria-current="true"]::before { width: 20px; background: var(--accent); }
+#content.swap-next { animation: swap-next 0.3s var(--ease); }
+#content.swap-prev { animation: swap-prev 0.3s var(--ease); }
+@keyframes swap-next { from { opacity: 0; transform: translateX(28px); } }
+@keyframes swap-prev { from { opacity: 0; transform: translateX(-28px); } }
+
+/* ---------- capture ---------- */
+#pull {
+  position: absolute; left: 0; right: 0; top: 0; height: 56px; opacity: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-weight: 600;
+}
+#pull svg { transition: transform 0.25s var(--spring); }
+#pull.armed { color: var(--accent); }
+#pull.armed svg { transform: rotate(90deg) scale(1.2); }
+#content.settle { transition: transform 0.3s var(--ease); }
+#capture {
+  display: flex; align-items: center; gap: 4px; min-height: 56px; padding: 0 6px 0 14px; margin-bottom: 10px;
+  border-radius: var(--r-row); background: var(--sunk); border: 2px solid transparent;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+#capture:focus-within { border-color: var(--accent); background: var(--surface); }
+.capture-plus { color: var(--muted); }
+#capture:focus-within .capture-plus { color: var(--accent); }
+#thought { flex: 1; min-width: 0; height: 52px; border: 0; background: none; outline: none; padding: 0 8px; }
+#thought::placeholder { color: var(--muted); opacity: 1; }
+#add-btn {
+  min-height: 40px; padding: 0 16px; border-radius: 12px; background: var(--accent); color: var(--on-accent);
+  font-weight: 700; transform: scale(0.6); opacity: 0; visibility: hidden;
+  transition: transform 0.22s var(--spring), opacity 0.15s, visibility 0s linear 0.22s;
+}
+#capture.has-text #add-btn { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
+
+/* ---------- rows ---------- */
+.rows { display: grid; gap: 8px; }
+.row { position: relative; border-radius: var(--r-row); background: var(--accent); color: var(--on-accent); }
+.row[data-swipe="delete"] { background: var(--danger); color: var(--on-danger); }
+.row[data-swipe] { overflow: hidden; }
+.reveal { position: absolute; top: 0; bottom: 0; width: 72px; display: grid; place-items: center; opacity: 0; }
+.reveal svg { transition: transform 0.2s var(--spring); }
+.reveal.left { left: 0; } .reveal.right { right: 0; }
+.row[data-swipe="complete"] .reveal.left, .row[data-swipe="delete"] .reveal.right { opacity: 1; }
+.row[data-armed] .reveal svg { transform: scale(1.4); }
+.card {
+  position: relative; display: grid; grid-template-columns: 48px minmax(0, 1fr) 44px; align-items: start; min-height: 56px;
+  border-radius: var(--r-row); background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.card.spring { transition: transform 0.32s var(--spring); }
+.card.fling { transition: transform 0.2s ease-in; }
+.check { width: 48px; height: 56px; display: grid; place-items: center; cursor: pointer; }
+.check input {
+  appearance: none; -webkit-appearance: none; margin: 0; width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  border: 2.5px solid var(--muted); background: transparent; display: grid; place-items: center;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.check input::after {
+  content: ""; width: 11px; height: 6px; margin-top: -3px; border: solid var(--on-accent); border-width: 0 0 2.6px 2.6px;
+  transform: rotate(-45deg) scale(0); transition: transform 0.2s var(--spring);
+}
+.check input:checked { background: var(--accent); border-color: var(--accent); }
+.check input:checked::after { transform: rotate(-45deg) scale(1); }
+.check input:hover { border-color: var(--accent); }
+.row.completing .check input { animation: pop 0.34s var(--spring); }
+@keyframes pop { 40% { transform: scale(1.28); } }
+.text {
+  text-align: left; padding: 15px 2px 15px 0; min-height: 56px; width: 100%; border-radius: 8px;
+  white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; user-select: none; -webkit-user-select: none;
+}
+.text .t {
+  background: linear-gradient(currentColor, currentColor) 0 56% / 0 2px no-repeat;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+  transition: background-size 0.28s var(--ease), color 0.28s;
+}
+.row.completing .text .t, .row[data-done] .text .t { background-size: 100% 2px; color: var(--muted); }
+.row .handle { height: 56px; width: 44px; color: var(--muted); }
+.row.entering { animation: arrive 0.36s var(--spring); }
+@keyframes arrive { from { opacity: 0; transform: translateY(-14px) scale(0.96); } }
+.dragging { z-index: 5; }
+.dragging .card, .tile.dragging { box-shadow: var(--lift); }
+.sorting > :not(.dragging) { transition: transform 0.22s var(--ease); }
+.is-dragging, .is-dragging * { cursor: grabbing !important; }
+
+/* done rows are quieter and sit lower */
+.row[data-done] .card { background: var(--sunk); box-shadow: none; color: var(--muted); }
+.row[data-done] .text { cursor: default; }
+.row-x { width: 44px; height: 56px; display: grid; place-items: center; color: var(--muted); }
+.row-x:hover { color: var(--danger); }
+
+/* editing in place */
+.card.editing { grid-template-columns: 48px minmax(0, 1fr); box-shadow: 0 0 0 2px var(--accent), var(--shadow); user-select: auto; -webkit-user-select: auto; }
+.edit-text {
+  width: 100%; border: 0; outline: none; background: none; resize: none; overflow: hidden;
+  padding: 15px 14px 6px 0; min-height: 50px; line-height: 1.4; field-sizing: content;
+}
+.edit-tools { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 8px 8px; }
+.edit-tools button {
+  display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px; border-radius: 12px;
+  font-size: 0.875rem; font-weight: 600; color: var(--muted);
+}
+.edit-tools button:hover:not(:disabled) { background: var(--sunk); color: var(--ink); }
+.edit-tools button:disabled { opacity: 0.35; cursor: default; }
+.edit-tools svg { width: 20px; height: 20px; }
+.edit-tools .tool-delete:hover { color: var(--danger); }
+.edit-tools .tool-save { margin-left: auto; background: var(--accent); color: var(--on-accent); padding: 0 18px; }
+.edit-tools .tool-save:hover { background: var(--accent); color: var(--on-accent); filter: brightness(1.08); }
+
+/* ---------- done section + empty ---------- */
+.done-head { display: flex; align-items: center; justify-content: space-between; margin-top: 18px; min-height: 48px; }
+#done-toggle, #clear-done { min-height: 44px; padding: 0 12px; border-radius: 12px; font-size: 0.9375rem; font-weight: 600; color: var(--muted); }
+#done-toggle { display: flex; align-items: center; gap: 6px; margin-left: -4px; }
+#done-toggle::before {
+  content: ""; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2.4px 2.4px 0;
+  transform: rotate(-45deg); transition: transform 0.2s var(--ease);
+}
+#done-toggle[aria-expanded="true"]::before { transform: rotate(45deg) translate(-2px, -2px); }
+#done-toggle:hover, #clear-done:hover { background: var(--sunk); color: var(--ink); }
+#done { margin-top: 4px; }
+#empty { display: grid; justify-items: center; gap: 6px; padding: 40px 12px 16px; text-align: center; position: relative; }
+.empty-art {
+  width: 84px; height: 84px; border-radius: 30px; display: grid; place-items: center; margin-bottom: 10px;
+  background: var(--sunk); color: var(--accent); transform: rotate(-6deg);
+}
+.empty-art svg { width: 48px; height: 48px; }
+#empty.cheer .empty-art { animation: cheer 0.6s var(--spring); }
+@keyframes cheer { 0% { transform: rotate(-6deg) scale(0.5); } 60% { transform: rotate(8deg) scale(1.12); } }
+#empty h2 { font: 700 1.375rem/1.2 var(--font-display); letter-spacing: -0.02em; }
+#empty p { color: var(--muted); max-width: 30ch; text-wrap: balance; }
+.bit {
+  position: absolute; left: 50%; top: 82px; width: 9px; height: 9px; border-radius: 3px; pointer-events: none;
+  background: oklch(0.72 0.16 var(--bh)); animation: bit 0.8s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+}
+@keyframes bit { to { transform: translate(var(--bx), var(--by)) rotate(var(--br)); opacity: 0; } }
+
+/* ---------- floating add button + toast ---------- */
+#fab {
+  position: absolute; right: max(20px, env(safe-area-inset-right, 0px)); bottom: 20px; width: 60px; height: 60px; border-radius: 22px;
+  display: grid; place-items: center; background: var(--accent); color: var(--on-accent); box-shadow: var(--lift);
+  transition: transform 0.25s var(--spring), opacity 0.2s, visibility 0s;
+}
+#fab svg { width: 28px; height: 28px; }
+#fab:active { transform: scale(0.9) rotate(90deg); }
+#list:has(#capture:focus-within) #fab, #list:has(.card.editing) #fab { transform: scale(0.4); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 0.25s; }
+#toast {
+  position: absolute; left: 50%; bottom: 20px; z-index: 20; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 4px; max-width: min(440px, calc(100% - 32px)); width: max-content;
+  padding: 4px 4px 4px 18px; min-height: 52px; border-radius: 18px;
+  background: var(--ink); color: var(--bg); box-shadow: var(--lift); font-size: 0.9375rem;
+  animation: toast-in 0.3s var(--spring);
+}
+#toast-text { flex: 1; min-width: 0; padding: 8px 8px 8px 0; }
+#toast-undo { min-height: 44px; padding: 0 16px; border-radius: 14px; font-weight: 700; color: inherit; background: oklch(0.6 0.02 290 / 0.28); flex: none; }
+#toast-undo:focus-visible { outline-color: var(--bg); }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 16px) scale(0.94); } }
+
+/* ---------- dialogs ---------- */
+dialog {
+  border: 0; padding: 22px; border-radius: 26px; width: min(440px, calc(100vw - 24px)); max-height: calc(100% - 24px);
+  background: var(--surface); color: var(--ink); box-shadow: var(--lift); margin-top: max(12px, 9vh);
+}
+dialog::backdrop { background: var(--scrim); }
+dialog[open] { animation: sheet 0.28s var(--ease); }
+@keyframes sheet { from { opacity: 0; transform: translateY(-14px) scale(0.97); } }
+dialog h2 { font: 700 1.5rem/1.15 var(--font-display); letter-spacing: -0.02em; margin-bottom: 16px; }
+dialog label, dialog legend { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+#list-name { width: 100%; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); outline: none; }
+#list-name:focus { border-color: var(--accent); }
+dialog fieldset { margin-top: 16px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch { position: relative; width: 48px; height: 48px; display: grid; place-items: center; cursor: pointer; }
+.swatch input { appearance: none; -webkit-appearance: none; margin: 0; width: 38px; height: 38px; border-radius: 50%; background: var(--tile); cursor: pointer; transition: transform 0.2s var(--spring); }
+.swatch input:checked { transform: scale(0.82); box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--tile); }
+.swatch input:focus-visible { outline: 3px solid var(--ink); outline-offset: 7px; }
+.error { color: var(--danger); font-size: 0.875rem; min-height: 1.3em; margin-top: 8px; }
+.dialog-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.spacer { flex: 1; }
+.solid-btn, .quiet-btn, .danger-text { min-height: 48px; padding: 0 18px; border-radius: 14px; font-weight: 700; }
+.solid-btn { background: var(--accent); color: var(--on-accent); }
+.solid-btn.danger { background: var(--danger); color: var(--on-danger); }
+.quiet-btn { color: var(--muted); }
+.quiet-btn:hover { background: var(--sunk); color: var(--ink); }
+.danger-text { color: var(--danger); padding: 0 10px; }
+.danger-text:disabled { opacity: 0.4; cursor: default; }
+.confirm { margin-top: 14px; padding: 14px; border-radius: 16px; background: var(--bg); }
+.note { font-size: 0.875rem; color: var(--muted); line-height: 1.5; }
+.stack { display: grid; gap: 6px; margin: 16px 0 4px; }
+.row-btn { min-height: 52px; padding: 0 16px; border-radius: 14px; background: var(--bg); text-align: left; font-weight: 600; }
+.row-btn:hover { background: var(--sunk); }
+details { margin-top: 14px; }
+summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--muted); border-radius: 10px; }
+.keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 0.875rem; line-height: 1.5; padding: 4px 0 8px; }
+.keys dt { font-weight: 700; }
+.keys dd { color: var(--muted); }
+
+/* ---------- wide screens: lists become a sidebar ---------- */
+@media (min-width: 900px) {
+  #app { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+  .pane { position: relative; inset: auto; min-height: 0; }
+  #app[data-view] #home, #app[data-view] #list { transform: none; opacity: 1; visibility: visible; }
+  #home { background: var(--sunk); transition: background-color 0.4s var(--ease); }
+  #list { align-items: center; }
+  #list > * { width: min(100%, 720px); }
+  #list-bar { padding-top: 28px; }
+  #back, #fab { display: none; }
+  #title { font-size: 2.5rem; }
+  .bar-title { padding-left: 16px; }
+  #pager { display: none; }
+  .scroll { padding-top: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* keep the toast clear of the floating add button on phones */
+@media (max-width: 899px) { #app[data-view="list"] #toast { bottom: 92px; } }
+</style>
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="i-mark" viewBox="0 0 32 32"><circle cx="15" cy="15" r="9.5" fill="none" stroke="currentColor" stroke-width="3.4"/><path d="M14.5 20.5l4.2 4.6 9-11.4" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.7L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5.5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="18.5" cy="12" r="1.9"/></g></symbol>
+  <symbol id="i-grip" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="9" cy="6.5" r="1.6"/><circle cx="15" cy="6.5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="17.5" r="1.6"/><circle cx="15" cy="17.5" r="1.6"/></g></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 6L5 10l4 4M5 10h9a5 5 0 010 10h-3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V6M6.5 11.5L12 6l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5L12 18l5.5-5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="16" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2.4"/><circle cx="8" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2.4"/></symbol>
+</svg>
+
+<div id="app" data-view="list">
+  <section id="home" class="pane" aria-label="All lists">
+    <header class="bar">
+      <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
+      <button id="open-settings" class="icon-btn" type="button" aria-label="Backup and about"><svg><use href="#i-gear"/></svg></button>
+    </header>
+    <div id="home-scroll" class="scroll">
+      <ol id="lists" class="tiles" aria-label="Your lists"></ol>
+      <button id="new-list" class="ghost-btn" type="button"><svg><use href="#i-plus"/></svg>New list</button>
+      <p class="fineprint">Saved in this browser only. No account, no sync.</p>
+    </div>
+  </section>
+
+  <section id="list" class="pane" aria-labelledby="title">
+    <header class="bar" id="list-bar">
+      <button id="back" class="icon-btn" type="button" aria-label="All lists"><svg><use href="#i-back"/></svg></button>
+      <div class="bar-title">
+        <h1 id="title" tabindex="-1"></h1>
+        <p id="count"></p>
+      </div>
+      <button id="list-more" class="icon-btn" type="button" aria-label="List options"><svg><use href="#i-more"/></svg></button>
+    </header>
+    <nav id="pager" aria-label="Switch list"></nav>
+    <div id="scroller" class="scroll">
+      <div id="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
+      <div id="content">
+        <form id="capture" autocomplete="off">
+          <label class="sr" for="thought">Add to this list</label>
+          <svg class="capture-plus" aria-hidden="true"><use href="#i-plus"/></svg>
+          <input id="thought" type="text" maxlength="2000" enterkeyhint="done" autocapitalize="sentences" placeholder="Add a thought">
+          <button id="add-btn" type="submit">Add</button>
+        </form>
+        <ol id="open" class="rows" aria-label="Open"></ol>
+        <div id="empty" hidden>
+          <div class="empty-art"><svg><use href="#i-mark"/></svg></div>
+          <h2 id="empty-title"></h2>
+          <p id="empty-text"></p>
+        </div>
+        <section id="done-wrap" aria-label="Done" hidden>
+          <div class="done-head">
+            <button id="done-toggle" type="button" aria-expanded="false" aria-controls="done"></button>
+            <button id="clear-done" type="button" hidden>Clear done</button>
+          </div>
+          <ol id="done" class="rows" aria-label="Done" hidden></ol>
+        </section>
+      </div>
+    </div>
+    <button id="fab" type="button" aria-label="Add a thought"><svg><use href="#i-plus"/></svg></button>
+  </section>
+
+  <div id="toast" hidden>
+    <span id="toast-text" role="status" aria-live="polite"></span>
+    <button id="toast-undo" type="button">Undo</button>
+  </div>
+  <p id="live" class="sr" role="status" aria-live="polite"></p>
+</div>
+
+<dialog id="list-dialog" aria-labelledby="list-dialog-title">
+  <form id="list-form" method="dialog">
+    <h2 id="list-dialog-title">New list</h2>
+    <label for="list-name">Name</label>
+    <input id="list-name" type="text" maxlength="80" autocomplete="off" enterkeyhint="done">
+    <fieldset>
+      <legend>Colour</legend>
+      <div id="swatches" class="swatches"></div>
+    </fieldset>
+    <p id="list-error" class="error" role="alert"></p>
+    <div class="dialog-actions">
+      <button type="button" id="list-delete" class="danger-text">Delete list</button>
+      <span class="spacer"></span>
+      <button type="button" id="list-cancel" class="quiet-btn">Cancel</button>
+      <button type="submit" id="list-save" class="solid-btn">Save</button>
+    </div>
+    <div id="list-confirm" class="confirm" hidden>
+      <p id="list-confirm-text"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="list-confirm-no" class="quiet-btn">Keep it</button>
+        <button type="button" id="list-confirm-yes" class="solid-btn danger">Delete</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="settings-dialog" aria-labelledby="settings-title">
+  <div class="settings">
+    <h2 id="settings-title">Backup and about</h2>
+    <p class="note" id="storage-note">Your lists live in this browser on this device. There is no account, no sync between devices and no assistant connection yet. Clearing site data removes them, so keep a backup.</p>
+    <div class="stack">
+      <button type="button" id="export" class="row-btn">Download a backup file</button>
+      <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
+      <button type="button" id="import" class="row-btn">Restore from a backup file</button>
+      <button type="button" id="reset" class="row-btn">Reset to the sample lists</button>
+      <input type="file" id="file" accept="application/json,.json" hidden>
+    </div>
+    <div id="settings-confirm" class="confirm" hidden>
+      <p id="settings-confirm-text"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button type="button" id="settings-confirm-no" class="quiet-btn">Cancel</button>
+        <button type="button" id="settings-confirm-yes" class="solid-btn danger">Replace</button>
+      </div>
+    </div>
+    <p id="settings-status" class="note" role="status" aria-live="polite"></p>
+    <details>
+      <summary>Gestures and shortcuts</summary>
+      <dl class="keys">
+        <dt>Add</dt><dd>Pull the list down, tap +, or press <kbd>N</kbd>. Paste several lines to add them all.</dd>
+        <dt>Done</dt><dd>Swipe right, or tick the circle.</dd>
+        <dt>Delete</dt><dd>Swipe left, or open the item and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes.</dd>
+        <dt>Reorder</dt><dd>Hold and drag, drag the grip, or focus the grip and press <kbd>↑</kbd> <kbd>↓</kbd>.</dd>
+        <dt>Switch list</dt><dd>Swipe the title bar, use the dots, or press <kbd>[</kbd> <kbd>]</kbd>.</dd>
+      </dl>
+    </details>
+    <div class="dialog-actions">
+      <span class="spacer"></span>
+      <button type="button" id="settings-close" class="solid-btn">Done</button>
+    </div>
+  </div>
+</dialog>
+<script type="module">
+// Quiet List data model. Pure functions over a plain JSON document: no DOM, no storage.
+//
+// Every exported mutation is shaped like one call a future owner-scoped API / MCP tool
+// would make (add_item, update_item, move_item, …). Ids are client-generated UUIDs so
+// retries are idempotent, ordering is expressed relative to a neighbour ("before X")
+// rather than by index, and every record carries a `rev` counter for optimistic
+// concurrency. Nothing here stores or shows a date.
+
+const STORAGE_KEY = 'quiet-list-v1'; // storage slot name; schema version lives in the document
+const SCHEMA_VERSION = 2;
+const COLORS = ['lavender', 'sage', 'peach', 'sky', 'rose', 'teal'];
+const LIMITS = { lists: 100, tasks: 10000, name: 80, text: 2000 };
+
+const id = () => crypto.randomUUID();
+const isRev = n => Number.isInteger(n) && n >= 1;
+
+const newList = (name, color) => ({ id: id(), name, color, rev: 1, tasks: [] });
+
+function initial() {
+  return {
+    version: SCHEMA_VERSION,
+    lists: [
+      newList('Everything on my mind', 'lavender'),
+      newList('Home & me', 'sage'),
+      newList('Ideas for later', 'peach'),
+    ],
+  };
+}
+
+// Invented demo content. Nothing here describes a real person.
+function sample() {
+  const state = { version: SCHEMA_VERSION, lists: [] };
+  const fill = (name, color, open, done = []) => {
+    const list = createList(state, name, color);
+    for (const text of open) addTask(list, text);
+    for (const text of done) addTask(list, text).done = true;
+  };
+  fill('Brain dump', 'lavender', [
+    'Find the charger for the old camera',
+    'Label the spice jars',
+    'Ask about a bike tune-up',
+    'Return the library books',
+    'Look up how sourdough starters work',
+  ], ['Water the fern']);
+  fill('Weekend', 'peach', [
+    'Tomatoes from the market',
+    'Fix the squeaky door hinge',
+    'Pick a trail for Sunday',
+  ]);
+  fill('Someday', 'teal', [
+    'Learn three chords on the ukulele',
+    'Try the noodle place by the station',
+    'Build a birdhouse',
+  ]);
+  fill('Gift ideas', 'rose', []);
+  return state;
+}
+
+// Validates a stored or imported document and upgrades version 1 in place.
+// Returns the same object so callers can keep their reference.
+function validate(data) {
+  if (!data || (data.version !== 1 && data.version !== SCHEMA_VERSION) || !Array.isArray(data.lists)
+    || !data.lists.length || data.lists.length > LIMITS.lists) {
+    throw Error('This is not a supported Quiet List backup.');
+  }
+  const ids = new Set();
+  for (const list of data.lists) {
+    if (!list || typeof list.id !== 'string' || !list.id || ids.has(list.id) || typeof list.name !== 'string'
+      || !list.name.trim() || list.name.length > LIMITS.name || !Array.isArray(list.tasks)
+      || list.tasks.length > LIMITS.tasks) {
+      throw Error('Invalid list in backup.');
+    }
+    ids.add(list.id);
+    if (!COLORS.includes(list.color)) list.color = COLORS[0];
+    if (!isRev(list.rev)) list.rev = 1;
+    for (const task of list.tasks) {
+      if (!task || typeof task.id !== 'string' || !task.id || ids.has(task.id) || typeof task.text !== 'string'
+        || !task.text.trim() || task.text.length > LIMITS.text || typeof task.done !== 'boolean') {
+        throw Error('Invalid task in backup.');
+      }
+      ids.add(task.id);
+      if (!isRev(task.rev)) task.rev = 1;
+    }
+  }
+  data.version = SCHEMA_VERSION;
+  return data;
+}
+
+function cleanName(name) {
+  name = String(name ?? '').trim();
+  if (!name || name.length > LIMITS.name) throw Error(`Give your list a name, up to ${LIMITS.name} characters.`);
+  return name;
+}
+
+function cleanText(text) {
+  text = String(text ?? '').trim();
+  if (!text || text.length > LIMITS.text) throw Error('Write a thought, up to 2,000 characters.');
+  return text;
+}
+
+function findList(state, listId) {
+  const list = state.lists.find(l => l.id === listId);
+  if (!list) throw Error('List not found.');
+  return list;
+}
+
+function findTask(list, taskId) {
+  const task = list.tasks.find(t => t.id === taskId);
+  if (!task) throw Error('Task not found.');
+  return task;
+}
+
+// Moves `item` so it sits directly before the record with id `beforeId`, or last when null.
+function placeBefore(array, item, beforeId, missing) {
+  if (beforeId === item.id) return;
+  if (beforeId != null && !array.some(x => x.id === beforeId)) throw Error(missing);
+  array.splice(array.indexOf(item), 1);
+  const at = beforeId == null ? array.length : array.findIndex(x => x.id === beforeId);
+  array.splice(at, 0, item);
+}
+
+function createList(state, name, color = COLORS[0]) {
+  name = cleanName(name);
+  if (state.lists.length >= LIMITS.lists) throw Error(`This prototype supports ${LIMITS.lists} lists.`);
+  const list = newList(name, COLORS.includes(color) ? color : COLORS[0]);
+  state.lists.push(list);
+  return list;
+}
+
+function updateList(state, listId, patch) {
+  const list = findList(state, listId);
+  const name = 'name' in patch ? cleanName(patch.name) : list.name;
+  if ('color' in patch && !COLORS.includes(patch.color)) throw Error('Pick one of the list colours.');
+  list.name = name;
+  if ('color' in patch) list.color = patch.color;
+  list.rev += 1;
+  return list;
+}
+
+function deleteList(state, listId) {
+  const list = findList(state, listId);
+  if (state.lists.length === 1) throw Error('Keep at least one list.');
+  state.lists.splice(state.lists.indexOf(list), 1);
+  return list;
+}
+
+function moveList(state, listId, beforeId = null) {
+  const list = findList(state, listId);
+  placeBefore(state.lists, list, beforeId, 'List not found.');
+  return list;
+}
+
+function addTask(list, text, { top = false } = {}) {
+  text = cleanText(text);
+  if (list.tasks.length >= LIMITS.tasks) throw Error('This list is full.');
+  const task = { id: id(), text, done: false, rev: 1 };
+  if (top) list.tasks.unshift(task); else list.tasks.push(task);
+  return task;
+}
+
+function updateTask(list, taskId, patch) {
+  const task = findTask(list, taskId);
+  const text = 'text' in patch ? cleanText(patch.text) : task.text;
+  task.text = text;
+  if ('done' in patch) task.done = !!patch.done;
+  task.rev += 1;
+  return task;
+}
+
+function deleteTask(list, taskId) {
+  const task = findTask(list, taskId);
+  list.tasks.splice(list.tasks.indexOf(task), 1);
+  return task;
+}
+
+function moveTask(list, taskId, beforeId = null) {
+  const task = findTask(list, taskId);
+  placeBefore(list.tasks, task, beforeId, 'Task not found.');
+  return task;
+}
+
+function clearDone(list) {
+  const before = list.tasks.length;
+  list.tasks = list.tasks.filter(t => !t.done);
+  return before - list.tasks.length;
+}
+
+// Persistence boundary. The UI only ever talks to a store through load / save / watch,
+// so a future owner-scoped remote store can replace this one without touching the views.
+//
+// This implementation keeps everything in one browser's localStorage: unencrypted,
+// no account, no sync. It is not a backend and must not be described as one.
+
+
+function createLocalStore(storage, key = STORAGE_KEY) {
+  return {
+    // Returns { state, problem }. A read failure never overwrites what is stored.
+    load() {
+      let raw = null;
+      try {
+        raw = storage.getItem(key);
+        if (raw) return { state: validate(JSON.parse(raw)), problem: null };
+        return { state: sample(), problem: null };
+      } catch {
+        // Set the unreadable copy aside so the next save cannot destroy it.
+        try { if (raw) storage.setItem(key + '-unreadable', raw); } catch { /* nothing more we can do */ }
+        return { state: sample(), problem: 'unreadable' };
+      }
+    },
+    save(state) {
+      try {
+        storage.setItem(key, JSON.stringify(state));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    // Calls back with the new state when another tab of this browser saves.
+    watch(onChange) {
+      addEventListener('storage', event => {
+        if (event.key !== key || !event.newValue) return;
+        try { onChange(validate(JSON.parse(event.newValue))); } catch { /* ignore a bad write from elsewhere */ }
+      });
+    },
+  };
+}
+
+function safeStorage() {
+  try {
+    const probe = '__quiet_probe__';
+    localStorage.setItem(probe, '1');
+    localStorage.removeItem(probe);
+    return localStorage;
+  } catch {
+    const memory = new Map();
+    return {
+      getItem: k => (memory.has(k) ? memory.get(k) : null),
+      setItem: (k, v) => { memory.set(k, String(v)); },
+      removeItem: k => { memory.delete(k); },
+      volatile: true,
+    };
+  }
+}
+
+
+const $ = id => document.getElementById(id);
+const HUES = { lavender: 290, sage: 150, peach: 55, sky: 240, rose: 8, teal: 190 };
+const UI_KEY = 'quiet-list-ui';
+const SVG = 'http://www.w3.org/2000/svg';
+
+const storage = safeStorage();
+const store = createLocalStore(storage);
+const calm = matchMedia('(prefers-reduced-motion: reduce)');
+const wide = matchMedia('(min-width: 900px)');
+
+const loaded = store.load();
+let state = loaded.state;
+let prefs = {};
+try { prefs = JSON.parse(storage.getItem(UI_KEY)) || {}; } catch { prefs = {}; }
+
+let activeId = state.lists.some(l => l.id === prefs.activeId) ? prefs.activeId : state.lists[0].id;
+let view = 'list';
+let doneOpen = !!prefs.doneOpen;
+let editingId = null;
+let enteringId = null;
+let gesture = null;          // 'swipe' | 'drag' | 'pull' while a touch gesture owns the screen
+let undoSnapshot = null;
+let toastTimer = 0;
+
+const app = $('app'), home = $('home'), listPane = $('list'), scroller = $('scroller'), content = $('content');
+const openEl = $('open'), doneEl = $('done'), listsEl = $('lists'), thought = $('thought'), toast = $('toast');
+
+/* ---------- small helpers ---------- */
+const current = () => state.lists.find(l => l.id === activeId) || state.lists[0];
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+function icon(name) {
+  const svg = document.createElementNS(SVG, 'svg');
+  svg.setAttribute('aria-hidden', 'true');
+  const use = document.createElementNS(SVG, 'use');
+  use.setAttribute('href', '#' + name);
+  svg.append(use);
+  return svg;
+}
+function buzz(ms) { try { navigator.vibrate?.(ms); } catch { /* not supported, e.g. iOS */ } }
+function announce(message) {
+  const live = $('live');
+  live.textContent = '';
+  requestAnimationFrame(() => { live.textContent = message; });
+}
+function summary(list) {
+  const open = list.tasks.filter(t => !t.done).length;
+  if (open) return `${open} open`;
+  return list.tasks.length ? 'All clear' : 'Empty';
+}
+function savePrefs() {
+  try { storage.setItem(UI_KEY, JSON.stringify({ activeId, doneOpen })); } catch { /* preference only */ }
+}
+
+/* ---------- saving, undo, toast ---------- */
+function snapshot() { return { state: structuredClone(state), activeId }; }
+
+// Runs a model mutation, saves, and optionally offers Undo. Returns false if the model refused.
+function mutate(fn, { toast: message, undo = false } = {}) {
+  const before = undo ? snapshot() : null;
+  try { fn(); } catch (error) { announce(error.message); return false; }
+  const saved = store.save(state);
+  if (!saved) showToast('Could not save in this browser. Download a backup before closing.');
+  else if (message) showToast(message, before);
+  return true;
+}
+function showToast(message, before = null) {
+  $('toast-text').textContent = message;
+  $('toast-undo').hidden = !before;
+  undoSnapshot = before;
+  toast.hidden = true;
+  void toast.offsetWidth;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  const tick = () => {
+    if (toast.matches(':hover, :focus-within')) toastTimer = setTimeout(tick, 2000);
+    else hideToast();
+  };
+  toastTimer = setTimeout(tick, 7000);
+}
+function hideToast() {
+  clearTimeout(toastTimer);
+  const hadFocus = toast.contains(document.activeElement);
+  toast.hidden = true;
+  undoSnapshot = null;
+  // Keep keyboard focus in the app without popping a phone keyboard open.
+  if (hadFocus) (view === 'list' ? $('title') : $('new-list')).focus({ preventScroll: true });
+}
+function undo() {
+  if (!undoSnapshot) return;
+  state = undoSnapshot.state;
+  activeId = state.lists.some(l => l.id === undoSnapshot.activeId) ? undoSnapshot.activeId : state.lists[0].id;
+  editingId = null;
+  hideToast();
+  if (!store.save(state)) showToast('Could not save in this browser. Download a backup before closing.');
+  render();
+  announce('Restored.');
+}
+
+/* ---------- rendering ---------- */
+function measure() {
+  const tops = new Map();
+  for (const li of content.querySelectorAll('.row')) tops.set(li.dataset.id, li.getBoundingClientRect().top);
+  for (const li of listsEl.children) tops.set(li.dataset.id, li.getBoundingClientRect().top);
+  return tops;
+}
+function playFlip(before) {
+  for (const li of [...content.querySelectorAll('.row'), ...listsEl.children]) {
+    const old = before.get(li.dataset.id);
+    if (old == null || li.classList.contains('entering')) continue;
+    const dy = old - li.getBoundingClientRect().top;
+    if (Math.abs(dy) > 1) {
+      li.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+    }
+  }
+}
+
+function rowEl(task, index, openTasks) {
+  const li = el('li', 'row');
+  li.dataset.id = task.id;
+  if (task.done) li.dataset.done = '';
+  const left = el('span', 'reveal left'); left.append(icon(task.done ? 'i-undo' : 'i-check'));
+  const right = el('span', 'reveal right'); right.append(icon('i-trash'));
+  const card = el('div', 'card');
+
+  const label = el('label', 'check');
+  const box = el('input');
+  box.type = 'checkbox';
+  box.checked = task.done;
+  box.dataset.fk = 'c:' + task.id;
+  box.setAttribute('aria-label', (task.done ? 'Reopen: ' : 'Done: ') + task.text);
+  label.append(box);
+  card.append(label);
+
+  if (task.done) {
+    const text = el('div', 'text'); text.append(el('span', 't', task.text));
+    const remove = el('button', 'row-x'); remove.type = 'button'; remove.dataset.fk = 'x:' + task.id;
+    remove.setAttribute('aria-label', 'Delete: ' + task.text); remove.append(icon('i-trash'));
+    card.append(text, remove);
+  } else if (editingId === task.id) {
+    card.classList.add('editing');
+    const area = el('textarea', 'edit-text');
+    area.value = task.text; area.maxLength = 2000; area.rows = 1; area.dataset.fk = 'e:' + task.id;
+    area.setAttribute('aria-label', 'Edit thought'); area.setAttribute('enterkeyhint', 'done');
+    const tools = el('div', 'edit-tools');
+    const tool = (cls, name, text, key, disabled) => {
+      const b = el('button', cls); b.type = 'button'; b.dataset.fk = key + ':' + task.id; b.disabled = !!disabled;
+      b.append(icon(name), el('span', '', text)); return b;
+    };
+    tools.append(
+      tool('tool-up', 'i-up', 'Up', 'u', index === 0),
+      tool('tool-down', 'i-down', 'Down', 'd', index === openTasks.length - 1),
+      tool('tool-delete', 'i-trash', 'Delete', 'r'),
+    );
+    const save = el('button', 'tool-save', 'Save'); save.type = 'button';
+    tools.append(save);
+    card.append(area, tools);
+  } else {
+    const text = el('button', 'text'); text.type = 'button'; text.dataset.fk = 't:' + task.id;
+    text.setAttribute('aria-label', 'Edit: ' + task.text);
+    text.append(el('span', 't', task.text));
+    const handle = el('button', 'handle'); handle.type = 'button'; handle.dataset.fk = 'h:' + task.id;
+    handle.setAttribute('aria-label', `Reorder: ${task.text}. Use the up and down arrow keys.`);
+    handle.append(icon('i-grip'));
+    card.append(text, handle);
+  }
+  li.append(left, right, card);
+  if (enteringId === task.id) li.classList.add('entering');
+  return li;
+}
+
+function renderList() {
+  const list = current();
+  const openTasks = list.tasks.filter(t => !t.done);
+  const doneTasks = list.tasks.filter(t => t.done);
+  if (editingId && !openTasks.some(t => t.id === editingId)) editingId = null;
+
+  $('title').textContent = list.name;
+  $('count').textContent = summary(list) + (doneTasks.length && openTasks.length ? ` · ${doneTasks.length} done` : '');
+  document.title = `${list.name} · Quiet List`;
+  document.documentElement.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+
+  openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
+  openEl.hidden = !openTasks.length;
+  doneEl.replaceChildren(...doneTasks.map(t => rowEl(t)));
+
+  $('empty').hidden = openTasks.length > 0;
+  $('empty-title').textContent = list.tasks.length ? 'All clear' : 'Nothing here yet';
+  $('empty-text').textContent = list.tasks.length
+    ? 'Everything on this list is done.'
+    : 'Type a thought above. On a phone you can also pull the list down.';
+
+  $('done-wrap').hidden = !doneTasks.length;
+  $('done-toggle').textContent = `${doneTasks.length} done`;
+  $('done-toggle').setAttribute('aria-expanded', String(doneOpen));
+  doneEl.hidden = !doneOpen;
+  $('clear-done').hidden = !doneOpen;
+
+  const pager = $('pager');
+  pager.replaceChildren();
+  if (state.lists.length > 1 && state.lists.length <= 8) {
+    for (const other of state.lists) {
+      const dot = el('button'); dot.type = 'button'; dot.dataset.id = other.id; dot.dataset.fk = 'p:' + other.id;
+      dot.setAttribute('aria-label', other.name);
+      if (other.id === list.id) dot.setAttribute('aria-current', 'true');
+      pager.append(dot);
+    }
+  }
+  for (const area of content.querySelectorAll('.edit-text')) autosize(area);
+}
+
+function renderHome() {
+  listsEl.replaceChildren(...state.lists.map(list => {
+    const li = el('li', 'tile hue');
+    li.dataset.id = list.id;
+    li.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+    if (list.id === activeId) li.setAttribute('aria-current', 'true');
+    const open = el('button', 'tile-open'); open.type = 'button'; open.dataset.fk = 'l:' + list.id;
+    open.append(el('span', 'tile-name', list.name), el('span', 'tile-count', summary(list)));
+    const handle = el('button', 'handle'); handle.type = 'button'; handle.dataset.fk = 'lh:' + list.id;
+    handle.setAttribute('aria-label', `Reorder list: ${list.name}. Use the up and down arrow keys.`);
+    handle.append(icon('i-grip'));
+    li.append(open, handle);
+    return li;
+  }));
+}
+
+function render({ flip = true, focus = null } = {}) {
+  const key = focus ?? document.activeElement?.dataset?.fk;
+  const before = flip && !calm.matches ? measure() : null;
+  renderHome();
+  renderList();
+  if (before) playFlip(before);
+  enteringId = null;
+  if (key) document.querySelector(`[data-fk="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+}
+
+function autosize(area) {
+  if (CSS.supports('field-sizing', 'content')) return;
+  area.style.height = 'auto';
+  area.style.height = area.scrollHeight + 'px';
+}
+
+/* ---------- navigation ---------- */
+function applyView() {
+  app.dataset.view = view;
+  home.inert = !wide.matches && view !== 'home';
+  listPane.inert = !wide.matches && view !== 'list';
+}
+function setHash(hash, replace) {
+  try {
+    if (location.hash === '#' + hash) return;
+    if (replace) location.replace('#' + hash); else location.hash = hash;
+  } catch { /* sandboxed frames may refuse; the view has already changed */ }
+}
+function showHome({ focus = true } = {}) {
+  view = 'home';
+  editingId = null;
+  applyView();
+  render({ flip: false });
+  setHash('lists');
+  if (focus && !wide.matches) document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`)?.focus();
+}
+function openList(listId, { replace = false, direction = 0, focus = false } = {}) {
+  if (!state.lists.some(l => l.id === listId)) return;
+  const changed = listId !== activeId;
+  activeId = listId;
+  view = 'list';
+  editingId = null;
+  savePrefs();
+  applyView();
+  render({ flip: false });
+  if (changed) scroller.scrollTop = 0;
+  if (changed && direction && !calm.matches) {
+    content.classList.remove('swap-next', 'swap-prev');
+    void content.offsetWidth;
+    content.classList.add(direction > 0 ? 'swap-next' : 'swap-prev');
+  }
+  setHash('list-' + listId, replace);
+  if (focus) $('title').focus({ preventScroll: true });
+}
+function stepList(direction) {
+  const i = state.lists.findIndex(l => l.id === activeId);
+  const next = state.lists[i + direction];
+  if (!next) return false;
+  openList(next.id, { replace: true, direction });
+  announce(next.name);
+  return true;
+}
+function route() {
+  const hash = location.hash.slice(1);
+  if (hash === 'lists') { if (view !== 'home') showHome({ focus: false }); return; }
+  const listId = hash.startsWith('list-') ? hash.slice(5) : null;
+  if (listId && state.lists.some(l => l.id === listId)) {
+    if (view !== 'list' || listId !== activeId) openList(listId, { replace: true });
+  }
+}
+
+/* ---------- item actions ---------- */
+let usingKeyboard = false;
+addEventListener('keydown', () => { usingKeyboard = true; }, true);
+addEventListener('pointerdown', () => { usingKeyboard = false; }, true);
+
+function collapse(li) {
+  if (calm.matches || !li.isConnected) return Promise.resolve();
+  li.style.overflow = 'hidden';
+  const animation = li.animate(
+    [{ height: li.offsetHeight + 'px', opacity: 1, marginBottom: '0px' }, { height: '0px', opacity: 0, marginBottom: '-8px' }],
+    { duration: 200, easing: 'ease-in', fill: 'forwards' },
+  );
+  return Promise.race([animation.finished.catch(() => {}), wait(260)]);
+}
+
+async function setDone(taskId, done, li, { swiped = false } = {}) {
+  const list = current();
+  const task = list.tasks.find(t => t.id === taskId);
+  if (!task || !mutate(() => updateTask(list, taskId, { done }))) { render(); return; }
+  announce((done ? 'Done: ' : 'Reopened: ') + task.text);
+  const cleared = done && !list.tasks.some(t => !t.done);
+  if (done) {
+    buzz(12);
+    if (!calm.matches && li) {
+      if (!swiped) { li.classList.add('completing'); await wait(340); }
+      await collapse(li);
+    }
+  }
+  render({ focus: done ? null : 'c:' + taskId });
+  if (cleared) cheer();
+  if (done) thoughtOrNext();
+}
+function thoughtOrNext() {
+  // After a row disappears, keep keyboard users in the list instead of dropping focus on the page.
+  // Touch and mouse users are left alone: moving focus there would pop a keyboard or a focus ring.
+  if (usingKeyboard && document.activeElement === document.body) (openEl.querySelector('.check input') || thought).focus({ preventScroll: true });
+}
+
+async function removeTask(taskId, li) {
+  const list = current();
+  if (!mutate(() => deleteTask(list, taskId), { toast: 'Deleted', undo: true })) return;
+  if (editingId === taskId) editingId = null;
+  if (li) await collapse(li);
+  render();
+  thoughtOrNext();
+}
+
+function shiftTask(taskId, direction, focusKey) {
+  const list = current();
+  const open = list.tasks.filter(t => !t.done);
+  const from = open.findIndex(t => t.id === taskId);
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= open.length) return;
+  const beforeId = direction < 0 ? open[to].id : open[to + 1]?.id ?? null;
+  if (!mutate(() => moveTask(list, taskId, beforeId))) return;
+  render({ focus: focusKey });
+  announce(`Moved to ${to + 1} of ${open.length}.`);
+}
+function shiftList(listId, direction) {
+  const from = state.lists.findIndex(l => l.id === listId);
+  const to = from + direction;
+  if (to < 0 || to >= state.lists.length) return;
+  const beforeId = direction < 0 ? state.lists[to].id : state.lists[to + 1]?.id ?? null;
+  if (!mutate(() => moveList(state, listId, beforeId))) return;
+  render({ focus: 'lh:' + listId });
+  announce(`Moved to ${to + 1} of ${state.lists.length}.`);
+}
+
+function cheer() {
+  if (calm.matches) return;
+  const empty = $('empty');
+  empty.classList.remove('cheer');
+  void empty.offsetWidth;
+  empty.classList.add('cheer');
+  buzz(24);
+  for (let i = 0; i < 14; i++) {
+    const bit = el('span', 'bit');
+    const angle = (i / 14) * Math.PI * 2 + Math.random() * 0.4;
+    const reach = 60 + Math.random() * 60;
+    bit.style.setProperty('--bx', `${Math.cos(angle) * reach}px`);
+    bit.style.setProperty('--by', `${Math.sin(angle) * reach - 30}px`);
+    bit.style.setProperty('--br', `${Math.random() * 360}deg`);
+    bit.style.setProperty('--bh', String((i * 47) % 360));
+    empty.append(bit);
+    setTimeout(() => bit.remove(), 900);
+  }
+}
+
+/* ---------- editing in place ---------- */
+function startEdit(taskId) {
+  editingId = taskId;
+  render({ flip: false, focus: 'e:' + taskId });
+  const area = content.querySelector('.edit-text');
+  if (area) { area.setSelectionRange(area.value.length, area.value.length); autosize(area); }
+}
+// Stores what is typed. Returns false when the box was emptied (the caller decides what that means).
+function commitEditText() {
+  const area = content.querySelector('.edit-text');
+  const list = current();
+  const task = list.tasks.find(t => t.id === editingId);
+  if (!area || !task) return true;
+  const text = area.value.trim();
+  if (!text) return false;
+  if (text !== task.text) mutate(() => updateTask(list, task.id, { text }));
+  return true;
+}
+function finishEdit({ save = true, refocus = true } = {}) {
+  const taskId = editingId;
+  if (!taskId) return;
+  if (save && !commitEditText()) { removeTask(taskId, content.querySelector(`.row[data-id="${CSS.escape(taskId)}"]`)); return; }
+  editingId = null;
+  // Swap just this row so a tap that caused the blur still lands on its target.
+  const li = content.querySelector(`.row[data-id="${CSS.escape(taskId)}"]`);
+  const open = current().tasks.filter(t => !t.done);
+  const index = open.findIndex(t => t.id === taskId);
+  if (li && index >= 0) li.replaceWith(rowEl(open[index], index, open)); else render({ flip: false });
+  renderHome();
+  if (refocus) document.querySelector(`[data-fk="t:${CSS.escape(taskId)}"]`)?.focus({ preventScroll: true });
+}
+
+/* ---------- touch: swipe, hold-to-drag, drag by grip ---------- */
+function suppressClick(node) {
+  const stop = event => { event.stopPropagation(); event.preventDefault(); };
+  node.addEventListener('click', stop, { capture: true, once: true });
+  setTimeout(() => node.removeEventListener('click', stop, { capture: true }), 350);
+}
+
+function startDrag(li, pointer, { scrollBox, onDrop }) {
+  const ol = li.parentElement;
+  const items = [...ol.children];
+  const from = items.indexOf(li);
+  const scroll0 = scrollBox.scrollTop;
+  const rects = items.map(node => { const r = node.getBoundingClientRect(); return { top: r.top + scroll0, height: r.height }; });
+  const gap = items.length > 1 ? rects[1].top - (rects[0].top + rects[0].height) : 0;
+  const span = rects[from].height + gap;
+  const y0 = pointer.clientY;
+  let y = y0, to = from, frame = 0;
+  gesture = 'drag';
+  li.classList.add('dragging'); ol.classList.add('sorting'); document.body.classList.add('is-dragging');
+  buzz(8);
+
+  const update = () => {
+    const dy = (y - y0) + (scrollBox.scrollTop - scroll0);
+    li.style.transform = `translateY(${dy}px) scale(1.02)`;
+    const center = rects[from].top + rects[from].height / 2 + dy;
+    let target = from;
+    items.forEach((node, i) => {
+      if (i === from) return;
+      const middle = rects[i].top + rects[i].height / 2;
+      let shift = 0;
+      if (i < from && center < middle) { shift = span; target = Math.min(target, i); }
+      if (i > from && center > middle) { shift = -span; target = Math.max(target, i); }
+      node.style.transform = shift ? `translateY(${shift}px)` : '';
+    });
+    to = target;
+  };
+  const autoScroll = () => {
+    const box = scrollBox.getBoundingClientRect();
+    const edge = 64;
+    let speed = 0;
+    if (y < box.top + edge) speed = -(box.top + edge - y) / 4;
+    else if (y > box.bottom - edge) speed = (y - (box.bottom - edge)) / 4;
+    if (speed) { scrollBox.scrollTop += Math.max(-14, Math.min(14, speed)); update(); }
+    frame = requestAnimationFrame(autoScroll);
+  };
+  const move = event => {
+    if (event.pointerId !== pointer.pointerId) return;
+    y = event.clientY;
+    update();
+    event.preventDefault();
+  };
+  const end = event => {
+    if (event.pointerId !== pointer.pointerId) return;
+    cancelAnimationFrame(frame);
+    removeEventListener('pointermove', move); removeEventListener('pointerup', end); removeEventListener('pointercancel', end);
+    ol.classList.remove('sorting'); document.body.classList.remove('is-dragging');
+    gesture = null;
+    suppressClick(li);
+    if (event.type === 'pointerup' && to !== from) {
+      const rest = items.filter(node => node !== li);
+      onDrop(li.dataset.id, rest[to]?.dataset.id ?? null);
+    } else {
+      li.classList.remove('dragging');
+      for (const node of items) node.style.transform = '';
+    }
+  };
+  addEventListener('pointermove', move, { passive: false });
+  addEventListener('pointerup', end);
+  addEventListener('pointercancel', end);
+  frame = requestAnimationFrame(autoScroll);
+  update();
+}
+
+function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
+  container.addEventListener('pointerdown', event => {
+    if (event.button || gesture) return;
+    const li = event.target.closest(itemSelector);
+    if (!li || li.querySelector('.editing')) return;
+    const isDone = 'done' in li.dataset;
+    const handle = event.target.closest('.handle');
+    if (handle) {
+      event.preventDefault();
+      handle.focus({ preventScroll: true });
+      startDrag(li, event, { scrollBox, onDrop });
+      return;
+    }
+    const card = li.querySelector('.card');
+    const x0 = event.clientX, y0 = event.clientY;
+    let mode = null, dx = 0, armed = false, lastY = y0;
+
+    const detach = () => {
+      clearTimeout(hold);
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', cancel);
+    };
+    // Press and hold with a finger or pen lifts the row for reordering.
+    const hold = event.pointerType !== 'mouse' && !isDone ? setTimeout(() => {
+      if (mode || gesture) return;
+      detach();
+      startDrag(li, { pointerId: event.pointerId, clientY: lastY }, { scrollBox, onDrop });
+    }, 420) : 0;
+
+    const move = ev => {
+      if (ev.pointerId !== event.pointerId) return;
+      dx = ev.clientX - x0; lastY = ev.clientY;
+      const dy = ev.clientY - y0;
+      if (!mode) {
+        if (Math.hypot(dx, dy) < 8) return;
+        clearTimeout(hold);
+        if (swipe && card && !gesture && Math.abs(dx) > Math.abs(dy) * 1.3) {
+          mode = 'swipe'; gesture = 'swipe';
+          card.classList.remove('spring');
+          try { card.setPointerCapture(event.pointerId); } catch { /* pointer already gone */ }
+        } else { detach(); return; }
+      }
+      ev.preventDefault();
+      li.dataset.swipe = dx > 0 ? 'complete' : 'delete';
+      card.style.transform = `translateX(${dx}px)`;
+      const now = Math.abs(dx) > Math.min(96, li.offsetWidth * 0.3);
+      if (now !== armed) { armed = now; li.toggleAttribute('data-armed', armed); if (armed) buzz(6); }
+    };
+    const settle = () => {
+      card.classList.add('spring');
+      card.style.transform = '';
+      li.removeAttribute('data-armed');
+      setTimeout(() => { if (!card.style.transform) delete li.dataset.swipe; }, 320);
+    };
+    const up = async ev => {
+      if (ev.pointerId !== event.pointerId) return;
+      detach();
+      if (mode !== 'swipe') return;
+      gesture = null;
+      suppressClick(li);
+      if (!armed) { settle(); return; }
+      const action = dx > 0 ? 'complete' : 'delete';
+      if (!calm.matches) {
+        card.classList.add('fling');
+        card.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`;
+        await wait(190);
+      }
+      swipe(li, action);
+    };
+    const cancel = ev => {
+      if (ev.pointerId !== event.pointerId) return;
+      detach();
+      if (mode === 'swipe') { gesture = null; settle(); }
+    };
+    addEventListener('pointermove', move, { passive: false });
+    addEventListener('pointerup', up);
+    addEventListener('pointercancel', cancel);
+  });
+}
+
+watchItems(content, {
+  scrollBox: scroller,
+  itemSelector: '.row',
+  onDrop: (taskId, beforeId) => { mutate(() => moveTask(current(), taskId, beforeId)); render(); },
+  swipe: (li, action) => {
+    const taskId = li.dataset.id;
+    if (action === 'delete') removeTask(taskId, li);
+    else setDone(taskId, !('done' in li.dataset), li, { swiped: true });
+  },
+});
+watchItems(listsEl, {
+  scrollBox: $('home-scroll'),
+  itemSelector: '.tile',
+  onDrop: (listId, beforeId) => { mutate(() => moveList(state, listId, beforeId)); render(); },
+  swipe: null,
+});
+
+// Once a gesture owns the touch, stop the page from scrolling underneath it.
+document.addEventListener('touchmove', event => { if (gesture && event.cancelable) event.preventDefault(); }, { passive: false });
+content.addEventListener('contextmenu', event => { if (event.target.closest('.card') && !event.target.closest('textarea')) event.preventDefault(); });
+
+/* ---------- touch: pull down to add ---------- */
+let pull = null;
+const PULL_AT = 58;
+scroller.addEventListener('touchstart', event => {
+  pull = event.touches.length === 1 && scroller.scrollTop <= 0 && !editingId && !gesture
+    ? { x: event.touches[0].clientX, y: event.touches[0].clientY, active: false, distance: 0 } : null;
+}, { passive: true });
+scroller.addEventListener('touchmove', event => {
+  if (!pull || (gesture && gesture !== 'pull')) return;
+  const dx = event.touches[0].clientX - pull.x, dy = event.touches[0].clientY - pull.y;
+  if (!pull.active) {
+    if (dy > 10 && dy > Math.abs(dx) * 1.5 && scroller.scrollTop <= 0) { pull.active = true; gesture = 'pull'; content.classList.remove('settle'); }
+    else if (dy < -4 || Math.abs(dx) > 12) { pull = null; return; }
+    else return;
+  }
+  if (event.cancelable) event.preventDefault();
+  pull.distance = Math.max(0, (dy - 10) * 0.55);
+  content.style.transform = `translateY(${pull.distance}px)`;
+  const armed = pull.distance >= PULL_AT;
+  const hint = $('pull');
+  hint.style.opacity = String(Math.min(1, pull.distance / PULL_AT));
+  if (armed !== hint.classList.contains('armed')) {
+    hint.classList.toggle('armed', armed);
+    $('pull-text').textContent = armed ? 'Release to add' : 'Pull to add';
+    if (armed) buzz(6);
+  }
+}, { passive: false });
+const endPull = event => {
+  if (!pull?.active) { pull = null; return; }
+  const armed = event.type === 'touchend' && pull.distance >= PULL_AT;
+  pull = null; gesture = null;
+  content.classList.add('settle');
+  content.style.transform = '';
+  $('pull').style.opacity = '0';
+  $('pull').classList.remove('armed');
+  $('pull-text').textContent = 'Pull to add';
+  if (armed) focusCapture();
+};
+scroller.addEventListener('touchend', endPull);
+scroller.addEventListener('touchcancel', endPull);
+
+/* ---------- touch: swipe the title bar to change list ---------- */
+for (const zone of [$('list-bar'), $('pager')]) {
+  zone.addEventListener('pointerdown', event => {
+    if (event.button || wide.matches) return;
+    const x0 = event.clientX, y0 = event.clientY;
+    const up = ev => {
+      if (ev.pointerId !== event.pointerId) return;
+      removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      const dx = ev.clientX - x0, dy = ev.clientY - y0;
+      if (ev.type === 'pointerup' && Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        suppressClick(zone);
+        if (stepList(dx < 0 ? 1 : -1)) buzz(6);
+      }
+    };
+    addEventListener('pointerup', up);
+    addEventListener('pointercancel', up);
+  });
+}
+
+/* ---------- capture ---------- */
+function focusCapture() {
+  scroller.scrollTo({ top: 0, behavior: calm.matches ? 'auto' : 'smooth' });
+  thought.focus({ preventScroll: true });
+}
+function syncCapture() { $('capture').classList.toggle('has-text', !!thought.value.trim()); }
+thought.addEventListener('input', syncCapture);
+$('capture').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!thought.value.trim()) return;
+  const list = current();
+  let task;
+  if (!mutate(() => { task = addTask(list, thought.value, { top: true }); })) return;
+  enteringId = task.id;
+  thought.value = '';
+  syncCapture();
+  render();
+  scroller.scrollTop = 0;
+  thought.focus({ preventScroll: true });
+  buzz(8);
+  announce('Added: ' + task.text);
+});
+// Pasting several lines drops each one in as its own thought.
+thought.addEventListener('paste', event => {
+  const lines = (event.clipboardData?.getData('text') ?? '').split(/\r?\n/)
+    .map(line => line.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()).filter(Boolean).slice(0, 100);
+  if (lines.length < 2) return;
+  event.preventDefault();
+  const list = current();
+  const ok = mutate(() => {
+    for (const line of [...lines].reverse()) addTask(list, line.slice(0, 2000), { top: true });
+  }, { toast: `Added ${plural(lines.length, 'thought')}`, undo: true });
+  if (ok) render();
+});
+thought.addEventListener('keydown', event => { if (event.key === 'Escape') thought.blur(); });
+$('fab').addEventListener('click', focusCapture);
+
+/* ---------- list pane events ---------- */
+content.addEventListener('change', event => {
+  const box = event.target.closest('.check input');
+  if (!box) return;
+  const li = box.closest('.row');
+  if (editingId === li.dataset.id) editingId = null;
+  setDone(li.dataset.id, box.checked, li);
+});
+content.addEventListener('click', event => {
+  const li = event.target.closest('.row');
+  if (!li) return;
+  const taskId = li.dataset.id;
+  if (event.target.closest('button.text')) startEdit(taskId);
+  else if (event.target.closest('.row-x')) removeTask(taskId, li);
+  else if (event.target.closest('.tool-save')) finishEdit();
+  else if (event.target.closest('.tool-delete')) removeTask(taskId, li);
+  else if (event.target.closest('.tool-up')) { if (commitEditText()) shiftTask(taskId, -1, 'u:' + taskId); }
+  else if (event.target.closest('.tool-down')) { if (commitEditText()) shiftTask(taskId, 1, 'd:' + taskId); }
+});
+content.addEventListener('input', event => { if (event.target.matches('.edit-text')) autosize(event.target); });
+content.addEventListener('keydown', event => {
+  const li = event.target.closest('.row');
+  if (!li) return;
+  const taskId = li.dataset.id;
+  const arrow = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+  if (event.target.matches('.edit-text')) {
+    if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); finishEdit(); }
+    else if (event.key === 'Escape') { event.preventDefault(); finishEdit({ save: false }); }
+    else if (arrow && event.altKey) { event.preventDefault(); if (commitEditText()) shiftTask(taskId, arrow, 'e:' + taskId); }
+    return;
+  }
+  if (!arrow || 'done' in li.dataset) return;
+  if (event.target.closest('.handle')) { event.preventDefault(); shiftTask(taskId, arrow, 'h:' + taskId); }
+  else if (event.altKey && event.target.closest('button.text')) { event.preventDefault(); shiftTask(taskId, arrow, 't:' + taskId); }
+});
+// Leaving the row saves the edit. A press inside the row (e.g. on a tool button, which
+// some browsers do not focus) must not count as leaving.
+let pressedInsideEdit = false;
+content.addEventListener('pointerdown', event => {
+  pressedInsideEdit = !!event.target.closest('.card.editing');
+  if (pressedInsideEdit) setTimeout(() => { pressedInsideEdit = false; }, 500);
+}, true);
+// The typed text is stored at once; the row itself is only swapped after the finger or mouse
+// lifts, so the layout does not shift under a tap that is still in progress.
+let pointerIsDown = false;
+addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
+for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => { pointerIsDown = false; }, true);
+content.addEventListener('focusout', event => {
+  const card = event.target.closest('.card.editing');
+  if (!card || !editingId || pressedInsideEdit || card.contains(event.relatedTarget)) return;
+  if (!document.hasFocus()) return;           // switching apps or tabs keeps the edit open
+  const taskId = editingId;
+  const kept = commitEditText();
+  const close = () => { if (editingId === taskId) finishEdit({ save: !kept, refocus: false }); };
+  if (!pointerIsDown) { close(); return; }
+  const lifted = () => {
+    removeEventListener('pointerup', lifted); removeEventListener('pointercancel', lifted);
+    setTimeout(close, 60);
+  };
+  addEventListener('pointerup', lifted);
+  addEventListener('pointercancel', lifted);
+});
+
+$('done-toggle').addEventListener('click', () => { doneOpen = !doneOpen; savePrefs(); render({ flip: false }); });
+$('clear-done').addEventListener('click', () => {
+  const list = current();
+  const count = list.tasks.filter(t => t.done).length;
+  if (mutate(() => clearDone(list), { toast: `Cleared ${count} done`, undo: true })) { render(); thought.focus({ preventScroll: true }); }
+});
+$('back').addEventListener('click', () => showHome());
+$('pager').addEventListener('click', event => {
+  const dot = event.target.closest('button');
+  if (!dot || dot.dataset.id === activeId) return;
+  const from = state.lists.findIndex(l => l.id === activeId), to = state.lists.findIndex(l => l.id === dot.dataset.id);
+  openList(dot.dataset.id, { replace: true, direction: to - from });
+  document.querySelector(`[data-fk="p:${CSS.escape(activeId)}"]`)?.focus();
+});
+
+/* ---------- home events ---------- */
+listsEl.addEventListener('click', event => {
+  const open = event.target.closest('.tile-open');
+  if (open) openList(open.closest('.tile').dataset.id, { focus: !wide.matches });
+});
+listsEl.addEventListener('keydown', event => {
+  const handle = event.target.closest('.handle');
+  const arrow = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
+  if (handle && arrow) { event.preventDefault(); shiftList(handle.closest('.tile').dataset.id, arrow); }
+});
+
+/* ---------- list dialog (new, rename, recolour, delete) ---------- */
+const listDialog = $('list-dialog');
+let listDialogMode = 'new';
+$('swatches').replaceChildren(...COLORS.map(color => {
+  const label = el('label', 'swatch hue');
+  label.style.setProperty('--h', HUES[color]);
+  const radio = el('input'); radio.type = 'radio'; radio.name = 'color'; radio.value = color; radio.id = 'color-' + color;
+  radio.setAttribute('aria-label', color[0].toUpperCase() + color.slice(1));
+  label.append(radio);
+  return label;
+}));
+function openListDialog(mode) {
+  listDialogMode = mode;
+  const list = current();
+  $('list-dialog-title').textContent = mode === 'new' ? 'New list' : 'List options';
+  $('list-name').value = mode === 'new' ? '' : list.name;
+  const color = mode === 'new' ? COLORS.find(c => !state.lists.some(l => l.color === c)) ?? COLORS[state.lists.length % COLORS.length] : list.color;
+  $('color-' + color).checked = true;
+  $('list-error').textContent = '';
+  $('list-confirm').hidden = true;
+  $('list-delete').hidden = mode === 'new';
+  $('list-delete').disabled = state.lists.length === 1;
+  $('list-save').textContent = mode === 'new' ? 'Create' : 'Save';
+  listDialog.showModal();
+  $('list-name').focus();
+  if (mode !== 'new') $('list-name').select();
+}
+$('new-list').addEventListener('click', () => openListDialog('new'));
+$('list-more').addEventListener('click', () => openListDialog('edit'));
+$('list-cancel').addEventListener('click', () => listDialog.close());
+$('list-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const name = $('list-name').value;
+  const color = listDialog.querySelector('input[name="color"]:checked')?.value ?? COLORS[0];
+  try {
+    if (listDialogMode === 'new') {
+      const list = createList(state, name, color);
+      store.save(state);
+      listDialog.close();
+      openList(list.id, { focus: true });
+      focusCapture();
+    } else {
+      updateList(state, activeId, { name, color });
+      store.save(state);
+      listDialog.close();
+      render({ flip: false });
+    }
+  } catch (error) {
+    $('list-error').textContent = error.message;
+    $('list-name').focus();
+  }
+});
+$('list-delete').addEventListener('click', () => {
+  const list = current();
+  $('list-confirm-text').textContent = `Delete “${list.name}”${list.tasks.length ? ` and its ${plural(list.tasks.length, 'item')}` : ''}?`;
+  $('list-confirm').hidden = false;
+  $('list-confirm-no').focus();
+});
+$('list-confirm-no').addEventListener('click', () => { $('list-confirm').hidden = true; $('list-delete').focus(); });
+$('list-confirm-yes').addEventListener('click', () => {
+  const list = current();
+  const index = state.lists.indexOf(list);
+  if (!mutate(() => deleteList(state, list.id), { toast: `Deleted “${list.name}”`, undo: true })) return;
+  listDialog.close();
+  activeId = state.lists[Math.min(index, state.lists.length - 1)].id;
+  savePrefs();
+  if (wide.matches) openList(activeId, { replace: true }); else showHome();
+  render({ flip: false });
+});
+
+/* ---------- backup dialog ---------- */
+const settingsDialog = $('settings-dialog');
+let pendingReplace = null;
+const settingsStatus = message => { $('settings-status').textContent = message; };
+$('open-settings').addEventListener('click', () => {
+  $('settings-confirm').hidden = true;
+  settingsStatus(storage.volatile ? 'This browser is blocking storage here, so lists will be gone when the page closes.' : '');
+  settingsDialog.showModal();
+});
+$('settings-close').addEventListener('click', () => settingsDialog.close());
+$('export').addEventListener('click', () => {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+  const link = el('a'); link.href = url; link.download = 'quiet-list-backup.json';
+  document.body.append(link); link.click(); link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  settingsStatus('Backup file requested. If nothing downloads here, use “Copy backup as text”.');
+});
+$('copy-backup').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(JSON.stringify(state, null, 2)); settingsStatus('Backup copied. Paste it somewhere safe.'); }
+  catch { settingsStatus('This browser would not allow copying. Use the download instead.'); }
+});
+function askReplace(message, next) {
+  pendingReplace = next;
+  $('settings-confirm-text').textContent = message;
+  $('settings-confirm').hidden = false;
+  $('settings-confirm-no').focus();
+}
+$('import').addEventListener('click', () => $('file').click());
+$('file').addEventListener('change', async () => {
+  const file = $('file').files[0];
+  if (!file) return;
+  try {
+    if (file.size > 5_000_000) throw Error('Choose a backup smaller than 5 MB.');
+    const incoming = validate(JSON.parse(await file.text()));
+    askReplace(`Replace everything in this browser with this backup (${plural(incoming.lists.length, 'list')})?`, incoming);
+  } catch (error) {
+    settingsStatus(error instanceof SyntaxError ? 'That file is not a Quiet List backup.' : error.message);
+  } finally { $('file').value = ''; }
+});
+$('reset').addEventListener('click', () => askReplace('Replace everything in this browser with the sample lists?', sample()));
+$('settings-confirm-no').addEventListener('click', () => { pendingReplace = null; $('settings-confirm').hidden = true; });
+$('settings-confirm-yes').addEventListener('click', () => {
+  if (!pendingReplace) return;
+  const incoming = pendingReplace;
+  pendingReplace = null;
+  mutate(() => { state = incoming; activeId = state.lists[0].id; }, { toast: 'Lists replaced', undo: true });
+  settingsDialog.close();
+  savePrefs();
+  render({ flip: false });
+});
+
+/* ---------- toast + keyboard ---------- */
+$('toast-undo').addEventListener('click', undo);
+document.addEventListener('keydown', event => {
+  if (document.querySelector('dialog[open]')) return;
+  const typing = event.target.matches?.('input:not([type="checkbox"]), textarea');
+  if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z') {
+    if (undoSnapshot && !(typing && event.target.value)) { event.preventDefault(); undo(); }
+    return;
+  }
+  if (typing || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key === 'n' || event.key === '/') {
+    event.preventDefault();
+    if (view !== 'list') openList(activeId);
+    focusCapture();
+  } else if (event.key === '[') stepList(-1);
+  else if (event.key === ']') stepList(1);
+});
+
+/* ---------- start ---------- */
+store.watch(incoming => {
+  if (editingId) return;                       // do not pull the rug from under an open edit
+  state = incoming;
+  if (!state.lists.some(l => l.id === activeId)) activeId = state.lists[0].id;
+  render({ flip: false });
+});
+addEventListener('hashchange', route);
+wide.addEventListener('change', applyView);
+
+applyView();
+render({ flip: false });
+if (location.hash) route(); else setHash('list-' + activeId, true);
+if (loaded.problem) showToast('Saved lists could not be read. Showing samples; the old data was set aside, not erased.');
+</script>

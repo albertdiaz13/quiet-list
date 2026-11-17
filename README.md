@@ -1,22 +1,84 @@
 # Quiet List — local prototype
 
-An original, calm web-first brain-dump app. Working title only. No deployment or account was created.
+A touch-first brain-dump list app. Undated lists, one tap to capture, no accounts, no upsells.
+"Quiet List" is a working title. Nothing here is deployed, and no account, domain, service or credential was created.
 
-## Try locally
-Serve `dist/` with a static HTTP server (for example `python3 -m http.server 8080 --directory dist`) and open the localhost URL. ES modules require serving, not double-clicking index.html.
+## Try it
 
-## Implemented
-- Undated named spaces; create and rename lists.
-- Capture, edit, complete, and reopen thoughts.
-- Local browser persistence; JSON backup export and validated restore.
-- Responsive layout, keyboard forms, native modal cancellation, accessible labels and reduced motion.
-- Original sage/lavender/peach design; no copied Clear assets, paywalls, subscriptions or fake AI connection.
+```bash
+npm start
+```
+
+Then open http://127.0.0.1:8080. (ES modules need a server; double-clicking `index.html` will not work.)
+To try it on a phone, the phone has to reach this machine over your own network; that is your call to set up.
+
+## What works today
+
+| Action | Touch | Without gestures |
+| --- | --- | --- |
+| Add | Pull the list down, or tap **+** | Type in "Add a thought" and press Enter; `N` or `/` jumps there. Pasting several lines adds each one. |
+| Done | Swipe a row right | Tick the circle (Space when focused) |
+| Reopen | Swipe a done row right | Untick it under "n done" |
+| Delete | Swipe a row left | Open the row, then Delete; or empty its text. Undo in the toast or Ctrl/⌘+Z |
+| Edit | Tap the text | Enter on the text; Enter saves, Esc discards |
+| Reorder | Hold and drag, or drag the grip | Focus the grip and press ↑ ↓; Alt+↑ ↓ on the text; Up / Down buttons while editing |
+| Switch list | Swipe the title bar | Dots under the title, `[` `]`, the Lists screen, browser Back |
+| Lists | — | New list, rename, recolour, reorder, delete (with confirm and Undo) |
+
+Also: light and dark themes, reduced-motion mode (no animation, same actions), empty and all-clear states,
+JSON backup (download or copy), validated restore, and changes made in another tab of the same browser appear live.
+
+## What does not exist
+
+- **No sync.** Data lives in one browser's `localStorage`, unencrypted. Another device or browser sees nothing.
+- **No backend, API, login or MCP endpoint.** The ZIP this started from contained none either. No assistant can read or write these lists.
+- **No installable app.** No service worker, manifest or store package; offline use depends on the browser cache.
+- Haptic ticks use `navigator.vibrate`, which Android browsers support and iOS Safari does not.
 
 ## Verification
-`npm test` and `npm run check`. Model tests cover CRUD, empty/oversized input, round-trip backup, duplicate IDs, and literal text. Browser visual and interaction QA has not been run in this environment; do not call it production-ready.
 
-## Limits
-Browser-only storage, not encrypted; no cloud sync, login, server, remote write tools, MCP endpoint or Play Store package. Clearing site data loses lists unless exported. Same-browser concurrent tabs can overwrite each other's changes. No real personal tasks imported. Avoid sensitive data in this prototype. Import is an explicit destructive local replacement with confirmation.
+```bash
+npm test
+```
 
-## Next secure architecture
-Keep the interface but replace local storage with a server repository. Sites documentation provides a private hosted Worker + D1 path, Site-scoped caller identity and an authenticated MCP endpoint. Enforce owner identity for EVERY read/write and scope D1 rows to that owner. Define list/read/add/update/complete tools with strict input schemas, idempotent writes and revision checks; no credential values or task contents in logs. Test unauthorized and cross-owner calls. Publish only after owner authorization; then test an actual read and reversible write from this Dot before claiming integration. An unauthenticated localhost stub would not prove account support. See the Sites skill's site-mcp-server and identity-and-secrets references before implementing.
+```bash
+npm run test:e2e
+```
+
+- `npm test`: 12 model tests (the original 5 plus ordering, deletion, list management, v1 → v2 backup upgrade, malformed-backup rejection).
+- `npm run test:e2e`: needs Playwright with Chromium. Drives real touch events at iPhone 13 and Pixel 7 sizes (add, pull-to-add,
+  swipe done/delete, undo, grip drag, hold-drag, edit, title swipe, Back/Forward, reload persistence), keyboard and mouse flows on
+  desktop, reduced motion, a 320 px dark layout, contrast ≥ 4.5:1 for text, 44 px touch targets, accessible names, markup-as-text,
+  and zero console or Content-Security-Policy errors.
+
+Not verified: real iOS Safari and real Android hardware (the tests use Chromium emulating phone sizes and touch), screen readers
+(VoiceOver, TalkBack), and on-screen-keyboard behaviour on real devices.
+
+## Layout
+
+- `dist/model.js` — the data and every allowed change to it. No DOM, no storage.
+- `dist/store.js` — where data is kept. Today: this browser. The only file a backend would replace.
+- `dist/app.js`, `style.css`, `index.html` — the interface.
+- `tools/build-preview.mjs` — bundles `dist/` into one file (`preview/quiet-list.html`) for a private preview page.
+
+## Designed for a later backend (not built)
+
+The model is already shaped the way an owner-scoped API and MCP tool set would need it:
+
+| Model function | Future tool | Notes |
+| --- | --- | --- |
+| *(read)* | `list_lists`, `get_list` | Read-only |
+| `addTask` | `add_item` | Client-made UUID, so a retried call cannot duplicate |
+| `updateTask` | `update_item`, `complete_item` | Carries `rev`; the server rejects a stale revision instead of overwriting |
+| `moveTask`, `moveList` | `move_item` | "Place before X", not an index, so concurrent edits do not scramble order |
+| `deleteTask`, `clearDone`, `deleteList` | — | Suggest keeping destructive actions out of assistant tools at first |
+
+Requirements before anything is called "sync" or "assistant access":
+
+1. Every request authenticated; every row carries an owner id; every query filters by it. Test with a second account that must get nothing.
+2. The same validation as `validate()` on the server; the client is never trusted. Size and rate limits.
+3. No list text or tokens in logs. Secrets stay server-side, never in this repository or the browser bundle.
+4. MCP tools get the narrowest scope that works (read, add, update), with strict input schemas.
+5. Proof by test: an unauthenticated call fails, a cross-owner call fails, a real second device sees a change, a real assistant session reads and makes one reversible write.
+
+Hosting, domain, sign-in method and cost are open decisions for the owner.

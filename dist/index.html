@@ -3,10 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
 <title>Quiet List</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap">
+<meta name="theme-color" content="#f1edfb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Quiet List">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -28,12 +35,12 @@
   <section id="home" class="pane" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
-      <button id="open-settings" class="icon-btn" type="button" aria-label="Backup and about"><svg><use href="#i-gear"/></svg></button>
+      <button id="open-settings" class="icon-btn" type="button" aria-label="Account and backup"><svg><use href="#i-gear"/></svg></button>
     </header>
     <div id="home-scroll" class="scroll">
       <ol id="lists" class="tiles" aria-label="Your lists"></ol>
       <button id="new-list" class="ghost-btn" type="button"><svg><use href="#i-plus"/></svg>New list</button>
-      <p class="fineprint">Saved in this browser only. No account, no sync.</p>
+      <p class="fineprint"><span id="sync-line">Saved in this browser only.</span> <button id="sync-action" type="button" class="link-btn" hidden>Sign in to sync</button></p>
     </div>
   </section>
 
@@ -110,8 +117,53 @@
 
 <dialog id="settings-dialog" aria-labelledby="settings-title">
   <div class="settings">
-    <h2 id="settings-title">Backup and about</h2>
-    <p class="note" id="storage-note">Your lists live in this browser on this device. There is no account, no sync between devices and no assistant connection yet. Clearing site data removes them, so keep a backup.</p>
+    <h2 id="settings-title">Account and backup</h2>
+
+    <section id="account" aria-label="Account">
+      <p id="account-none" class="note">This copy runs without a server, so lists stay in this browser on this device. Nothing syncs and no assistant can reach them.</p>
+
+      <form id="login-form" hidden>
+        <p class="note" id="login-intro">Sign in to keep your lists on your account and see them on every device. The lists already in this browser stay here untouched.</p>
+        <label for="login-name">Username</label>
+        <input id="login-name" class="field" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="80">
+        <label for="login-password">Password</label>
+        <input id="login-password" class="field" type="password" autocomplete="current-password" maxlength="200">
+        <div id="setup-row" hidden>
+          <label for="login-setup">Setup code</label>
+          <input id="login-setup" class="field" type="password" autocomplete="off" maxlength="200">
+          <p class="note">The code chosen when this server was set up. Passwords need at least 12 characters.</p>
+        </div>
+        <p id="login-error" class="error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="signup-toggle" class="quiet-btn" hidden>Create an account</button>
+          <span class="spacer"></span>
+          <button type="submit" id="login-submit" class="solid-btn">Sign in</button>
+        </div>
+      </form>
+
+      <div id="account-in" hidden>
+        <p class="note">Signed in as <b id="account-name"></b>. <span id="account-sync"></span></p>
+        <div id="migrate" class="confirm" hidden>
+          <p id="migrate-text"></p>
+          <div class="dialog-actions">
+            <span class="spacer"></span>
+            <button type="button" id="migrate-no" class="quiet-btn">Not now</button>
+            <button type="button" id="migrate-yes" class="solid-btn">Copy to my account</button>
+          </div>
+        </div>
+        <div class="stack">
+          <button type="button" id="migrate-open" class="row-btn" hidden>Copy this browser’s own lists into my account</button>
+          <button type="button" id="logout" class="row-btn">Sign out on this device</button>
+        </div>
+        <h3>Assistants</h3>
+        <p class="note">To let an assistant read and add to your lists, give it this connector address. It will send you back here to approve it. It can never delete anything.</p>
+        <div class="copy-row"><code id="mcp-url"></code><button type="button" id="copy-mcp" class="quiet-btn">Copy</button></div>
+        <ul id="connections" class="connections" aria-label="Connected assistants"></ul>
+      </div>
+    </section>
+
+    <h3>Backup</h3>
+    <p class="note" id="storage-note"></p>
     <div class="stack">
       <button type="button" id="export" class="row-btn">Download a backup file</button>
       <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>

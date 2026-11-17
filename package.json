@@ -3,10 +3,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "python3 -m http.server 8080 --bind 127.0.0.1 --directory dist",
-    "test": "node --test tests/model.test.mjs",
+    "start": "node server/node.js",
+    "test": "node --test tests/model.test.mjs tests/server.test.mjs tests/mcp-sdk.test.mjs",
     "test:e2e": "node tests/e2e.cjs",
-    "check": "node --check dist/app.js && node --check dist/store.js && node --check dist/model.js",
-    "build:preview": "node tools/build-preview.mjs"
+    "check": "node --check dist/app.js && node --check dist/sync.js && node --check dist/store.js && node --check dist/model.js && node --check dist/sw.js && node --check server/app.js",
+    "build:preview": "node tools/build-preview.mjs",
+    "cf:dev": "wrangler dev --local",
+    "cf:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "wrangler": "^4.163.0"
+  },
+  "version": "0.3.0",
+  "engines": {
+    "node": ">=22.13"
   }
 }

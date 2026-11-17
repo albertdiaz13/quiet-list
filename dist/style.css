@@ -1,3 +1,7 @@
+@font-face {
+  font-family: "Bricolage Grotesque"; font-style: normal; font-weight: 500 800; font-display: swap;
+  src: url(fonts/bricolage-grotesque-latin.woff2) format("woff2");
+}
 /* Layout: one screen, two panes. Phones show one pane at a time and slide between them;
    wide screens show the lists as a sidebar. The whole app is drenched in the open list's hue. */
 :root {
@@ -343,6 +347,18 @@ dialog fieldset { margin-top: 16px; }
 .stack { display: grid; gap: 6px; margin: 16px 0 4px; }
 .row-btn { min-height: 52px; padding: 0 16px; border-radius: 14px; background: var(--bg); text-align: left; font-weight: 600; }
 .row-btn:hover { background: var(--sunk); }
+dialog { overflow-y: auto; overscroll-behavior: contain; }
+dialog h3 { font: 700 1.0625rem/1.2 var(--font-display); margin: 22px 0 8px; }
+.field { width: 100%; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); outline: none; margin-bottom: 10px; }
+.field:focus { border-color: var(--accent); }
+#login-form .note { margin-bottom: 12px; }
+.copy-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 4px 4px 14px; border-radius: 14px; background: var(--bg); }
+.copy-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; }
+.connections { display: grid; gap: 6px; margin-top: 8px; }
+.connections li { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--bg); }
+.connections li > span { flex: 1; min-width: 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.connections small { display: block; color: var(--muted); }
+.link-btn { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 4px; }
 details { margin-top: 14px; }
 summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--muted); border-radius: 10px; }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 0.875rem; line-height: 1.5; padding: 4px 0 8px; }

@@ -7,19 +7,14 @@ const assert = require('node:assert/strict');
 const { chromium, devices } = require('playwright');
 
 const root = path.join(__dirname, '..');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
-const server = http.createServer((req, res) => {
-  const url = req.url.split('?')[0];
-  if (url === '/preview') {            // the single-file preview, wrapped the way a host page would wrap it
-    res.setHeader('content-type', 'text/html');
-    return res.end('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
-      + fs.readFileSync(path.join(root, 'preview/quiet-list.html'), 'utf8') + '</body></html>');
-  }
-  const file = path.join(root, 'dist', url === '/' ? 'index.html' : url);
-  if (!file.startsWith(path.join(root, 'dist')) || !fs.existsSync(file)) { res.statusCode = 404; return res.end(); }
-  res.setHeader('content-type', types[path.extname(file)] || 'application/octet-stream');
-  res.end(fs.readFileSync(file));
+const SETUP = 'e2e-setup-code-not-a-real-secret';
+// The single-file preview, wrapped the way a host page would wrap it (no server behind it).
+const previewServer = http.createServer((req, res) => {
+  res.setHeader('content-type', 'text/html');
+  res.end('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>'
+    + fs.readFileSync(path.join(root, 'preview/quiet-list.html'), 'utf8') + '</body></html>');
 });
+let previewBase;
 
 const results = [];
 let base;
@@ -54,7 +49,7 @@ async function run(name, contextOptions, body, url = '/') {
   page.on('console', m => { if (['error', 'warning'].includes(m.type())) problems.push(m.text()); });
   page.on('pageerror', e => problems.push('pageerror: ' + e.message));
   try {
-    await page.goto(base + url);
+    await page.goto(url === '/preview' ? previewBase : base + url);
     await page.waitForSelector('#open .row');
     await page.waitForTimeout(450);
     await body(page);
@@ -75,7 +70,7 @@ const layoutChecks = async page => {
     .filter(r => (r.w < 44 || r.h < 44) && !/^$/.test(r.id) && r.id !== 'add-btn' && !/pager/.test(r.id)));
   const realSmall = small.filter(r => r.w < 28 || r.h < 28);
   assert.deepEqual(realSmall, [], 'touch targets');
-  const unnamed = await page.$$eval('button, input, textarea', nodes => nodes.filter(n => n.type !== 'file'
+  const unnamed = await page.$$eval('button, input, textarea', nodes => nodes.filter(n => n.type !== 'file' && !n.hidden
     && !(n.getAttribute('aria-label') || n.textContent.trim() || (n.id && document.querySelector(`label[for="${n.id}"]`)))).map(n => n.outerHTML.slice(0, 80)));
   assert.deepEqual(unnamed, [], 'every control has an accessible name');
 };
@@ -353,9 +348,205 @@ const smallAndDark = async page => {
   for (const [name, value] of Object.entries(contrast)) assert.ok(value >= 4.5, `${name} contrast ${value.toFixed(2)}`);
 };
 
+
+/* ---------- account, sync and assistant flows (sample data only) ---------- */
+const waitFor = async (check, label, ms = 15000) => {
+  const end = Date.now() + ms;
+  for (;;) { if (await check()) return; if (Date.now() > end) throw Error('timed out: ' + label); await new Promise(r => setTimeout(r, 250)); }
+};
+const titles = page => page.$$eval('.tile-name', nodes => nodes.map(n => n.textContent));
+async function signIn(page, { create = false } = {}) {
+  await page.evaluate(() => document.getElementById('open-settings').click());
+  await page.waitForSelector('#login-form:not([hidden])');
+  if (create) await page.click('#signup-toggle');
+  await page.fill('#login-name', 'sample-owner');
+  await page.fill('#login-password', 'correct horse battery staple');
+  if (create) await page.fill('#login-setup', SETUP);
+  await page.click('#login-submit');
+  await page.waitForSelector('#account-in:not([hidden])');
+}
+const closeSettings = page => page.evaluate(() => document.getElementById('settings-dialog').close());
+const addThought = async (page, text) => { await page.fill('#thought', text); await page.keyboard.press('Enter'); await page.waitForTimeout(350); };
+
+async function accountFlows() {
+  const browser = await chromium.launch();
+  const problems = [];
+  const device = async (name, options) => {
+    const context = await browser.newContext(options);
+    const page = await context.newPage();
+    page.on('console', m => { if (m.type() === 'error' && !/ERR_INTERNET_DISCONNECTED|Failed to load resource: the server responded with a status of 401/.test(m.text())) problems.push(`${name}: ${m.text()}`); });
+    page.on('pageerror', e => problems.push(`${name} pageerror: ${e.message}`));
+    await page.goto(base + '/');
+    await page.waitForSelector('#open .row, #empty:not([hidden])');
+    return { context, page };
+  };
+  const step = async (name, body) => {
+    try { await body(); results.push(['ok', name]); }
+    catch (error) { results.push(['FAIL', name, error.message.split('\n').slice(0, 5).join('\n   ')]); throw error; }
+  };
+  try {
+    const iphone = await device('iphone', devices['iPhone 13']);
+    const pixel = await device('pixel', devices['Pixel 7']);
+    const A = iphone.page, B = pixel.page;
+
+    await step('Installable: manifest, icons and offline worker are served', async () => {
+      const manifest = await A.evaluate(async () => (await fetch(document.querySelector('link[rel=manifest]').href)).json());
+      assert.equal(manifest.display, 'standalone');
+      for (const icon of manifest.icons) assert.equal(await A.evaluate(async src => (await fetch(src)).status, icon.src), 200);
+      assert.ok(manifest.icons.some(i => i.sizes === '192x192') && manifest.icons.some(i => i.sizes === '512x512'));
+      await A.evaluate(() => navigator.serviceWorker.ready);
+      assert.equal(await A.evaluate(async () => (await fetch(document.querySelector('link[rel=apple-touch-icon]').href)).status), 200);
+    });
+
+    await step('Before sign-in: lists are local, and the app says so', async () => {
+      await addThought(A, 'Written before signing in');
+      await A.evaluate(() => document.getElementById('back').click());
+      assert.match(await A.textContent('#sync-line'), /this browser only/);
+      assert.equal(await A.isVisible('#sync-action'), true);
+    });
+
+    await step('Create account on phone 1; local lists are offered, copied, and kept', async () => {
+      const localBefore = await A.evaluate(() => localStorage.getItem('quiet-list-v1'));
+      await signIn(A, { create: true });
+      await A.waitForSelector('#migrate:not([hidden])');
+      assert.match(await A.textContent('#migrate-text'), /4 lists with 13 items/);
+      await A.click('#migrate-yes');
+      await waitFor(async () => (await titles(A)).length === 5, 'copied lists appear');
+      assert.deepEqual(await titles(A), ['Brain dump', 'Brain dump', 'Weekend', 'Someday', 'Gift ideas']);
+      assert.equal(await A.evaluate(() => localStorage.getItem('quiet-list-v1')), localBefore, 'browser-local lists untouched');
+      await closeSettings(A);
+      await waitFor(async () => /Synced to your account \(sample-owner\)/.test(await A.textContent('#sync-line')), 'synced status');
+    });
+
+    await step('Phone 2 signs in and sees the same lists', async () => {
+      await signIn(B);
+      await closeSettings(B);
+      await waitFor(async () => (await titles(B)).length === 5, 'lists on second device');
+      await B.evaluate(() => document.getElementById('back').click());
+      await B.tap('.tile:nth-child(2) .tile-open');
+      await waitFor(async () => (await openTexts(B))[0] === 'Written before signing in', 'migrated item visible on phone 2');
+    });
+
+    await step('A task added on phone 2 appears on phone 1 without a reload', async () => {
+      await A.tap('.tile:nth-child(2) .tile-open');
+      await addThought(B, 'Added on the Pixel');
+      await waitFor(async () => (await openTexts(A))[0] === 'Added on the Pixel', 'phone 1 receives it');
+    });
+
+    await step('Swipe-complete on phone 1 shows as done on phone 2', async () => {
+      await A.waitForTimeout(500);                 // let the arrival animation finish before aiming a finger at the row
+      assert.equal((await openTexts(A))[0], 'Added on the Pixel');
+      const row = await center(A, '#open .row:nth-child(1) .text');
+      await finger(A, [row, { x: row.x + 170, y: row.y }]);
+      await waitFor(async () => !(await openTexts(B)).includes('Added on the Pixel'), 'phone 2 sees completion');
+      assert.match(await B.textContent('#count'), /2 done/);
+    });
+
+    await step('Delete then Undo on phone 1 never reaches the server', async () => {
+      await A.waitForTimeout(500);
+      const before = await openTexts(A);
+      const row = await center(A, '#open .row:nth-child(1) .text');
+      await finger(A, [row, { x: row.x - 170, y: row.y }]);
+      assert.equal((await openTexts(A)).length, before.length - 1);
+      await A.tap('#toast-undo');
+      await A.waitForTimeout(1500);
+      assert.deepEqual(await openTexts(A), before);
+      assert.deepEqual(await openTexts(B), before);
+    });
+
+    await step('Offline on phone 2: app reopens, change waits, then syncs', async () => {
+      await pixel.context.setOffline(true);
+      await B.reload();
+      await B.waitForSelector('#open .row');
+      await addThought(B, 'Thought while offline');
+      await B.evaluate(() => document.getElementById('back').click());
+      await waitFor(async () => /Offline\. 1 change waiting/.test(await B.textContent('#sync-line')), 'offline status');
+      assert.ok(!(await openTexts(A)).includes('Thought while offline'));
+      await pixel.context.setOffline(false);
+      await B.evaluate(() => dispatchEvent(new Event('online')));
+      await waitFor(async () => (await openTexts(A))[0] === 'Thought while offline', 'phone 1 receives the offline change');
+      await waitFor(async () => /Synced to your account/.test(await B.textContent('#sync-line')), 'synced again');
+    });
+
+    let tokens, clientId, listId;
+    await step('Assistant connects through the consent screen (OAuth + PKCE)', async () => {
+      const crypto = require('node:crypto');
+      const redirectUri = previewBase + 'callback';      // stands in for the assistant's own return page
+      const reg = await (await fetch(base + '/oauth/register', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ client_name: 'Sample Assistant', redirect_uris: [redirectUri] }) })).json();
+      clientId = reg.client_id;
+      const verifier = crypto.randomBytes(32).toString('base64url');
+      const query = new URLSearchParams({ response_type: 'code', client_id: clientId, redirect_uri: redirectUri, code_challenge: crypto.createHash('sha256').update(verifier).digest('base64url'), code_challenge_method: 'S256', state: 's1', scope: 'lists:read lists:write', resource: base + '/mcp' });
+      const tab = await iphone.context.newPage();
+      await tab.goto(`${base}/oauth/authorize?${query}`);
+      assert.match(await tab.textContent('h1'), /Connect Sample Assistant\?/);
+      assert.match(await tab.textContent('main'), /cannot delete/);
+      await tab.click('button[value=allow]');
+      await tab.waitForURL(url => url.href.startsWith(redirectUri), { timeout: 8000 });
+      const returned = new URL(tab.url());
+      assert.equal(returned.searchParams.get('iss'), base);
+      assert.equal(returned.searchParams.get('state'), 's1');
+      const res = await fetch(base + '/oauth/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'authorization_code', code: returned.searchParams.get('code'), client_id: clientId, redirect_uri: redirectUri, code_verifier: verifier }) });
+      assert.equal(res.status, 200);
+      tokens = await res.json();
+      await tab.close();
+    });
+
+    const call = async (name, args = {}) => {
+      const res = await fetch(base + '/mcp', { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${tokens.access_token}` }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }) });
+      return res.status === 200 ? (await res.json()).result : { status: res.status };
+    };
+    await step('Assistant reads lists, adds, edits and completes; both phones show it', async () => {
+      const lists = (await call('list_lists')).structuredContent.lists;
+      assert.equal(lists.length, 5);
+      listId = lists[1].id;
+      const tasks = (await call('get_list', { list_id: listId })).structuredContent.tasks;
+      assert.equal(tasks[0].text, 'Thought while offline');
+      const added = (await call('add_task', { list_id: listId, text: 'Added by the assistant' })).structuredContent.added;
+      await waitFor(async () => (await openTexts(A))[0] === 'Added by the assistant', 'phone 1 shows assistant task');
+      await call('edit_task', { list_id: listId, task_id: added.id, text: 'Edited by the assistant' });
+      await waitFor(async () => (await openTexts(A))[0] === 'Edited by the assistant', 'phone 1 shows the edit');
+      await call('complete_task', { list_id: listId, task_id: tasks[0].id });
+      await waitFor(async () => !(await openTexts(A)).includes('Thought while offline'), 'phone 1 shows completion');
+      await B.tap('.tile:nth-child(2) .tile-open');
+      await waitFor(async () => (await openTexts(B))[0] === 'Edited by the assistant', 'phone 2 too');
+    });
+
+    await step('Owner sees the connection and can cut it off', async () => {
+      await A.evaluate(() => document.getElementById('open-settings').click());
+      await A.waitForSelector('#connections button');
+      assert.match(await A.textContent('#connections'), /Sample Assistant.*Can read, add, edit and complete.*returns to 127\.0\.0\.1/s);
+      assert.equal(await A.textContent('#mcp-url'), base + '/mcp');
+      await A.click('#connections button');
+      await waitFor(async () => /No assistant is connected/.test(await A.textContent('#connections')), 'disconnected');
+      assert.equal((await call('list_lists')).status, 401);
+    });
+
+    await step('Sign out removes the account copy from the device and brings back local lists', async () => {
+      await A.click('#logout');
+      await waitFor(async () => (await titles(A)).length === 4, 'local lists return');
+      assert.equal(await A.evaluate(() => localStorage.getItem('quiet-list-account')), null);
+      await closeSettings(A);
+      await A.evaluate(() => document.querySelector('.tile-open').click());
+      await waitFor(async () => (await openTexts(A))[0] === 'Written before signing in', 'local item still there');
+      const cookies = await iphone.context.cookies();
+      assert.equal(cookies.length, 0, 'session cookie cleared');
+      const other = await pixel.context.cookies();
+      assert.ok(other[0].httpOnly && other[0].sameSite === 'Lax', 'session cookie is HttpOnly, SameSite=Lax');
+      assert.equal((await B.evaluate(() => document.cookie)), '', 'page scripts cannot read the session');
+    });
+
+    assert.deepEqual(problems, [], 'console errors');
+  } catch { /* recorded by step */ }
+  if (problems.length) results.push(['FAIL', 'console clean', problems.slice(0, 5).join('\n   ')]);
+  await browser.close();
+}
+
 (async () => {
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  base = `http://127.0.0.1:${server.address().port}`;
+  const { startServer } = await import('../server/node.js');
+  const running = await startServer({ port: 0, setupCode: SETUP, passwordIterations: 1000 });
+  base = running.url.replace('127.0.0.1', 'localhost');     // localhost is a secure context, so the offline worker runs
+  await new Promise(resolve => previewServer.listen(0, '127.0.0.1', resolve));
+  previewBase = `http://127.0.0.1:${previewServer.address().port}/`;
   await run('iPhone 13 size, touch flows', devices['iPhone 13'], touchFlows);
   await run('Pixel 7 size, touch flows', devices['Pixel 7'], touchFlows);
   await run('Desktop, keyboard and mouse flows', { viewport: { width: 1280, height: 800 } }, keyboardFlows);
@@ -363,7 +554,8 @@ const smallAndDark = async page => {
   await run('Small phone (320px), dark', { ...devices['iPhone SE'], viewport: { width: 320, height: 568 }, colorScheme: 'dark' }, smallAndDark);
   await run('Phone, light contrast', devices['Pixel 7'], smallAndDark);
   await run('Single-file preview bundle', devices['iPhone 13'], previewBundle, '/preview');
-  server.close();
+  await accountFlows();
+  running.server.close(); previewServer.close();
   for (const r of results) console.log(r.join('  '));
   process.exit(results.some(r => r[0] === 'FAIL') ? 1 : 0);
 })();

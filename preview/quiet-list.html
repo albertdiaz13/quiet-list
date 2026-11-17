@@ -347,6 +347,18 @@ dialog fieldset { margin-top: 16px; }
 .stack { display: grid; gap: 6px; margin: 16px 0 4px; }
 .row-btn { min-height: 52px; padding: 0 16px; border-radius: 14px; background: var(--bg); text-align: left; font-weight: 600; }
 .row-btn:hover { background: var(--sunk); }
+dialog { overflow-y: auto; overscroll-behavior: contain; }
+dialog h3 { font: 700 1.0625rem/1.2 var(--font-display); margin: 22px 0 8px; }
+.field { width: 100%; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); outline: none; margin-bottom: 10px; }
+.field:focus { border-color: var(--accent); }
+#login-form .note { margin-bottom: 12px; }
+.copy-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 4px 4px 14px; border-radius: 14px; background: var(--bg); }
+.copy-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; }
+.connections { display: grid; gap: 6px; margin-top: 8px; }
+.connections li { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 14px; background: var(--bg); }
+.connections li > span { flex: 1; min-width: 0; font-size: 0.9375rem; overflow-wrap: anywhere; }
+.connections small { display: block; color: var(--muted); }
+.link-btn { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 4px; }
 details { margin-top: 14px; }
 summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; color: var(--muted); border-radius: 10px; }
 .keys { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; font-size: 0.875rem; line-height: 1.5; padding: 4px 0 8px; }
@@ -394,12 +406,12 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   <section id="home" class="pane" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
-      <button id="open-settings" class="icon-btn" type="button" aria-label="Backup and about"><svg><use href="#i-gear"/></svg></button>
+      <button id="open-settings" class="icon-btn" type="button" aria-label="Account and backup"><svg><use href="#i-gear"/></svg></button>
     </header>
     <div id="home-scroll" class="scroll">
       <ol id="lists" class="tiles" aria-label="Your lists"></ol>
       <button id="new-list" class="ghost-btn" type="button"><svg><use href="#i-plus"/></svg>New list</button>
-      <p class="fineprint">Saved in this browser only. No account, no sync.</p>
+      <p class="fineprint"><span id="sync-line">Saved in this browser only.</span> <button id="sync-action" type="button" class="link-btn" hidden>Sign in to sync</button></p>
     </div>
   </section>
 
@@ -476,8 +488,53 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 
 <dialog id="settings-dialog" aria-labelledby="settings-title">
   <div class="settings">
-    <h2 id="settings-title">Backup and about</h2>
-    <p class="note" id="storage-note">Your lists live in this browser on this device. There is no account, no sync between devices and no assistant connection yet. Clearing site data removes them, so keep a backup.</p>
+    <h2 id="settings-title">Account and backup</h2>
+
+    <section id="account" aria-label="Account">
+      <p id="account-none" class="note">This copy runs without a server, so lists stay in this browser on this device. Nothing syncs and no assistant can reach them.</p>
+
+      <form id="login-form" hidden>
+        <p class="note" id="login-intro">Sign in to keep your lists on your account and see them on every device. The lists already in this browser stay here untouched.</p>
+        <label for="login-name">Username</label>
+        <input id="login-name" class="field" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="80">
+        <label for="login-password">Password</label>
+        <input id="login-password" class="field" type="password" autocomplete="current-password" maxlength="200">
+        <div id="setup-row" hidden>
+          <label for="login-setup">Setup code</label>
+          <input id="login-setup" class="field" type="password" autocomplete="off" maxlength="200">
+          <p class="note">The code chosen when this server was set up. Passwords need at least 12 characters.</p>
+        </div>
+        <p id="login-error" class="error" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" id="signup-toggle" class="quiet-btn" hidden>Create an account</button>
+          <span class="spacer"></span>
+          <button type="submit" id="login-submit" class="solid-btn">Sign in</button>
+        </div>
+      </form>
+
+      <div id="account-in" hidden>
+        <p class="note">Signed in as <b id="account-name"></b>. <span id="account-sync"></span></p>
+        <div id="migrate" class="confirm" hidden>
+          <p id="migrate-text"></p>
+          <div class="dialog-actions">
+            <span class="spacer"></span>
+            <button type="button" id="migrate-no" class="quiet-btn">Not now</button>
+            <button type="button" id="migrate-yes" class="solid-btn">Copy to my account</button>
+          </div>
+        </div>
+        <div class="stack">
+          <button type="button" id="migrate-open" class="row-btn" hidden>Copy this browser’s own lists into my account</button>
+          <button type="button" id="logout" class="row-btn">Sign out on this device</button>
+        </div>
+        <h3>Assistants</h3>
+        <p class="note">To let an assistant read and add to your lists, give it this connector address. It will send you back here to approve it. It can never delete anything.</p>
+        <div class="copy-row"><code id="mcp-url"></code><button type="button" id="copy-mcp" class="quiet-btn">Copy</button></div>
+        <ul id="connections" class="connections" aria-label="Connected assistants"></ul>
+      </div>
+    </section>
+
+    <h3>Backup</h3>
+    <p class="note" id="storage-note"></p>
     <div class="stack">
       <button type="button" id="export" class="row-btn">Download a backup file</button>
       <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
@@ -525,9 +582,20 @@ const COLORS = ['lavender', 'sage', 'peach', 'sky', 'rose', 'teal'];
 const LIMITS = { lists: 100, tasks: 10000, name: 80, text: 2000 };
 
 const id = () => crypto.randomUUID();
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+// Callers may supply their own id (a UUID made on the device) so a retried request cannot duplicate.
+function freshId(state, given) {
+  if (given == null) return id();
+  if (typeof given !== 'string' || !ID_PATTERN.test(given)) throw Error('Invalid id.');
+  if (hasId(state, given)) throw Error('That id is already in use.');
+  return given;
+}
+function hasId(state, anyId) {
+  return state.lists.some(l => l.id === anyId || l.tasks.some(t => t.id === anyId));
+}
 const isRev = n => Number.isInteger(n) && n >= 1;
 
-const newList = (name, color) => ({ id: id(), name, color, rev: 1, tasks: [] });
+const newList = (name, color, listId = id()) => ({ id: listId, name, color, rev: 1, tasks: [] });
 
 function initial() {
   return {
@@ -538,6 +606,11 @@ function initial() {
       newList('Ideas for later', 'peach'),
     ],
   };
+}
+
+// What a brand-new account starts with: one empty list.
+function starter() {
+  return { version: SCHEMA_VERSION, lists: [newList('Brain dump', 'lavender')] };
 }
 
 // Invented demo content. Nothing here describes a real person.
@@ -632,10 +705,10 @@ function placeBefore(array, item, beforeId, missing) {
   array.splice(at, 0, item);
 }
 
-function createList(state, name, color = COLORS[0]) {
+function createList(state, name, color = COLORS[0], listId = null) {
   name = cleanName(name);
   if (state.lists.length >= LIMITS.lists) throw Error(`This prototype supports ${LIMITS.lists} lists.`);
-  const list = newList(name, COLORS.includes(color) ? color : COLORS[0]);
+  const list = newList(name, COLORS.includes(color) ? color : COLORS[0], freshId(state, listId));
   state.lists.push(list);
   return list;
 }
@@ -663,10 +736,10 @@ function moveList(state, listId, beforeId = null) {
   return list;
 }
 
-function addTask(list, text, { top = false } = {}) {
+function addTask(list, text, { top = false, id: taskId = null, state = null } = {}) {
   text = cleanText(text);
   if (list.tasks.length >= LIMITS.tasks) throw Error('This list is full.');
-  const task = { id: id(), text, done: false, rev: 1 };
+  const task = { id: state ? freshId(state, taskId) : id(), text, done: false, rev: 1 };
   if (top) list.tasks.unshift(task); else list.tasks.push(task);
   return task;
 }
@@ -696,6 +769,68 @@ function clearDone(list) {
   const before = list.tasks.length;
   list.tasks = list.tasks.filter(t => !t.done);
   return before - list.tasks.length;
+}
+
+// ---- changes as data ----
+// One plain object per change. The app applies these locally and queues them for the server;
+// the server applies the same objects to the signed-in owner's lists. Unknown fields are ignored,
+// unknown types are refused.
+const has = (op, key) => Object.prototype.hasOwnProperty.call(op, key);
+function patchOf(op, rules) {
+  const patch = {};
+  for (const [key, type] of Object.entries(rules)) {
+    if (!has(op, key)) continue;
+    if (typeof op[key] !== type) throw Error('Invalid change.');
+    patch[key] = op[key];
+  }
+  if (!Object.keys(patch).length) throw Error('Nothing to change.');
+  return patch;
+}
+
+function applyOp(state, op) {
+  if (!op || typeof op !== 'object' || typeof op.type !== 'string') throw Error('Invalid change.');
+  const list = () => findList(state, op.listId);
+  const before = () => (op.beforeId == null ? null : op.beforeId);
+  switch (op.type) {
+    case 'add_list':
+      if (typeof op.id === 'string' && state.lists.some(l => l.id === op.id)) return state;   // already applied
+      createList(state, op.name, op.color, op.id);
+      return state;
+    case 'update_list': updateList(state, op.listId, patchOf(op, { name: 'string', color: 'string' })); return state;
+    case 'delete_list': deleteList(state, op.listId); return state;
+    case 'move_list': moveList(state, op.listId, before()); return state;
+    case 'add_item': {
+      const target = list();
+      if (typeof op.id === 'string' && target.tasks.some(t => t.id === op.id)) return state;  // already applied
+      addTask(target, op.text, { top: op.top === true, id: op.id, state });
+      return state;
+    }
+    case 'update_item': updateTask(list(), op.itemId, patchOf(op, { text: 'string', done: 'boolean' })); return state;
+    case 'delete_item': deleteTask(list(), op.itemId); return state;
+    case 'move_item': moveTask(list(), op.itemId, before()); return state;
+    case 'clear_done': clearDone(list()); return state;
+    case 'import_lists': {
+      // Adds whole lists (used to copy a browser's local lists into an account). Never overwrites.
+      const incoming = validate({ version: SCHEMA_VERSION, lists: structuredClone(op.lists) }).lists;
+      for (const item of incoming) {
+        if (state.lists.length >= LIMITS.lists) throw Error(`This prototype supports ${LIMITS.lists} lists.`);
+        if (state.lists.some(l => l.id === item.id)) continue;                                  // already applied
+        const copy = newList(item.name.trim(), item.color, hasId(state, item.id) ? id() : item.id);
+        state.lists.push(copy);
+        for (const task of item.tasks) {
+          copy.tasks.push({ id: hasId(state, task.id) ? id() : task.id, text: task.text.trim(), done: task.done, rev: 1 });
+        }
+      }
+      return state;
+    }
+    case 'replace_all': {
+      const doc = validate(structuredClone(op.doc));
+      state.version = SCHEMA_VERSION;
+      state.lists = doc.lists;
+      return state;
+    }
+    default: throw Error('Unknown change.');
+  }
 }
 
 // Persistence boundary. The UI only ever talks to a store through load / save / watch,
@@ -755,6 +890,132 @@ function safeStorage() {
   }
 }
 
+// Account mode: the server holds the lists; this keeps a copy on the device so the app
+// opens instantly and keeps working offline.
+//
+//   shown lists = last server copy + changes not yet confirmed by the server
+//
+// Changes wait in a queue that survives reloads. Each carries its own id, so a retry after
+// a dropped connection cannot apply twice. Nothing here touches the browser-local lists.
+
+const CACHE_KEY = 'quiet-list-account';
+const POLL_MS = 8000;
+
+async function api(method, path, body, headers = {}) {
+  const response = await fetch(path, {
+    method, credentials: 'same-origin', cache: 'no-store',
+    headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(method !== 'GET' ? { 'x-quiet': '1' } : {}), ...headers },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  if (response.status !== 304 && (response.headers.get('content-type') || '').includes('json')) {
+    try { data = await response.json(); } catch { /* treated as no data */ }
+  }
+  return { status: response.status, ok: response.ok, data };
+}
+
+function createAccountSync({ storage, onChange, onStatus }) {
+  let username = null, base = null, version = 0, queue = [];
+  let held = false, sending = false, online = true, signedOut = false, poll = 0, retry = 0;
+
+  const persist = () => { try { storage.setItem(CACHE_KEY, JSON.stringify({ username, version, base, queue })); } catch { /* cache only */ } };
+  const report = () => onStatus({ username, pending: queue.length, online, signedOut, sending });
+  const active = () => !!username && !!base;
+
+  function current() {
+    const doc = structuredClone(base);
+    for (const { op } of queue) { try { applyOp(doc, op); } catch { /* the server copy moved on; this change no longer applies */ } }
+    return doc;
+  }
+
+  async function pull() {
+    if (!username || sending || signedOut) return;
+    try {
+      const result = await api('GET', '/api/state', undefined, base ? { 'if-none-match': `"${version}"` } : {});
+      online = true;
+      if (result.status === 401) signedOut = true;
+      else if (result.status === 200 && result.data?.doc && !sending && result.data.version >= version) {   // never step back to an older copy
+        base = result.data.doc; version = result.data.version;
+        persist(); onChange();
+      }
+    } catch { online = false; }
+    report();
+  }
+
+  async function flush() {
+    clearTimeout(retry);
+    if (sending || held || !queue.length || !active() || signedOut) return;
+    sending = true; report();
+    const batch = queue.slice(0, 100);
+    const sent = new Set(batch.map(entry => entry.opId));
+    try {
+      const result = await api('POST', '/api/ops', { ops: batch });
+      online = true;
+      if (result.status === 401) signedOut = true;
+      else if (result.ok && result.data?.doc) {
+        queue = queue.filter(entry => !sent.has(entry.opId));
+        base = result.data.doc; version = result.data.version;
+        persist(); onChange();
+      } else if (result.status >= 400 && result.status < 500 && ![408, 409, 429].includes(result.status)) {
+        queue = queue.filter(entry => !sent.has(entry.opId));   // the server will never accept these; do not wedge the queue
+        persist(); onChange();
+      }
+    } catch { online = false; }
+    sending = false; report();
+    if (queue.length && !held && !signedOut) retry = setTimeout(flush, online ? 50 : 5000);
+  }
+
+  const wake = () => { if (document.visibilityState === 'visible') { flush(); pull(); } };
+  function listen(on) {
+    clearInterval(poll);
+    const change = on ? addEventListener : removeEventListener;
+    change('online', wake); change('focus', wake); document[on ? 'addEventListener' : 'removeEventListener']('visibilitychange', wake);
+    if (on) poll = setInterval(() => { if (document.visibilityState === 'visible' && !queue.length) pull(); }, POLL_MS);
+  }
+
+  return {
+    current, pull, flush,
+    pending: () => queue.length,
+    username: () => username,
+    isSignedOut: () => signedOut,
+    // Returns the cached username if this device already holds an account copy.
+    resume() {
+      try {
+        const cached = JSON.parse(storage.getItem(CACHE_KEY));
+        if (!cached?.username || !cached.base) return null;
+        ({ username, version, base } = cached);
+        queue = Array.isArray(cached.queue) ? cached.queue : [];
+        return username;
+      } catch { return null; }
+    },
+    // Starts syncing as `name`. A cached copy that belongs to someone else is discarded.
+    async begin(name) {
+      if (username !== name) { username = name; base = null; version = 0; queue = []; }
+      signedOut = false;
+      listen(true);
+      await pull();
+      if (base) flush();
+      return active();
+    },
+    markSignedOut() { signedOut = true; report(); },
+    record(ops) {
+      for (const op of ops) queue.push({ opId: crypto.randomUUID(), op });
+      persist(); report();
+      clearTimeout(retry);
+      retry = setTimeout(flush, 250);
+    },
+    mark: () => queue.length,
+    rewind(length) { queue.length = Math.min(queue.length, length); persist(); report(); },
+    // While an Undo offer is on screen nothing is sent, so undoing is just forgetting the change.
+    hold(value) { held = value; if (!held) flush(); },
+    stop({ forget = false } = {}) {
+      listen(false); clearTimeout(retry);
+      if (forget) { try { storage.removeItem(CACHE_KEY); } catch { /* nothing to clear */ } }
+      username = null; base = null; queue = []; version = 0; signedOut = false; held = false;
+    },
+  };
+}
+
 
 const $ = id => document.getElementById(id);
 const HUES = { lavender: 290, sage: 150, peach: 55, sky: 240, rose: 8, teal: 190 };
@@ -768,6 +1029,12 @@ const wide = matchMedia('(min-width: 900px)');
 
 const loaded = store.load();
 let state = loaded.state;
+// Account mode: lists come from the server (with an on-device copy). Local mode: this browser only.
+let account = null;            // { username } while signed in
+let server = null;             // { signupOpen, mcpUrl } once a server has answered
+const sync = createAccountSync({ storage, onChange: adoptRemote, onStatus: renderSyncLine });
+const resumed = sync.resume();
+if (resumed) { account = { username: resumed }; state = sync.current(); }
 let prefs = {};
 try { prefs = JSON.parse(storage.getItem(UI_KEY)) || {}; } catch { prefs = {}; }
 
@@ -814,17 +1081,25 @@ function summary(list) {
   return list.tasks.length ? 'All clear' : 'Empty';
 }
 function savePrefs() {
-  try { storage.setItem(UI_KEY, JSON.stringify({ activeId, doneOpen })); } catch { /* preference only */ }
+  try { storage.setItem(UI_KEY, JSON.stringify({ ...prefs, activeId, doneOpen })); } catch { /* preference only */ }
 }
 
 /* ---------- saving, undo, toast ---------- */
-function snapshot() { return { state: structuredClone(state), activeId }; }
+function snapshot() { return { state: structuredClone(state), activeId, mark: account ? sync.mark() : 0 }; }
 
-// Runs a model mutation, saves, and optionally offers Undo. Returns false if the model refused.
-function mutate(fn, { toast: message, undo = false } = {}) {
-  const before = undo ? snapshot() : null;
-  try { fn(); } catch (error) { announce(error.message); return false; }
-  const saved = store.save(state);
+// Applies one or more changes, saves them, and optionally offers Undo.
+// Returns false if the model refused; with { throws: true } the refusal is thrown instead.
+function act(ops, { toast: message, undo: offerUndo = false, throws = false } = {}) {
+  ops = [].concat(ops);
+  const before = offerUndo ? snapshot() : null;
+  const applied = [];
+  let failure = null;
+  for (const op of ops) {
+    try { applyOp(state, op); applied.push(op); } catch (error) { failure = error; break; }
+  }
+  let saved = true;
+  if (applied.length) { if (account) sync.record(applied); else saved = store.save(state); }
+  if (failure) { if (throws) throw failure; announce(failure.message); return false; }
   if (!saved) showToast('Could not save in this browser. Download a backup before closing.');
   else if (message) showToast(message, before);
   return true;
@@ -833,6 +1108,7 @@ function showToast(message, before = null) {
   $('toast-text').textContent = message;
   $('toast-undo').hidden = !before;
   undoSnapshot = before;
+  sync.hold(!!before);
   toast.hidden = true;
   void toast.offsetWidth;
   toast.hidden = false;
@@ -848,16 +1124,20 @@ function hideToast() {
   const hadFocus = toast.contains(document.activeElement);
   toast.hidden = true;
   undoSnapshot = null;
+  sync.hold(false);
   // Keep keyboard focus in the app without popping a phone keyboard open.
   if (hadFocus) (view === 'list' ? $('title') : $('new-list')).focus({ preventScroll: true });
 }
 function undo() {
   if (!undoSnapshot) return;
-  state = undoSnapshot.state;
-  activeId = state.lists.some(l => l.id === undoSnapshot.activeId) ? undoSnapshot.activeId : state.lists[0].id;
+  const wanted = undoSnapshot.activeId;
+  let saved = true;
+  if (account) { sync.rewind(undoSnapshot.mark); state = sync.current(); }
+  else { state = undoSnapshot.state; saved = store.save(state); }
+  activeId = state.lists.some(l => l.id === wanted) ? wanted : state.lists[0].id;
   editingId = null;
   hideToast();
-  if (!store.save(state)) showToast('Could not save in this browser. Download a backup before closing.');
+  if (!saved) showToast('Could not save in this browser. Download a backup before closing.');
   render();
   announce('Restored.');
 }
@@ -944,6 +1224,7 @@ function renderList() {
   $('count').textContent = summary(list) + (doneTasks.length && openTasks.length ? ` · ${doneTasks.length} done` : '');
   document.title = `${list.name} · Quiet List`;
   document.documentElement.style.setProperty('--h', HUES[list.color] ?? HUES.lavender);
+  paintBrowserChrome();
 
   openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
   openEl.hidden = !openTasks.length;
@@ -999,6 +1280,20 @@ function render({ flip = true, focus = null } = {}) {
   enteringId = null;
   if (key) document.querySelector(`[data-fk="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
 }
+
+// Tints the phone's status bar / browser toolbar to match the open list.
+const themeMeta = document.querySelector('meta[name="theme-color"]');
+const paint = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+function paintBrowserChrome() {
+  if (!themeMeta || !paint) return;
+  try {
+    paint.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+    paint.fillRect(0, 0, 1, 1);
+    const [r, g, b] = paint.getImageData(0, 0, 1, 1).data;
+    themeMeta.content = '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  } catch { /* cosmetic only */ }
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', paintBrowserChrome);
 
 function autosize(area) {
   if (CSS.supports('field-sizing', 'content')) return;
@@ -1079,7 +1374,7 @@ function collapse(li) {
 async function setDone(taskId, done, li, { swiped = false } = {}) {
   const list = current();
   const task = list.tasks.find(t => t.id === taskId);
-  if (!task || !mutate(() => updateTask(list, taskId, { done }))) { render(); return; }
+  if (!task || !act({ type: 'update_item', listId: list.id, itemId: taskId, done })) { render(); return; }
   announce((done ? 'Done: ' : 'Reopened: ') + task.text);
   const cleared = done && !list.tasks.some(t => !t.done);
   if (done) {
@@ -1101,7 +1396,7 @@ function thoughtOrNext() {
 
 async function removeTask(taskId, li) {
   const list = current();
-  if (!mutate(() => deleteTask(list, taskId), { toast: 'Deleted', undo: true })) return;
+  if (!act({ type: 'delete_item', listId: list.id, itemId: taskId }, { toast: 'Deleted', undo: true })) return;
   if (editingId === taskId) editingId = null;
   if (li) await collapse(li);
   render();
@@ -1115,7 +1410,7 @@ function shiftTask(taskId, direction, focusKey) {
   const to = from + direction;
   if (from < 0 || to < 0 || to >= open.length) return;
   const beforeId = direction < 0 ? open[to].id : open[to + 1]?.id ?? null;
-  if (!mutate(() => moveTask(list, taskId, beforeId))) return;
+  if (!act({ type: 'move_item', listId: list.id, itemId: taskId, beforeId })) return;
   render({ focus: focusKey });
   announce(`Moved to ${to + 1} of ${open.length}.`);
 }
@@ -1124,7 +1419,7 @@ function shiftList(listId, direction) {
   const to = from + direction;
   if (to < 0 || to >= state.lists.length) return;
   const beforeId = direction < 0 ? state.lists[to].id : state.lists[to + 1]?.id ?? null;
-  if (!mutate(() => moveList(state, listId, beforeId))) return;
+  if (!act({ type: 'move_list', listId, beforeId })) return;
   render({ focus: 'lh:' + listId });
   announce(`Moved to ${to + 1} of ${state.lists.length}.`);
 }
@@ -1164,7 +1459,7 @@ function commitEditText() {
   if (!area || !task) return true;
   const text = area.value.trim();
   if (!text) return false;
-  if (text !== task.text) mutate(() => updateTask(list, task.id, { text }));
+  if (text !== task.text) act({ type: 'update_item', listId: list.id, itemId: task.id, text });
   return true;
 }
 function finishEdit({ save = true, refocus = true } = {}) {
@@ -1336,7 +1631,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe }) {
 watchItems(content, {
   scrollBox: scroller,
   itemSelector: '.row',
-  onDrop: (taskId, beforeId) => { mutate(() => moveTask(current(), taskId, beforeId)); render(); },
+  onDrop: (taskId, beforeId) => { act({ type: 'move_item', listId: current().id, itemId: taskId, beforeId }); render(); },
   swipe: (li, action) => {
     const taskId = li.dataset.id;
     if (action === 'delete') removeTask(taskId, li);
@@ -1346,7 +1641,7 @@ watchItems(content, {
 watchItems(listsEl, {
   scrollBox: $('home-scroll'),
   itemSelector: '.tile',
-  onDrop: (listId, beforeId) => { mutate(() => moveList(state, listId, beforeId)); render(); },
+  onDrop: (listId, beforeId) => { act({ type: 'move_list', listId, beforeId }); render(); },
   swipe: null,
 });
 
@@ -1425,9 +1720,10 @@ $('capture').addEventListener('submit', event => {
   event.preventDefault();
   if (!thought.value.trim()) return;
   const list = current();
-  let task;
-  if (!mutate(() => { task = addTask(list, thought.value, { top: true }); })) return;
-  enteringId = task.id;
+  const id = crypto.randomUUID();
+  if (!act({ type: 'add_item', listId: list.id, id, text: thought.value, top: true })) return;
+  const task = list.tasks.find(t => t.id === id);
+  enteringId = id;
   thought.value = '';
   syncCapture();
   render();
@@ -1443,9 +1739,8 @@ thought.addEventListener('paste', event => {
   if (lines.length < 2) return;
   event.preventDefault();
   const list = current();
-  const ok = mutate(() => {
-    for (const line of [...lines].reverse()) addTask(list, line.slice(0, 2000), { top: true });
-  }, { toast: `Added ${plural(lines.length, 'thought')}`, undo: true });
+  const ops = [...lines].reverse().map(line => ({ type: 'add_item', listId: list.id, id: crypto.randomUUID(), text: line.slice(0, 2000), top: true }));
+  const ok = act(ops, { toast: `Added ${plural(lines.length, 'thought')}`, undo: true });
   if (ok) render();
 });
 thought.addEventListener('keydown', event => { if (event.key === 'Escape') thought.blur(); });
@@ -1518,7 +1813,7 @@ $('done-toggle').addEventListener('click', () => { doneOpen = !doneOpen; savePre
 $('clear-done').addEventListener('click', () => {
   const list = current();
   const count = list.tasks.filter(t => t.done).length;
-  if (mutate(() => clearDone(list), { toast: `Cleared ${count} done`, undo: true })) { render(); thought.focus({ preventScroll: true }); }
+  if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { render(); thought.focus({ preventScroll: true }); }
 });
 $('back').addEventListener('click', () => showHome());
 $('pager').addEventListener('click', event => {
@@ -1576,14 +1871,13 @@ $('list-form').addEventListener('submit', event => {
   const color = listDialog.querySelector('input[name="color"]:checked')?.value ?? COLORS[0];
   try {
     if (listDialogMode === 'new') {
-      const list = createList(state, name, color);
-      store.save(state);
+      const id = crypto.randomUUID();
+      act({ type: 'add_list', id, name, color }, { throws: true });
       listDialog.close();
-      openList(list.id, { focus: true });
+      openList(id, { focus: true });
       focusCapture();
     } else {
-      updateList(state, activeId, { name, color });
-      store.save(state);
+      act({ type: 'update_list', listId: activeId, name, color }, { throws: true });
       listDialog.close();
       render({ flip: false });
     }
@@ -1602,7 +1896,7 @@ $('list-confirm-no').addEventListener('click', () => { $('list-confirm').hidden 
 $('list-confirm-yes').addEventListener('click', () => {
   const list = current();
   const index = state.lists.indexOf(list);
-  if (!mutate(() => deleteList(state, list.id), { toast: `Deleted “${list.name}”`, undo: true })) return;
+  if (!act({ type: 'delete_list', listId: list.id }, { toast: `Deleted “${list.name}”`, undo: true })) return;
   listDialog.close();
   activeId = state.lists[Math.min(index, state.lists.length - 1)].id;
   savePrefs();
@@ -1616,6 +1910,7 @@ let pendingReplace = null;
 const settingsStatus = message => { $('settings-status').textContent = message; };
 $('open-settings').addEventListener('click', () => {
   $('settings-confirm').hidden = true;
+  renderAccount();
   settingsStatus(storage.volatile ? 'This browser is blocking storage here, so lists will be gone when the page closes.' : '');
   settingsDialog.showModal();
 });
@@ -1655,11 +1950,191 @@ $('settings-confirm-yes').addEventListener('click', () => {
   if (!pendingReplace) return;
   const incoming = pendingReplace;
   pendingReplace = null;
-  mutate(() => { state = incoming; activeId = state.lists[0].id; }, { toast: 'Lists replaced', undo: true });
+  if (!act({ type: 'replace_all', doc: incoming }, { toast: 'Lists replaced', undo: true })) return;
+  activeId = state.lists[0].id;
   settingsDialog.close();
   savePrefs();
   render({ flip: false });
 });
+
+/* ---------- account: sign in, sync status, moving local lists, assistants ---------- */
+let signingUp = false;
+let remoteWaiting = 0;
+
+// The server copy changed (another device, an assistant, or our own change was confirmed).
+function adoptRemote() {
+  if (!account) return;
+  clearTimeout(remoteWaiting);
+  if (editingId || gesture || pointerIsDown) { remoteWaiting = setTimeout(adoptRemote, 700); return; }
+  state = sync.current();
+  if (!state.lists.some(l => l.id === activeId)) activeId = state.lists[0].id;
+  render();
+}
+function renderSyncLine(status = {}) {
+  const line = $('sync-line'), action = $('sync-action');
+  let text = 'Saved in this browser only.', button = '';
+  if (account) {
+    const waiting = status.pending ?? sync.pending();
+    if (status.signedOut ?? sync.isSignedOut()) { text = 'Signed out. Changes are kept on this device.'; button = 'Sign in again'; }
+    else if (status.online === false) text = waiting ? `Offline. ${plural(waiting, 'change')} waiting to sync.` : 'Offline. Showing the last synced lists.';
+    else text = waiting ? 'Syncing…' : `Synced to your account (${account.username}).`;
+  } else if (server) button = 'Sign in to sync';
+  else text = 'Saved in this browser only. No account, no sync.';
+  line.textContent = text;
+  action.textContent = button;
+  action.hidden = !button;
+  $('account-sync').textContent = account ? text.replace(/ \(.*\)\.$/, '.') : '';
+}
+$('sync-action').addEventListener('click', () => $('open-settings').click());
+
+function localListsExist() {
+  try { return !!storage.getItem(STORAGE_KEY); } catch { return false; }
+}
+function renderAccount() {
+  $('account-none').hidden = !!server || !!account;
+  const needsLogin = !!server && (!account || sync.isSignedOut());
+  $('login-form').hidden = !needsLogin;
+  $('account-in').hidden = !account || sync.isSignedOut();
+  $('signup-toggle').hidden = !server?.signupOpen || !!account;
+  $('setup-row').hidden = !signingUp;
+  $('login-submit').textContent = signingUp ? 'Create account' : 'Sign in';
+  $('signup-toggle').textContent = signingUp ? 'I already have an account' : 'Create an account';
+  $('login-password').autocomplete = signingUp ? 'new-password' : 'current-password';
+  $('storage-note').textContent = account
+    ? 'A backup file holds everything in your account at this moment. Restoring replaces the lists in your account on every device.'
+    : 'Your lists live in this browser on this device. Clearing site data removes them, so keep a backup.';
+  if (!account) return;
+  $('account-name').textContent = account.username;
+  $('mcp-url').textContent = server?.mcpUrl ?? '';
+  $('migrate-open').hidden = !localListsExist() || !$('migrate').hidden;
+  renderSyncLine();
+  loadConnections();
+}
+async function loadConnections() {
+  const box = $('connections');
+  try {
+    const result = await api('GET', '/api/connections');
+    if (!result.ok) return;
+    const items = result.data.connections.map(connection => {
+      const li = el('li');
+      const label = el('span', '', connection.name);
+      label.append(el('small', '', `${connection.canWrite ? 'Can read, add, edit and complete' : 'Can read only'} · returns to ${connection.site}`));
+      const remove = el('button', 'quiet-btn', 'Disconnect'); remove.type = 'button';
+      remove.setAttribute('aria-label', `Disconnect ${connection.name}`);
+      remove.addEventListener('click', async () => {
+        await api('DELETE', '/api/connections/' + encodeURIComponent(connection.id));
+        settingsStatus(`${connection.name} was disconnected.`);
+        loadConnections();
+      });
+      li.append(label, remove);
+      return li;
+    });
+    if (!items.length) items.push(el('li', 'note', 'No assistant is connected.'));
+    box.replaceChildren(...items);
+  } catch { /* offline: leave the list as it was */ }
+}
+
+async function enterAccount(username, { offerMove = true } = {}) {
+  account = { username };
+  editingId = null;
+  const ready = await sync.begin(username);
+  if (!ready) {                                  // could not load the account copy; stay on local lists
+    account = null; sync.stop();
+    renderSyncLine();
+    return false;
+  }
+  state = sync.current();
+  if (!state.lists.some(l => l.id === activeId)) activeId = state.lists[0].id;
+  render({ flip: false });
+  renderSyncLine();
+  if (offerMove && localListsExist() && !prefs.moveAsked?.includes(username)) offerLocalMove();
+  return true;
+}
+function leaveAccount() {
+  sync.stop({ forget: true });                   // removes the account copy from this device; local lists were never touched
+  account = null;
+  editingId = null;
+  state = store.load().state;
+  activeId = state.lists[0].id;
+  hideToast();
+  render({ flip: false });
+  renderSyncLine();
+}
+function offerLocalMove() {
+  const local = store.load();
+  if (local.problem) return;
+  const tasks = local.state.lists.reduce((n, l) => n + l.tasks.length, 0);
+  $('migrate-text').textContent = `This browser has ${plural(local.state.lists.length, 'list')} with ${plural(tasks, 'item')} saved from before you signed in. Copy them into your account? They are added beside what is already there, and the originals stay in this browser.`;
+  $('migrate').hidden = false;
+  $('migrate-open').hidden = true;
+  if (!settingsDialog.open) { renderAccount(); settingsDialog.showModal(); }
+  $('migrate-yes').focus();
+}
+function rememberMoveAsked() {
+  prefs.moveAsked = [...new Set([...(prefs.moveAsked ?? []), account.username])];
+  savePrefs();
+  $('migrate').hidden = true;
+  $('migrate-open').hidden = !localListsExist();
+}
+$('migrate-open').addEventListener('click', offerLocalMove);
+$('migrate-no').addEventListener('click', rememberMoveAsked);
+$('migrate-yes').addEventListener('click', () => {
+  const local = store.load();
+  if (local.problem) { settingsStatus('The lists in this browser could not be read, so nothing was copied.'); return; }
+  const copied = act({ type: 'import_lists', lists: local.state.lists });
+  rememberMoveAsked();
+  if (copied) { render(); settingsStatus('Copied. The originals are still in this browser and return when you sign out.'); }
+});
+
+$('signup-toggle').addEventListener('click', () => { signingUp = !signingUp; $('login-error').textContent = ''; renderAccount(); });
+$('login-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const error = $('login-error');
+  error.textContent = '';
+  $('login-submit').disabled = true;
+  try {
+    const body = { username: $('login-name').value, password: $('login-password').value };
+    if (signingUp) body.setupCode = $('login-setup').value;
+    const result = await api('POST', signingUp ? '/api/signup' : '/api/login', body);
+    if (!result.ok) { error.textContent = result.data?.error ?? 'That did not work. Try again.'; return; }
+    if (account && account.username !== result.data.user.username) sync.stop({ forget: true });
+    $('login-password').value = ''; $('login-setup').value = '';
+    signingUp = false;
+    if (!(await enterAccount(result.data.user.username))) { error.textContent = 'Signed in, but your lists could not be loaded. Check the connection and try again.'; return; }
+    renderAccount();
+    settingsStatus('Signed in. Your lists now sync.');
+  } catch {
+    error.textContent = 'Could not reach the server. Check the connection and try again.';
+  } finally { $('login-submit').disabled = false; }
+});
+$('logout').addEventListener('click', async () => {
+  await sync.flush();
+  if (sync.pending()) { settingsStatus(`${plural(sync.pending(), 'change')} have not reached your account yet. Reconnect, then sign out, or they would be lost.`); return; }
+  try { await api('POST', '/api/logout'); } catch { /* offline: the device copy is still removed below */ }
+  leaveAccount();
+  renderAccount();
+  settingsStatus('Signed out. This device no longer holds your account lists.');
+});
+$('copy-mcp').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('mcp-url').textContent); settingsStatus('Connector address copied.'); }
+  catch { settingsStatus('Copy was blocked. Select the address and copy it by hand.'); }
+});
+
+// Ask the server who we are. A copy without a server (a plain file host, the preview) stays local.
+async function checkSession() {
+  try {
+    const result = await api('GET', '/api/session');
+    if (!result.ok || !result.data || !('user' in result.data)) return;
+    server = { signupOpen: !!result.data.signupOpen, mcpUrl: result.data.mcpUrl };
+    const user = result.data.user;
+    if (user && account?.username === user.username) sync.pull();          // already running from the device copy
+    else if (user) { if (account) sync.stop({ forget: true }); await enterAccount(user.username); }
+    else if (account) sync.markSignedOut();      // keep showing the device copy; ask to sign in again
+  } catch {
+    if (account) renderSyncLine({ online: false });
+  }
+  renderSyncLine();
+}
 
 /* ---------- toast + keyboard ---------- */
 $('toast-undo').addEventListener('click', undo);
@@ -1681,7 +2156,7 @@ document.addEventListener('keydown', event => {
 
 /* ---------- start ---------- */
 store.watch(incoming => {
-  if (editingId) return;                       // do not pull the rug from under an open edit
+  if (account || editingId) return;            // local mode only; do not pull the rug from under an open edit
   state = incoming;
   if (!state.lists.some(l => l.id === activeId)) activeId = state.lists[0].id;
   render({ flip: false });
@@ -1691,6 +2166,13 @@ wide.addEventListener('change', applyView);
 
 applyView();
 render({ flip: false });
+renderSyncLine();
+const STANDALONE = true;      // the single-file preview build flips this: no server, no offline shell
+if (account) sync.begin(account.username);   // start from the device copy at once, even with no connection
+if (!STANDALONE) checkSession();
+if (!STANDALONE && 'serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+  navigator.serviceWorker.register('sw.js').catch(() => { /* offline shell is optional */ });
+}
 if (location.hash) route(); else setHash('list-' + activeId, true);
 if (loaded.problem) showToast('Saved lists could not be read. Showing samples; the old data was set aside, not erased.');
 </script>

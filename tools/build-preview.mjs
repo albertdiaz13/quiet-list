@@ -9,14 +9,15 @@ const stripModuleSyntax = source => source
 
 const html = read('index.html');
 const body = html.slice(html.indexOf('<body>') + 6, html.indexOf('<script type="module"'));
-const fonts = html.match(/<link rel="stylesheet" href="https:\/\/fonts[^>]+>/)[0];
-const script = ['model.js', 'store.js', 'app.js'].map(read).map(stripModuleSyntax).join('\n');
+const fonts = '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&display=swap">';
+const script = ['model.js', 'store.js', 'sync.js', 'app.js'].map(read).map(stripModuleSyntax).join('\n')
+  .replace('const STANDALONE = false;', 'const STANDALONE = true;');
 
 const page = `<title>Quiet List</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 ${fonts}
 <style>
-${read('style.css')}</style>
+${read('style.css').replace(/@font-face \{[\s\S]*?\}\n/, '')}</style>
 ${body.trim()}
 <script type="module">
 ${script}</script>

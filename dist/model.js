@@ -12,9 +12,20 @@ export const COLORS = ['lavender', 'sage', 'peach', 'sky', 'rose', 'teal'];
 export const LIMITS = { lists: 100, tasks: 10000, name: 80, text: 2000 };
 
 const id = () => crypto.randomUUID();
+const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+// Callers may supply their own id (a UUID made on the device) so a retried request cannot duplicate.
+function freshId(state, given) {
+  if (given == null) return id();
+  if (typeof given !== 'string' || !ID_PATTERN.test(given)) throw Error('Invalid id.');
+  if (hasId(state, given)) throw Error('That id is already in use.');
+  return given;
+}
+export function hasId(state, anyId) {
+  return state.lists.some(l => l.id === anyId || l.tasks.some(t => t.id === anyId));
+}
 const isRev = n => Number.isInteger(n) && n >= 1;
 
-const newList = (name, color) => ({ id: id(), name, color, rev: 1, tasks: [] });
+const newList = (name, color, listId = id()) => ({ id: listId, name, color, rev: 1, tasks: [] });
 
 export function initial() {
   return {
@@ -25,6 +36,11 @@ export function initial() {
       newList('Ideas for later', 'peach'),
     ],
   };
+}
+
+// What a brand-new account starts with: one empty list.
+export function starter() {
+  return { version: SCHEMA_VERSION, lists: [newList('Brain dump', 'lavender')] };
 }
 
 // Invented demo content. Nothing here describes a real person.
@@ -119,10 +135,10 @@ function placeBefore(array, item, beforeId, missing) {
   array.splice(at, 0, item);
 }
 
-export function createList(state, name, color = COLORS[0]) {
+export function createList(state, name, color = COLORS[0], listId = null) {
   name = cleanName(name);
   if (state.lists.length >= LIMITS.lists) throw Error(`This prototype supports ${LIMITS.lists} lists.`);
-  const list = newList(name, COLORS.includes(color) ? color : COLORS[0]);
+  const list = newList(name, COLORS.includes(color) ? color : COLORS[0], freshId(state, listId));
   state.lists.push(list);
   return list;
 }
@@ -150,10 +166,10 @@ export function moveList(state, listId, beforeId = null) {
   return list;
 }
 
-export function addTask(list, text, { top = false } = {}) {
+export function addTask(list, text, { top = false, id: taskId = null, state = null } = {}) {
   text = cleanText(text);
   if (list.tasks.length >= LIMITS.tasks) throw Error('This list is full.');
-  const task = { id: id(), text, done: false, rev: 1 };
+  const task = { id: state ? freshId(state, taskId) : id(), text, done: false, rev: 1 };
   if (top) list.tasks.unshift(task); else list.tasks.push(task);
   return task;
 }
@@ -183,4 +199,66 @@ export function clearDone(list) {
   const before = list.tasks.length;
   list.tasks = list.tasks.filter(t => !t.done);
   return before - list.tasks.length;
+}
+
+// ---- changes as data ----
+// One plain object per change. The app applies these locally and queues them for the server;
+// the server applies the same objects to the signed-in owner's lists. Unknown fields are ignored,
+// unknown types are refused.
+const has = (op, key) => Object.prototype.hasOwnProperty.call(op, key);
+function patchOf(op, rules) {
+  const patch = {};
+  for (const [key, type] of Object.entries(rules)) {
+    if (!has(op, key)) continue;
+    if (typeof op[key] !== type) throw Error('Invalid change.');
+    patch[key] = op[key];
+  }
+  if (!Object.keys(patch).length) throw Error('Nothing to change.');
+  return patch;
+}
+
+export function applyOp(state, op) {
+  if (!op || typeof op !== 'object' || typeof op.type !== 'string') throw Error('Invalid change.');
+  const list = () => findList(state, op.listId);
+  const before = () => (op.beforeId == null ? null : op.beforeId);
+  switch (op.type) {
+    case 'add_list':
+      if (typeof op.id === 'string' && state.lists.some(l => l.id === op.id)) return state;   // already applied
+      createList(state, op.name, op.color, op.id);
+      return state;
+    case 'update_list': updateList(state, op.listId, patchOf(op, { name: 'string', color: 'string' })); return state;
+    case 'delete_list': deleteList(state, op.listId); return state;
+    case 'move_list': moveList(state, op.listId, before()); return state;
+    case 'add_item': {
+      const target = list();
+      if (typeof op.id === 'string' && target.tasks.some(t => t.id === op.id)) return state;  // already applied
+      addTask(target, op.text, { top: op.top === true, id: op.id, state });
+      return state;
+    }
+    case 'update_item': updateTask(list(), op.itemId, patchOf(op, { text: 'string', done: 'boolean' })); return state;
+    case 'delete_item': deleteTask(list(), op.itemId); return state;
+    case 'move_item': moveTask(list(), op.itemId, before()); return state;
+    case 'clear_done': clearDone(list()); return state;
+    case 'import_lists': {
+      // Adds whole lists (used to copy a browser's local lists into an account). Never overwrites.
+      const incoming = validate({ version: SCHEMA_VERSION, lists: structuredClone(op.lists) }).lists;
+      for (const item of incoming) {
+        if (state.lists.length >= LIMITS.lists) throw Error(`This prototype supports ${LIMITS.lists} lists.`);
+        if (state.lists.some(l => l.id === item.id)) continue;                                  // already applied
+        const copy = newList(item.name.trim(), item.color, hasId(state, item.id) ? id() : item.id);
+        state.lists.push(copy);
+        for (const task of item.tasks) {
+          copy.tasks.push({ id: hasId(state, task.id) ? id() : task.id, text: task.text.trim(), done: task.done, rev: 1 });
+        }
+      }
+      return state;
+    }
+    case 'replace_all': {
+      const doc = validate(structuredClone(op.doc));
+      state.version = SCHEMA_VERSION;
+      state.lists = doc.lists;
+      return state;
+    }
+    default: throw Error('Unknown change.');
+  }
 }

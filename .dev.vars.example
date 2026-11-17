@@ -1,0 +1,2 @@
+# Local-only values for `npm run cf:dev`. Copy to .dev.vars. Never put a real secret in a file.
+SETUP_CODE=choose-any-local-test-phrase

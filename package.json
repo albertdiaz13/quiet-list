@@ -1,0 +1,1 @@
+{"name":"quiet-list-prototype","private":true,"type":"module","scripts":{"test":"node --test tests.mjs","check":"node --check dist/app.js && node --check dist/model.js"}}

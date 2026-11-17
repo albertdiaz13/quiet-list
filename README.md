@@ -10,21 +10,39 @@ Until it is deployed (steps below), there is no link that works on your phone wi
 
 | Action | Touch | Without gestures |
 | --- | --- | --- |
-| Add | Pull the list down, or tap **+** | Type in "Add a thought" and press Enter; `N` jumps there. Pasting several lines adds each one. |
+| Add a task | Pull the list down, or tap **+** | Type in "Add a thought" and press Enter; `N` jumps there. Pasting several lines adds each one. |
+| Insert a task between two others | Spread two fingers apart between them | Open a task → Insert below; or `+` on a focused task |
 | Done / reopen | Swipe a task right | Tick the circle |
-| Delete a task | Swipe a task left | Open the task, then Delete. Undo in the toast or Ctrl/⌘+Z |
+| Delete a task | Swipe a task left | Open the task → Delete. Undo in the toast or Ctrl/⌘+Z; Recently deleted keeps it 30 days |
 | Reorder | Hold and drag, or drag the grip | Arrow keys on the grip; Up / Down while editing |
+| Move a task to another list | — | Open the task → Move |
+| Pick one for me | — | The dice button in a list |
 | Switch list | Swipe sideways anywhere that is not a task | Dots under the title, `[` `]`, the Lists screen |
-| Add to a list without opening it | On the Lists screen, swipe the list right | Focus the list and press `+` |
-| Delete a whole list | On the Lists screen, swipe the list left, then confirm | Focus the list and press `Delete`, or List options → Delete list |
+| New list at the top | Pull the Lists screen down | New list button, then reorder |
+| New list at the end | Tap the empty space under the lists | New list button |
+| New list between two lists | Spread two fingers apart between them | New list button, then reorder with the grip or arrow keys |
+| Add to a list without opening it | Swipe the list right | Focus the list and press `+` |
+| Delete a whole list | Swipe the list left, then confirm | Focus the list and press `Delete`, or List options → Delete list |
+| Search every list | — | The search field on the Lists screen |
 
-How the gestures stay apart: a touch that starts on a task belongs to that task; a sideways touch that starts anywhere else
-switches list; every touch commits to one direction in its first 10px, so a vertical drag only scrolls or pulls-to-add; touches
-that start within 24px of the screen edge are left to the phone's own back gesture.
+**How the gestures stay apart.** One finger: a touch that starts on a task belongs to that task; a sideways touch that starts
+anywhere else switches list; every touch commits to one direction in its first 10px, so a vertical drag only scrolls or pulls.
+Touches that start within 24px of the screen edge are left to the phone's own back gesture. Two fingers: only a vertical spread
+with the gap between two rows under it inserts; a pinch-in, a sideways stretch or two fingers moving together do nothing. The
+moment a second finger lands, no one-finger gesture can start.
 
-Settings (top right of the Lists screen) has **Sound effects** (on by default, per device) and **Appearance** (Dark, Light, Match phone).
-Sounds are synthesized in the browser, play only in response to your own touches, never on load and never for changes arriving
-from another device. The phone's volume and iPhone's silent switch still apply.
+**Zoom.** The browser's two-finger zoom is switched off over the task and list rows only, so the spread gesture can work there.
+It is still available on the title area and the rest of the screen, the phone's own zoom and text-size settings are untouched,
+and Settings has a Text size control. Page zoom is never disabled globally.
+
+**Rewards.** Finishing every task on a list clears it: a finale plays and the cleared-lists tally goes up (once per "fill": a list
+counts again only after something new was added to it). Trophies arrive at 1, 5, 10, 25, 50 and 100 clears; extra finale styles
+unlock at 3, 10 and 25. The tally is stored with the lists, so it follows the account. Finishing tasks within about three seconds
+of each other climbs a scale and shows a ×2, ×3… counter.
+
+**Settings** (top right of the Lists screen): Sound effects, Theme (Jewel, Velvet Noir, Neon Arcade, Aurora, Sunset Lacquer,
+Light, Match phone), Text size, Account, Backup and Recently deleted. Sounds are synthesized in the browser, play only in
+response to your own touches, never on load and never for changes arriving from another device.
 
 ## What exists
 
@@ -127,11 +145,11 @@ npm test
 npm run test:e2e
 ```
 
-- `npm test`: 24 tests. 12 model; 11 server (sign-up gate, lockout, two-device sync, retry safety, cross-account isolation, cross-site refusal, OAuth attack cases, read-only approval, revoke); 1 with the official MCP client library doing its own OAuth discovery, registration and PKCE, then every tool.
-- `npm run test:e2e` (needs Playwright + Chromium): the earlier gesture, keyboard, reduced-motion and layout checks, plus two emulated phones on one account: create account, copy local lists, see each other's adds and completions, undo, offline reopen and catch-up, assistant consent in the browser, assistant add/edit/complete appearing on both phones, disconnect, sign-out.
+- `npm test`: 31 tests. Model (including insert position, move, Recently deleted, cleared tally), server (sign-up gate, lockout, two-device sync, retry safety, cross-account isolation, cross-site refusal, OAuth attack cases, revoke, new operations, connector scope unchanged), and the official MCP client library end to end.
+- `npm run test:e2e` (needs Playwright + Chromium): 33 scenarios at emulated iPhone and Android sizes with real one- and two-finger touch events: every gesture and its non-gesture twin, gesture conflicts, zoom behaviour, sound rules, rising runs, trophies and finales, search, move, Recently deleted, six themes with contrast checks, text size, settings sheets on small screens and with the keyboard open, reduced motion, two phones syncing on one account (including the new features), offline catch-up, and the assistant flow. `ONLY=<pattern>` runs a subset.
 - `tests/worker-smoke.mjs`: the same server in Cloudflare's local Workers runtime with a local D1 database (`npm run cf:dev`).
 
-Not verified: real Cloudflare, real iPhone Safari or Android Chrome, home-screen install on a real phone, ChatGPT or any hosted assistant, screen readers.
+Not verified: real iPhone Safari or Android Chrome hardware (in particular the two-finger spread and whether Safari honours the zoom opt-out over the rows), home-screen install on a real phone, how the sounds actually sound, screen readers.
 
 ## Layout
 

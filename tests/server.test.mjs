@@ -280,3 +280,58 @@ test('the Cloudflare migration matches the schema the tests run on', async () =>
   const file = await readFile(new URL('../server/migrations/0001_init.sql', import.meta.url), 'utf8');
   assert.equal(file.split('\n').slice(1).join('\n').trim(), SCHEMA.trim());
 });
+
+test('new changes sync through the server: insert position, move, bin and restore, cleared tally', async () => {
+  const phone = await account('newops');
+  const tablet = new Browser();
+  await tablet.json('POST', '/api/login', { username: 'newops', password: 'correct horse battery' });
+  const send = async (...changes) => (await phone.json('POST', '/api/ops', { ops: changes.map(op) })).body;
+  const first = await firstList(phone);
+  const [a, b, c, second] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  let out = await send(
+    { type: 'add_item', listId: first.id, id: a, text: 'one' },
+    { type: 'add_item', listId: first.id, id: b, text: 'three' },
+    { type: 'add_item', listId: first.id, id: c, text: 'two', beforeId: b },
+    { type: 'add_list', id: second, name: 'Second', color: 'sky', beforeId: first.id },
+  );
+  assert.ok(out.results.every(r => r.ok));
+  let seen = (await tablet.json('GET', '/api/state')).body.doc;
+  assert.deepEqual(seen.lists.map(l => l.name), ['Second', 'Brain dump']);
+  assert.deepEqual(seen.lists[1].tasks.map(t => t.text), ['one', 'two', 'three']);
+  out = await send({ type: 'transfer_item', listId: first.id, itemId: c, toListId: second }, { type: 'delete_item', listId: first.id, itemId: a });
+  seen = (await tablet.json('GET', '/api/state')).body.doc;
+  assert.deepEqual(seen.lists[0].tasks.map(t => t.text), ['two']);
+  assert.deepEqual(seen.trash.map(e => e.task.text), ['one']);
+  // the other device restores it; the first device sees it back
+  await tablet.json('POST', '/api/ops', { ops: [op({ type: 'restore_trash', trashId: seen.trash[0].id })] });
+  seen = (await phone.json('GET', '/api/state')).body.doc;
+  assert.deepEqual(seen.lists[1].tasks.map(t => t.text), ['one', 'three']);
+  assert.deepEqual(seen.trash, []);
+  // the tally counts only real clears, and the server decides, not the device
+  await send({ type: 'award_clear', listId: second });
+  assert.equal((await tablet.json('GET', '/api/state')).body.doc.stats, undefined, 'open tasks: no award');
+  await send({ type: 'update_item', listId: second, itemId: c, done: true }, { type: 'award_clear', listId: second }, { type: 'award_clear', listId: second });
+  assert.deepEqual((await tablet.json('GET', '/api/state')).body.doc.stats, { cleared: 1 });
+  // another account cannot touch any of it
+  const stranger = await account('newops-stranger');
+  const tries = await stranger.json('POST', '/api/ops', { ops: [op({ type: 'transfer_item', listId: first.id, itemId: b, toListId: second }), op({ type: 'restore_trash', trashId: 't-' + a }), op({ type: 'award_clear', listId: second }), op({ type: 'empty_trash' })] });
+  assert.deepEqual(tries.body.results.map(r => r.ok), [false, true, false, true], 'foreign ids fail; the harmless ones act only on the stranger\'s own empty data');
+  const strangers = (await stranger.json('GET', '/api/state')).body.doc;
+  assert.ok(!JSON.stringify(strangers).includes('three') && strangers.stats === undefined);
+  assert.deepEqual((await phone.json('GET', '/api/state')).body.doc.stats, { cleared: 1 });
+});
+
+test('the assistant connector is unchanged: same five tools, and none of the new powers', async () => {
+  const phone = await account('toolcheck');
+  const list = await firstList(phone);
+  const { tokens } = await connect(phone);
+  const tools = (await mcp(tokens.access_token, 'tools/list')).body.result.tools.map(t => t.name);
+  assert.deepEqual(tools, ['list_lists', 'get_list', 'add_task', 'edit_task', 'complete_task']);
+  for (const name of ['delete_task', 'move_task', 'restore_trash', 'empty_trash', 'award_clear', 'transfer_item']) {
+    assert.equal((await mcp(tokens.access_token, 'tools/call', { name, arguments: { list_id: list.id } })).body.error.code, -32602, name);
+  }
+  // completing the last task through the assistant does not hand out a trophy
+  const added = (await tool(tokens.access_token, 'add_task', { list_id: list.id, text: 'only one' })).structuredContent.added;
+  await tool(tokens.access_token, 'complete_task', { list_id: list.id, task_id: added.id });
+  assert.equal((await phone.json('GET', '/api/state')).body.doc.stats, undefined);
+});

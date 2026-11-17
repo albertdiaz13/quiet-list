@@ -18,7 +18,11 @@ let previewBase;
 
 const results = [];
 // Collects which sound cues the app asked for, and whether the engine accepted them.
-const CUE_RECORDER = () => { window.__cues = []; document.addEventListener('quiet:cue', e => window.__cues.push(e.detail.name + (e.detail.played ? '' : ':skipped'))); };
+const CUE_RECORDER = () => {
+  window.__cues = []; window.__finales = [];
+  document.addEventListener('quiet:cue', e => window.__cues.push(e.detail.name + (e.detail.played ? '' : ':skipped')));
+  document.addEventListener('quiet:finale', e => window.__finales.push(e.detail.kind + (e.detail.shown ? '' : ':still')));
+};
 const cues = page => page.evaluate(() => window.__cues.splice(0));
 let base;
 const openTexts = page => page.$$eval('#open .row .t, #open .row .edit-text', nodes => nodes.map(n => n.value ?? n.textContent));
@@ -45,6 +49,7 @@ async function finger(page, points, { hold = 0, steps = 10 } = {}) {
 }
 
 async function run(name, contextOptions, body, url = '/') {
+  if (process.env.ONLY && !new RegExp(process.env.ONLY, 'i').test(name)) return;      // ONLY=theme node tests/e2e.cjs
   const browser = await chromium.launch();
   const { theme, ...deviceOptions } = contextOptions;
   const context = await browser.newContext(deviceOptions);
@@ -62,7 +67,7 @@ async function run(name, contextOptions, body, url = '/') {
     assert.deepEqual(problems, [], 'console errors or CSP violations');
     results.push(['ok', name]);
   } catch (error) {
-    results.push(['FAIL', name, error.message.split('\n').slice(0, 6).join('\n   ')]);
+    results.push(['FAIL', name, error.message.split('\n').slice(0, 22).join('\n   ')]);
     await page.screenshot({ path: path.join(root, 'tests', `fail-${name.replace(/\W+/g, '-')}.png` ) }).catch(() => {});
   }
   await browser.close();
@@ -166,7 +171,8 @@ const touchFlows = async page => {
   await page.tap('.tile-row:nth-child(4) .tile-open');
   await page.waitForTimeout(450);
   assert.equal(await page.textContent('#title'), 'Gift ideas');
-  assert.equal(await page.textContent('#empty-title'), 'Nothing here yet');
+  assert.equal(await page.getAttribute('#empty', 'data-kind'), 'fresh');
+  assert.ok((await page.textContent('#empty-text')).length > 20, 'a new empty list greets you with an encouraging line');
   await page.goBack();
   await page.waitForTimeout(450);
   assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
@@ -327,6 +333,11 @@ const reducedMotion = async page => {
   await page.mouse.move(row.x, row.y); await page.mouse.down(); await page.mouse.move(row.x + 80, row.y, { steps: 4 }); await page.mouse.move(row.x + 200, row.y, { steps: 4 }); await page.mouse.up();
   await page.waitForTimeout(80);
   assert.equal((await openTexts(page)).length, 3, 'swipe still works');
+  while (await page.locator('#open .row').count()) { await page.click('#open .row:nth-child(1) .check'); await page.waitForTimeout(80); }
+  assert.deepEqual(await page.evaluate(() => window.__finales), ['confetti:still'], 'the finale is not animated');
+  assert.equal(await page.isVisible('#finale'), false);
+  assert.equal(await page.textContent('#banner-title'), 'Trophy: First Sweep', 'the reward is still given, in words');
+  assert.equal(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length), 0);
 };
 
 const previewBundle = async page => {
@@ -388,13 +399,14 @@ async function accountFlows() {
     await page.waitForSelector('#open .row, #empty:not([hidden])');
     return { context, page };
   };
+  let iphone, pixel;
   const step = async (name, body) => {
     try { await body(); results.push(['ok', name]); }
-    catch (error) { results.push(['FAIL', name, error.message.split('\n').slice(0, 5).join('\n   ')]); throw error; }
+    catch (error) { results.push(['FAIL', name, error.message.split('\n').slice(0, 26).join('\n   ')]); if (process.env.SHOTS) { await iphone.page.screenshot({ path: process.env.SHOTS + '/syncA.png' }).catch(() => {}); await pixel.page.screenshot({ path: process.env.SHOTS + '/syncB.png' }).catch(() => {}); } throw error; }
   };
   try {
-    const iphone = await device('iphone', devices['iPhone 13']);
-    const pixel = await device('pixel', devices['Pixel 7']);
+    iphone = await device('iphone', devices['iPhone 13']);
+    pixel = await device('pixel', devices['Pixel 7']);
     const A = iphone.page, B = pixel.page;
 
     await step('Installable: manifest, icons and offline worker are served', async () => {
@@ -476,6 +488,42 @@ async function accountFlows() {
       await B.evaluate(() => dispatchEvent(new Event('online')));
       await waitFor(async () => (await openTexts(A))[0] === 'Thought while offline', 'phone 1 receives the offline change');
       await waitFor(async () => /Synced to your account/.test(await B.textContent('#sync-line')), 'synced again');
+    });
+
+    await step('Insert-at-position, move, Recently deleted and the trophy tally all sync', async () => {
+      await A.waitForTimeout(600);
+      await B.tap('.tile-row:nth-child(2) .tile-open'); await B.waitForTimeout(500);     // phone 2 was on the Lists screen
+      await A.focus('#open .row:nth-child(1) button.text'); await A.keyboard.press('+');
+      await A.keyboard.type('Inserted second'); await A.keyboard.press('Enter');
+      await waitFor(async () => (await openTexts(B))[1] === 'Inserted second', 'phone 2 sees it in the same position');
+      // move it to the first list from phone 2; phone 1 loses it
+      await B.tap('#open .row:nth-child(2) button.text'); await B.tap('.tool-move'); await B.waitForTimeout(400);
+      await B.tap('#move-targets .target-btn:nth-child(1)');
+      await waitFor(async () => !(await openTexts(A)).includes('Inserted second'), 'phone 1 sees the move', 20000);
+      // delete a task on phone 1; restore it from the bin on phone 2
+      await A.waitForTimeout(500);
+      const gone = (await openTexts(A))[0];
+      const row = await center(A, '#open .row:nth-child(1) .text');
+      await finger(A, [row, { x: row.x - 170, y: row.y }]);
+      await waitFor(async () => !(await openTexts(B)).includes(gone), 'phone 2 sees the delete (after the Undo window)', 25000);
+      await B.evaluate(() => document.getElementById('back').click()); await B.waitForTimeout(400);
+      await B.evaluate(() => document.getElementById('open-settings').click()); await B.waitForTimeout(400);
+      assert.equal(await B.textContent('#open-trash'), 'Recently deleted (1)');
+      await B.evaluate(() => document.getElementById('open-trash').click()); await B.waitForTimeout(400);
+      await B.tap('#trash-list li:nth-child(1) button');
+      await waitFor(async () => (await openTexts(A))[0] === gone, 'phone 1 gets the restored task back');
+      await B.evaluate(() => { document.getElementById('trash-dialog').close(); document.getElementById('settings-dialog').close(); });
+      // clear a list on phone 2; the trophy tally arrives on phone 1 without a sound there
+      await B.tap('.tile-row:nth-child(5) .tile-open'); await B.waitForTimeout(400);
+      await addThought(B, 'One small thing');
+      await B.tap('#title'); await B.tap('#open .row:nth-child(1) .check'); await B.waitForTimeout(1200);
+      assert.equal(await B.textContent('#banner-title'), 'Trophy: First Sweep');
+      await A.evaluate(() => { window.__cues.splice(0); window.__finales.splice(0); });
+      await A.evaluate(() => document.getElementById('back').click()); await A.waitForTimeout(400);
+      await waitFor(async () => { await A.evaluate(() => document.getElementById('open-trophies').click()); const n = await A.textContent('#tally-count'); await A.evaluate(() => document.getElementById('trophy-dialog').close()); return n === '1'; }, 'phone 1 shows the same tally');
+      assert.deepEqual(await A.evaluate(() => window.__finales), [], 'no finale plays on the other phone');
+      await A.tap('.tile-row:nth-child(2) .tile-open'); await A.waitForTimeout(400);
+      await B.evaluate(() => document.getElementById('back').click()); await B.waitForTimeout(400);
     });
 
     let tokens, clientId, listId;
@@ -756,7 +804,7 @@ const settingsSheet = keyboardOpen => async page => {
   await page.tap('#open-settings'); await page.waitForTimeout(300); await page.tap('#settings-close-x'); await page.waitForTimeout(300);
   assert.equal(await page.isVisible('#settings-dialog'), false);
   if (!keyboardOpen) {
-    await page.tap('#open-settings'); await page.waitForTimeout(300);
+    await page.tap('#open-settings'); await page.waitForTimeout(500);
     await page.touchscreen.tap(4, await page.evaluate(() => innerHeight - 3)); await page.waitForTimeout(300);
     assert.equal(await page.isVisible('#settings-dialog'), false, 'tap outside closes');
     // appearance: light theme applies, persists, and keeps text readable
@@ -786,6 +834,286 @@ const shrinkLikeKeyboard = async page => {
   await page.tap('#list-cancel');
 };
 
+
+/* ---------- this round: two-finger insert, Lists-screen creation, runs, rewards, search, move, bin, themes ---------- */
+// Two fingers moving together, through real touch events.
+async function twoFingers(page, from, to, { steps = 12 } = {}) {
+  const cdp = await page.context().newCDPSession(page);
+  const send = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map((p, id) => ({ x: p.x, y: p.y, id })) });
+  await send('touchStart', [from[0]]);
+  await page.waitForTimeout(30);
+  await send('touchStart', from);
+  for (let i = 1; i <= steps; i++) {
+    await send('touchMove', from.map((p, k) => ({ x: p.x + (to[k].x - p.x) * i / steps, y: p.y + (to[k].y - p.y) * i / steps })));
+    await page.waitForTimeout(14);
+  }
+  await page.waitForTimeout(60);
+  await send('touchEnd', []);
+  await cdp.detach();
+  await page.waitForTimeout(650);
+}
+const tileNames = page => page.$$eval('.tile-name', n => n.map(x => x.textContent));
+const zoomLevel = page => page.evaluate(() => window.visualViewport.scale);
+
+const spreadToInsertTask = async page => {
+  const start = await openTexts(page);
+  const r2 = await center(page, '#open .row:nth-child(2) .text'), r3 = await center(page, '#open .row:nth-child(3) .text');
+  // spread apart between rows 2 and 3: a slot opens there and a new task is typed straight into it
+  await twoFingers(page, [r2, r3], [{ x: r2.x, y: r2.y - 60 }, { x: r3.x, y: r3.y + 60 }]);
+  assert.equal(await page.locator('#open .row.draft').count(), 1, 'a draft row opened');
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#open > .row')].findIndex(li => li.classList.contains('draft'))), 2, 'exactly between rows 2 and 3');
+  assert.equal(await page.evaluate(() => document.activeElement.className), 'edit-text draft-text');
+  assert.equal(await zoomLevel(page), 1, 'the page did not zoom');
+  assert.equal(await title(page), 'Brain dump');
+  assert.ok((await cues(page)).includes('spread'));
+  await page.keyboard.type('Squeezed in between'); await page.keyboard.press('Enter'); await page.waitForTimeout(400);
+  const after = [start[0], start[1], 'Squeezed in between', start[2], start[3], start[4]];
+  assert.deepEqual(await openTexts(page), after);
+  // above the first row, and cancelling
+  const r1 = await center(page, '#open .row:nth-child(1) .text');
+  await twoFingers(page, [{ x: r1.x, y: r1.y - 26 }, { x: r1.x + 30, y: r1.y + 6 }], [{ x: r1.x, y: r1.y - 90 }, { x: r1.x + 30, y: r1.y + 80 }]);
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#open > .row')].findIndex(li => li.classList.contains('draft'))), 0);
+  await page.tap('.draft-cancel'); await page.waitForTimeout(300);
+  assert.deepEqual(await openTexts(page), after, 'cancel adds nothing');
+  // things that must NOT insert: a small spread, a pinch-in, a sideways two-finger stretch, two fingers scrolling together
+  const a = await center(page, '#open .row:nth-child(2) .text'), b = await center(page, '#open .row:nth-child(3) .text');
+  await twoFingers(page, [a, b], [{ x: a.x, y: a.y - 12 }, { x: b.x, y: b.y + 12 }]);
+  await twoFingers(page, [{ x: a.x, y: a.y - 60 }, { x: b.x, y: b.y + 60 }], [a, b]);
+  await twoFingers(page, [{ x: a.x - 20, y: a.y }, { x: a.x + 20, y: b.y }], [{ x: a.x - 130, y: a.y }, { x: a.x + 130, y: b.y }]);
+  await twoFingers(page, [a, b], [{ x: a.x, y: a.y - 80 }, { x: b.x, y: b.y - 80 }]);
+  assert.equal(await page.locator('#open .row.draft').count(), 0);
+  assert.deepEqual(await openTexts(page), after);
+  assert.equal(await zoomLevel(page), 1);
+  await page.evaluate(() => { document.getElementById('scroller').scrollTop = 0; });
+  // one-finger gestures are unharmed afterwards
+  const row = await center(page, '#open .row:nth-child(1) .text');
+  await finger(page, [row, { x: row.x + 180, y: row.y }]);
+  assert.deepEqual(await openTexts(page), after.slice(1), 'swipe-to-complete still works');
+  const blank = await page.locator('#open').boundingBox();
+  await finger(page, [{ x: 300, y: blank.y + blank.height + 60 }, { x: 90, y: blank.y + blank.height + 60 }]);
+  assert.equal(await title(page), 'Weekend', 'paging still works');
+  await page.tap('#pager button:nth-child(1)'); await page.waitForTimeout(600);
+  // where zoom is kept and where it is given to the gesture
+  assert.deepEqual(await page.evaluate(() => [getComputedStyle(document.getElementById('list')).touchAction, getComputedStyle(document.getElementById('open')).touchAction, getComputedStyle(document.getElementById('home')).touchAction]), ['pan-y pinch-zoom', 'pan-y', 'auto']);
+  assert.ok(!/user-scalable|maximum-scale/.test(await page.getAttribute('meta[name=viewport]', 'content')), 'browser zoom is not switched off page-wide');
+  // without gestures: + on a focused task, and the Insert button on an open task
+  await page.focus('#open .row:nth-child(1) button.text'); await page.keyboard.press('+');
+  await page.keyboard.type('Keyboard insert'); await page.keyboard.press('Enter'); await page.waitForTimeout(350);
+  assert.equal((await openTexts(page))[1], 'Keyboard insert');
+  await page.tap('#open .row:nth-child(3) button.text'); await page.tap('.tool-insert'); await page.waitForTimeout(300);
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('#open > .row')].findIndex(li => li.classList.contains('draft'))), 3);
+  await page.keyboard.type('Button insert'); await page.tap('.draft-add'); await page.waitForTimeout(350);
+  const final = await openTexts(page);
+  assert.equal(final[3], 'Button insert');
+  await page.reload(); await page.waitForSelector('#open .row');
+  assert.deepEqual(await openTexts(page), final, 'positions survive a reload');
+};
+
+const listsScreenCreation = async page => {
+  await page.tap('#back'); await page.waitForTimeout(500);
+  const make = async name => { await page.keyboard.type(name); await page.keyboard.press('Enter'); await page.waitForTimeout(500); assert.equal(await title(page), name); await page.tap('#back'); await page.waitForTimeout(500); };
+  // pull down: a new list at the top
+  const first = await center(page, '.tile-row:nth-child(1) .tile-open');
+  await finger(page, [first, { x: first.x + 8, y: first.y + 190 }]);
+  assert.equal(await page.isVisible('#list-dialog'), true, 'pull opened New list');
+  await make('Top one');
+  assert.equal((await tileNames(page))[0], 'Top one');
+  // a short pull does nothing
+  await finger(page, [first, { x: first.x, y: first.y + 40 }]);
+  assert.equal(await page.isVisible('#list-dialog'), false);
+  // tap the empty space below the lists: a new list at the end
+  const vh = await page.evaluate(() => innerHeight);
+  const below = await page.locator('.fineprint').boundingBox();
+  assert.ok(below.y + below.height + 40 < vh, 'there is empty space to tap');
+  await page.touchscreen.tap(200, Math.min(vh - 20, below.y + below.height + 60)); await page.waitForTimeout(400);
+  assert.equal(await page.isVisible('#list-dialog'), true, 'tap on empty space offers a new list');
+  await make('Last one');
+  assert.equal((await tileNames(page)).at(-1), 'Last one');
+  // tapping a list or the gaps between lists does not
+  const t2 = await page.locator('.tile-row:nth-child(2)').boundingBox();
+  await page.touchscreen.tap(200, t2.y + t2.height + 5); await page.waitForTimeout(300);
+  assert.equal(await page.isVisible('#list-dialog'), false, 'the gap between two lists is not "empty space below"');
+  // (Phones snap a tap in a narrow gap to the nearest list, so this may have opened one. Go back if so.)
+  if (await page.getAttribute('#app', 'data-view') === 'list') { await page.tap('#back'); await page.waitForTimeout(500); }
+  await page.evaluate(() => { document.getElementById('home-scroll').scrollTop = 0; });
+  // spread two fingers between lists 2 and 3: a new list right there
+  const a = await center(page, '.tile-row:nth-child(2) .tile-open'), b = await center(page, '.tile-row:nth-child(3) .tile-open');
+  await twoFingers(page, [a, b], [{ x: a.x, y: a.y - 55 }, { x: b.x, y: b.y + 55 }]);
+  assert.equal(await page.isVisible('#list-dialog'), true, 'spread opened New list');
+  assert.equal(await zoomLevel(page), 1);
+  await make('Middle one');
+  const names = await tileNames(page);
+  assert.deepEqual(names.slice(0, 4), ['Top one', 'Brain dump', 'Middle one', 'Weekend']);
+  // the button is still there and still works; a new empty list greets you
+  await page.tap('#new-list'); await page.waitForTimeout(300);
+  await page.keyboard.type('Via the button'); await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+  assert.equal(await page.getAttribute('#empty', 'data-kind'), 'fresh');
+  const words = [await page.textContent('#empty-title'), await page.textContent('#empty-text')];
+  assert.ok(words[0].length > 4 && words[1].length > 20, 'encouraging words on a new list: ' + words);
+  await page.reload(); await page.waitForSelector('#empty:not([hidden])');
+  assert.deepEqual([await page.textContent('#empty-title'), await page.textContent('#empty-text')], words, 'the same words each time for the same list');
+  await page.tap('#back'); await page.waitForTimeout(400);
+  assert.deepEqual((await tileNames(page)).slice(0, 4), names.slice(0, 4), 'order survives a reload');
+  // list swipes still work after all that (the screen had scrolled to show the newest list)
+  await page.evaluate(() => { document.getElementById('home-scroll').scrollTop = 0; });
+  const t = await center(page, '.tile-row:nth-child(1) .tile-open');
+  await finger(page, [t, { x: t.x - 170, y: t.y }]);
+  assert.equal(await page.textContent('#confirm-title'), 'Delete “Top one”?');
+  await page.tap('#confirm-no');
+};
+
+const runsAndRewards = async page => {
+  await page.addInitScript(() => { window.__steps = []; document.addEventListener('quiet:cue', e => { if (e.detail.name === 'done' || e.detail.name === 'clear') window.__steps.push(e.detail.step ?? null); }); });
+  await page.reload(); await page.waitForSelector('#open .row');
+  const tick = async () => { await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(820); };
+  await tick(); assert.equal(await page.isVisible('#combo'), false, 'one on its own shows no counter');
+  await tick(); assert.equal(await page.textContent('#combo'), '×2');
+  await tick(); assert.equal(await page.textContent('#combo'), '×3');
+  assert.deepEqual(await page.evaluate(() => window.__steps.splice(0)), [0, 1, 2], 'each completion in the run is one step higher');
+  await page.waitForTimeout(3600);
+  assert.equal(await page.isVisible('#combo'), false, 'the counter leaves after a pause');
+  await tick();
+  assert.deepEqual(await page.evaluate(() => window.__steps.splice(0)), [0], 'a pause resets the run');
+  // clearing a whole list: finale, banner, trophy, and the tally
+  const clearList = async (n, text) => {
+    await page.tap('#back'); await page.waitForTimeout(450); await page.tap(`.tile-row:nth-child(${n}) .tile-open`); await page.waitForTimeout(500);
+    if (text) { await page.tap('#fab'); await page.keyboard.type(text); await page.keyboard.press('Enter'); await page.waitForTimeout(300); await page.tap('#title'); }
+    while (await page.locator('#open .row').count()) { await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(760); }
+    await page.waitForTimeout(300);
+  };
+  await page.evaluate(() => window.__finales.splice(0));
+  await clearList(4, 'A candle');
+  assert.deepEqual(await page.evaluate(() => window.__finales.splice(0)), ['confetti']);
+  assert.equal(await page.textContent('#banner-title'), 'Trophy: First Sweep');
+  assert.match(await page.textContent('#banner-text'), /1 list cleared/);
+  assert.ok((await cues(page)).includes('trophy'));
+  assert.equal(await page.textContent('#empty-title'), 'All clear');
+  // un-ticking and re-ticking the same task does not count again
+  await page.tap('#done-toggle'); await page.tap('#done .row:nth-child(1) .check'); await page.waitForTimeout(500);
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(1000);
+  await page.tap('#back'); await page.waitForTimeout(450);
+  await page.tap('#open-trophies'); await page.waitForTimeout(400);
+  assert.equal(await page.textContent('#tally-count'), '1');
+  assert.equal(await page.locator('.trophy.earned').count(), 1);
+  assert.equal(await page.isDisabled('#finale-fireworks'), true, 'Fireworks is locked until 3');
+  assert.ok(await inView(page, '#trophy-dialog [data-close].solid-btn'));
+  await page.tap('#trophy-dialog [data-close].solid-btn'); await page.waitForTimeout(300);
+  await page.tap('.tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(400);
+  // two more clears unlock a finale
+  await clearList(2); assert.match(await page.textContent('#banner-title'), /“Weekend” cleared/);
+  await clearList(3); assert.equal(await page.textContent('#banner-title'), 'New finale: Fireworks');
+  await page.tap('#back'); await page.waitForTimeout(450);
+  await page.tap('#open-trophies'); await page.waitForTimeout(400);
+  assert.equal(await page.textContent('#tally-count'), '3');
+  assert.equal(await page.isDisabled('#finale-fireworks'), false);
+  await page.check('#finale-fireworks', { force: true });
+  assert.deepEqual(await page.evaluate(() => window.__finales.splice(0)).then(f => f.at(-1)), 'fireworks', 'choosing a finale previews it');
+  await page.reload(); await page.waitForSelector('.tile-row');          // the app reopens on the Lists screen it was left on
+  assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
+  await page.waitForTimeout(450); await page.tap('#open-trophies'); await page.waitForTimeout(400);
+  assert.equal(await page.textContent('#tally-count'), '3', 'the tally survives a reload');
+  assert.equal(await page.isChecked('#finale-fireworks'), true, 'so does the chosen finale');
+};
+
+const searchMovePickBin = async page => {
+  const start = await openTexts(page);
+  // pick one for me
+  await page.tap('#pick'); await page.waitForTimeout(400);
+  const picked = await page.textContent('#pick-task');
+  assert.ok(start.includes(picked));
+  await page.tap('#pick-again'); await page.waitForTimeout(300);
+  const second = await page.textContent('#pick-task');
+  assert.ok(start.includes(second) && second !== picked, 'Another gives a different task');
+  await page.tap('#pick-done'); await page.waitForTimeout(1000);
+  assert.deepEqual(await openTexts(page), start.filter(t => t !== second), '"Done it" completed exactly that task');
+  // move a task to another list, and undo it
+  let now = await openTexts(page);
+  await page.tap('#open .row:nth-child(1) button.text'); await page.tap('.tool-move'); await page.waitForTimeout(400);
+  assert.deepEqual(await page.$$eval('#move-targets .target-btn span', n => n.map(x => x.textContent)), ['Weekend', 'Someday', 'Gift ideas']);
+  await page.tap('#move-targets .target-btn:nth-child(1)'); await page.waitForTimeout(500);
+  assert.deepEqual(await openTexts(page), now.slice(1));
+  assert.match(await page.textContent('#toast-text'), /Moved to “Weekend”/);
+  await page.tap('#back'); await page.waitForTimeout(450);
+  assert.equal(await page.textContent('.tile-row:nth-child(2) .tile-count'), '4 open');
+  // search across lists
+  await page.fill('#search-text', 'door'); await page.waitForTimeout(200);
+  assert.equal(await page.textContent('#results-note'), '1 match');
+  assert.equal(await page.isVisible('#lists'), false);
+  assert.equal(await page.textContent('#results .result mark'), 'door');
+  assert.match(await page.textContent('#results .result small'), /Weekend/);
+  await page.fill('#search-text', 'zzzz'); await page.waitForTimeout(200);
+  assert.equal(await page.textContent('#results-note'), 'Nothing matches that.');
+  await page.fill('#search-text', 'FERN'); await page.waitForTimeout(200);       // a finished task, any letter case
+  assert.match(await page.textContent('#results .result small'), /Brain dump · done/);
+  await page.tap('#results .result'); await page.waitForTimeout(600);
+  assert.equal(await title(page), 'Brain dump');
+  assert.equal(await page.locator('#done .row.found').count(), 1, 'the found task is shown and highlighted');
+  assert.equal(await page.inputValue('#search-text'), '');
+  // recently deleted: a task, then a whole list, restored from the bin
+  now = await openTexts(page);
+  const row = await center(page, '#open .row:nth-child(1) .text');
+  await finger(page, [row, { x: row.x - 180, y: row.y }]);
+  assert.deepEqual(await openTexts(page), now.slice(1));
+  await page.tap('#back'); await page.waitForTimeout(450);
+  await page.focus('.tile-row:nth-child(3) .tile-open'); await page.keyboard.press('Delete'); await page.tap('#confirm-yes'); await page.waitForTimeout(400);
+  assert.deepEqual(await tileNames(page), ['Brain dump', 'Weekend', 'Gift ideas']);
+  await page.tap('#open-settings'); await page.waitForTimeout(400);
+  assert.equal(await page.textContent('#open-trash'), 'Recently deleted (2)');
+  await page.evaluate(() => document.getElementById('open-trash').scrollIntoView()); await page.tap('#open-trash'); await page.waitForTimeout(400);
+  assert.match(await page.textContent('#trash-list'), /Someday.*A whole list, with 3 tasks/s);
+  assert.match(await page.textContent('#trash-list'), new RegExp(now[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '.*From Brain dump', 's'));
+  assert.ok(await inView(page, '#trash-dialog [data-close].solid-btn'));
+  await page.tap('#trash-list li:nth-child(1) button'); await page.waitForTimeout(300);
+  await page.tap('#trash-list li:nth-child(1) button'); await page.waitForTimeout(300);
+  assert.match(await page.textContent('#trash-note'), /Nothing here/);
+  await page.tap('#trash-dialog [data-close].solid-btn'); await page.tap('#settings-close'); await page.waitForTimeout(300);
+  assert.deepEqual(await tileNames(page), ['Brain dump', 'Weekend', 'Gift ideas', 'Someday'], 'the list is back, with its tasks');
+  assert.equal(await page.textContent('.tile-row:nth-child(4) .tile-count'), '3 open');
+  await page.tap('.tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(450);
+  assert.equal((await openTexts(page))[0], now[0], 'the task is back in its list');
+  await page.reload(); await page.waitForSelector('#open .row');
+  assert.equal((await openTexts(page))[0], now[0]);
+};
+
+const themesAndTextSize = async page => {
+  const pairs = () => page.evaluate(() => {
+    const lum = c => { const x = document.createElement('canvas').getContext('2d'); x.fillStyle = c; x.fillRect(0, 0, 1, 1);
+      const [r, g, b] = [...x.getImageData(0, 0, 1, 1).data].map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+    const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05); };
+    const worst = {};
+    // every list colour, against every surface text sits on
+    for (const tile of document.querySelectorAll('.tile-row')) {
+      const s = getComputedStyle(tile), v = n => s.getPropertyValue(n).trim();
+      const found = { text: ratio(v('--ink'), v('--surface-hi')), textLow: ratio(v('--ink'), v('--surface-lo')), muted: ratio(v('--muted'), v('--bg')), mutedOnSunk: ratio(v('--muted'), v('--sunk')), accent: ratio(v('--on-accent'), v('--accent')), tile: ratio(v('--on-tile'), v('--tile')), tileDeep: ratio(v('--on-tile'), v('--tile2')), accentOnBg: ratio(v('--accent'), v('--bg')) };
+      for (const [k, x] of Object.entries(found)) worst[k] = Math.min(worst[k] ?? 99, x);
+    }
+    return worst;
+  });
+  await page.tap('#back'); await page.waitForTimeout(450);
+  for (const theme of ['jewel', 'noir', 'neon', 'aurora', 'sunset', 'light']) {
+    await page.tap('#open-settings'); await page.waitForTimeout(350);
+    await page.check('#theme-' + theme, { force: true });
+    assert.equal(await page.getAttribute('html', 'data-theme'), theme);
+    assert.ok(await inView(page, '#settings-close'));
+    await page.tap('#settings-close'); await page.waitForTimeout(350);
+    for (const [name, value] of Object.entries(await pairs())) assert.ok(value >= (name === 'accentOnBg' ? 3 : 4.5), `${theme}: ${name} contrast ${value.toFixed(2)}`);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), theme + ': no sideways scroll');
+    if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/theme-${theme}.png` });
+  }
+  await page.tap('#open-settings'); await page.waitForTimeout(300);
+  await page.check('#theme-neon', { force: true });
+  await page.check('#size-xl', { force: true });
+  assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize), '20px');
+  assert.ok(await inView(page, '#settings-close'), 'Done still reachable at the largest text size');
+  await page.tap('#settings-close');
+  await page.reload(); await page.waitForSelector('#open .row');
+  assert.equal(await page.getAttribute('html', 'data-theme'), 'neon');
+  assert.equal(await page.getAttribute('html', 'data-size'), 'xl');
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'largest text does not overflow sideways');
+  await layoutChecks(page);
+};
+
 (async () => {
   const { startServer } = await import('../server/node.js');
   const running = await startServer({ port: 0, setupCode: SETUP, passwordIterations: 1000 });
@@ -803,11 +1131,16 @@ const shrinkLikeKeyboard = async page => {
   await run('List swipes: left asks then deletes, right quick-adds', devices['Pixel 7'], listSwipes);
   await run('Only list cannot be deleted; keyboard equivalents', { viewport: { width: 1280, height: 800 } }, onlyListCannotGo);
   await run('Sound: silent until touched, switch off and on, persists', devices['iPhone 13'], soundRules);
+  await run('Two-finger spread inserts a task; zoom, scroll and swipes unaffected', devices['iPhone 13'], spreadToInsertTask);
+  await run('Lists screen: pull for top, tap empty space for end, spread for between', devices['Pixel 7'], listsScreenCreation);
+  await run('Rising run, combo counter, trophies and finale unlocks', devices['iPhone 13'], runsAndRewards);
+  await run('Pick one, move, search and Recently deleted', devices['Pixel 7'], searchMovePickBin);
+  await run('Six themes keep contrast; text size; persistence', { ...devices['iPhone 13'], viewport: { width: 375, height: 667 } }, themesAndTextSize);
   await run('Settings sheet on iPhone SE (375x667)', { ...devices['iPhone 13'], viewport: { width: 375, height: 667 } }, settingsSheet(false));
   await run('Settings sheet on a very small phone (320x568)', { ...devices['iPhone 13'], viewport: { width: 320, height: 568 } }, settingsSheet(false));
   await run('Sheets with the keyboard open (390x360 visible)', devices['iPhone 13'], shrinkLikeKeyboard);
   await run('Single-file preview bundle', devices['iPhone 13'], previewBundle, '/preview');
-  await accountFlows();
+  if (!process.env.ONLY || /account|sync/i.test(process.env.ONLY)) await accountFlows();
   running.server.close(); previewServer.close();
   for (const r of results) console.log(r.join('  '));
   process.exit(results.some(r => r[0] === 'FAIL') ? 1 : 0);

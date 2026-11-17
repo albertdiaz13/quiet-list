@@ -10,6 +10,7 @@
 
 const NOTE = name => 440 * 2 ** (name / 12);          // semitones from A4
 const PENTATONIC = [3, 5, 7, 10, 12, 15, 17, 19, 22, 24];   // C major pentatonic, from C5
+const CLIMB = [0, 2, 4, 7, 9, 12, 14, 16];                  // how far each step of a completion run is raised
 
 export function createSound({ enabled = true } = {}) {
   let on = enabled;
@@ -72,7 +73,13 @@ export function createSound({ enabled = true } = {}) {
   const CUES = {
     tick: () => tone({ from: 1500, to: 1100, length: 0.03, level: 0.07 }),
     add: () => chime([7, 12], { gap: 0.055, length: 0.14 }),
-    done: () => chime([3, 7, 10, 15], { gap: 0.05, length: 0.24 }),
+    // Finishing tasks in quick succession climbs a scale: each step starts a note higher and a touch
+    // softer, so a long run stays gentle. At the top it holds and adds a small sparkle instead of climbing on.
+    done: ({ step = 0 } = {}) => {
+      const rung = Math.min(step, CLIMB.length - 1), lift = CLIMB[rung];
+      chime([3, 7, 10, 15].map(n => n + lift), { gap: 0.05, length: 0.24, level: 0.16 * (1 - rung * 0.045) });
+      if (step >= CLIMB.length - 1) air({ at: 0.12, length: 0.3, from: 4000, to: 8000, level: 0.018 });
+    },
     undone: () => chime([10, 5], { gap: 0.07, length: 0.16, level: 0.12 }),
     delete: () => { tone({ from: 440, to: 130, length: 0.2, level: 0.18, shape: 'triangle' }); air({ length: 0.16, from: 1800, to: 500, level: 0.04 }); },
     undo: () => { tone({ from: 180, to: 520, length: 0.18, level: 0.16, shape: 'triangle' }); tone({ at: 0.12, from: NOTE(12), length: 0.16, level: 0.1 }); },
@@ -88,6 +95,10 @@ export function createSound({ enabled = true } = {}) {
     pop: () => tone({ from: 520, to: 780, length: 0.06, level: 0.12 }),
     close: () => tone({ from: 700, to: 460, length: 0.06, level: 0.1 }),
     nope: () => { tone({ from: 150, length: 0.07, level: 0.2, shape: 'triangle' }); tone({ at: 0.1, from: 130, length: 0.09, level: 0.2, shape: 'triangle' }); },
+    spread: () => { tone({ from: 300, to: 520, length: 0.09, level: 0.1, shape: 'triangle' }); air({ length: 0.1, from: 600, to: 1800, level: 0.03 }); },
+    move: () => { air({ length: 0.18, from: 500, to: 2600, level: 0.05 }); chime([10, 15], { at: 0.06, gap: 0.05, length: 0.16, level: 0.11 }); },
+    pick: () => chime([15, 10, 12, 19], { gap: 0.06, length: 0.14, level: 0.11 }),
+    trophy: () => { chime([3, 7, 10, 15, 19], { gap: 0.09, length: 0.34, level: 0.17 }); chime([22, 27], { at: 0.5, gap: 0.12, length: 0.7, level: 0.14 }); air({ at: 0.45, length: 0.7, from: 2500, to: 8000, level: 0.03 }); },
     clear: () => { chime([3, 7, 10, 15, 19, 22], { gap: 0.065, length: 0.3 }); chime([27], { at: 0.42, length: 0.6, level: 0.12 }); air({ at: 0.36, length: 0.5, from: 3000, to: 7000, level: 0.03 }); },
   };
 
@@ -102,7 +113,7 @@ export function createSound({ enabled = true } = {}) {
       }
     }
     // Lets tests (and nothing else) observe which cues were asked for.
-    document.dispatchEvent(new CustomEvent('quiet:cue', { detail: { name, played } }));
+    document.dispatchEvent(new CustomEvent('quiet:cue', { detail: { name, played, step: detail?.step } }));
     return played;
   }
 

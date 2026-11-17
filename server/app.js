@@ -193,7 +193,7 @@ ul{margin:6px 0 0;padding-left:20px}code{word-break:break-all}.check{display:fle
         if (opId && seen.includes(opId)) { results.push({ opId, ok: true, repeat: true }); continue; }
         const trial = structuredClone(current);
         try {
-          applyOp(trial, op);
+          applyOp(trial, op, Date.now());
           validate(trial);
           if (JSON.stringify(trial).length > MAX_DOC_BYTES) throw Error('Your lists are full. Clear some done items first.');
           current = trial; changed = true;

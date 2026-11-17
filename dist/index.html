@@ -22,6 +22,11 @@
     <linearGradient id="g-metal" x1="18%" y1="8%" x2="86%" y2="96%"><stop offset="0" stop-color="#fff6e0"/><stop offset=".38" stop-color="#ffd27a"/><stop offset=".72" stop-color="#ff9f6b"/><stop offset="1" stop-color="#ff6fae"/></linearGradient>
   </defs>
   <symbol id="i-mark" viewBox="0 0 32 32"><g fill="none" stroke="url(#g-metal)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.2" cy="14.6" r="8.6"/><path d="M14.5 18.9l4.4 5.1 8.6-11.1"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4.5" fill="none" stroke="currentColor" stroke-width="2.2"/><g fill="currentColor"><circle cx="8.6" cy="8.6" r="1.5"/><circle cx="15.4" cy="15.4" r="1.5"/><circle cx="12" cy="12" r="1.5"/></g></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 3.5M16 6h3a3 3 0 01-3 3.5M12 13v4M8.5 20h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="M4 12h11M11 7.5l4.5 4.5-4.5 4.5M19 5v14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-insert" viewBox="0 0 24 24"><path d="M4 6h16M4 18h9M17.5 14.5v7M14 18h7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.7L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
@@ -39,12 +44,24 @@
   <section id="home" class="pane" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
+      <button id="open-trophies" class="icon-btn" type="button" aria-label="Trophies"><svg><use href="#i-trophy"/></svg></button>
       <button id="open-settings" class="icon-btn" type="button" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
     </header>
     <div id="home-scroll" class="scroll">
+      <div id="home-pull" class="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="home-pull-text">Pull for a new list</span></div>
+      <div id="home-content">
+      <form id="search" class="capture search" role="search" autocomplete="off">
+        <label class="sr" for="search-text">Search all lists</label>
+        <svg class="capture-plus" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="search-text" type="text" inputmode="search" maxlength="100" enterkeyhint="search" autocapitalize="none" placeholder="Search all lists">
+        <button id="search-clear" class="icon-btn" type="button" aria-label="Clear search" hidden><svg><use href="#i-close"/></svg></button>
+      </form>
+      <p id="results-note" class="note results-note" role="status" aria-live="polite" hidden></p>
+      <ol id="results" class="rows" aria-label="Search results" hidden></ol>
       <ol id="lists" class="tiles" aria-label="Your lists"></ol>
       <button id="new-list" class="ghost-btn" type="button"><svg><use href="#i-plus"/></svg>New list</button>
       <p class="fineprint"><span id="sync-line">Saved in this browser only.</span> <button id="sync-action" type="button" class="link-btn" hidden>Sign in to sync</button></p>
+      </div>
     </div>
   </section>
 
@@ -55,11 +72,12 @@
         <h1 id="title" class="title" tabindex="-1"></h1>
         <p id="count" class="count"></p>
       </div>
+      <button id="pick" class="icon-btn" type="button" aria-label="Pick one task for me"><svg><use href="#i-dice"/></svg></button>
       <button id="list-more" class="icon-btn" type="button" aria-label="List options"><svg><use href="#i-more"/></svg></button>
     </header>
     <nav id="pager" class="pager" aria-label="Switch list"></nav>
     <div id="scroller" class="scroll">
-      <div id="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
+      <div id="pull" class="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
       <div id="content">
         <form id="capture" class="capture" autocomplete="off">
           <label class="sr" for="thought">Add to this list</label>
@@ -85,6 +103,9 @@
   </section>
   <button id="fab" type="button" aria-label="Add a thought"><svg><use href="#i-plus"/></svg></button>
 
+  <div id="combo" aria-hidden="true" hidden></div>
+  <canvas id="finale" aria-hidden="true" hidden></canvas>
+  <div id="banner" role="status" aria-live="polite" hidden><svg aria-hidden="true"><use href="#i-trophy"/></svg><span><b id="banner-title"></b><small id="banner-text"></small></span></div>
   <div id="toast" hidden>
     <span id="toast-text" role="status" aria-live="polite"></span>
     <button id="toast-undo" type="button">Undo</button>
@@ -157,6 +178,86 @@
   </form>
 </dialog>
 
+<dialog id="move-dialog" class="sheet" aria-labelledby="move-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="move-title">Move to…</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p id="move-text" class="note"></p>
+      <div id="move-targets" class="stack"></div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="pick-dialog" class="sheet hue" aria-labelledby="pick-kicker" aria-describedby="pick-task">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="pick-kicker">Just this one</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p id="pick-task" class="pick-task"></p>
+      <p id="pick-note" class="note"></p>
+    </div>
+    <footer class="sheet-foot">
+      <button type="button" id="pick-again" class="quiet-btn">Another</button>
+      <span class="spacer"></span>
+      <button type="button" id="pick-done" class="solid-btn">Done it</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="trash-dialog" class="sheet tall" aria-labelledby="trash-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="trash-title">Recently deleted</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p id="trash-note" class="note"></p>
+      <ul id="trash-list" class="connections trash-list" aria-label="Recently deleted items"></ul>
+      <div id="trash-confirm" class="confirm" hidden>
+        <p>Remove everything here for good? This cannot be undone.</p>
+        <div class="dialog-actions">
+          <span class="spacer"></span>
+          <button type="button" id="trash-confirm-no" class="quiet-btn">Keep them</button>
+          <button type="button" id="trash-confirm-yes" class="solid-btn danger">Remove all</button>
+        </div>
+      </div>
+    </div>
+    <footer class="sheet-foot">
+      <button type="button" id="trash-empty" class="danger-text">Empty now</button>
+      <span class="spacer"></span>
+      <button type="button" class="solid-btn" data-close>Done</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="trophy-dialog" class="sheet tall" aria-labelledby="trophy-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="trophy-title">Trophies</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p class="tally"><b id="tally-count">0</b><span id="tally-text">lists cleared</span></p>
+      <p id="tally-next" class="note"></p>
+      <h3>Trophies</h3>
+      <ul id="trophy-grid" class="trophy-grid"></ul>
+      <fieldset>
+        <legend>Finale when a list is cleared</legend>
+        <div id="finale-choice" class="stack"></div>
+      </fieldset>
+    </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" class="solid-btn" data-close>Done</button>
+    </footer>
+  </div>
+</dialog>
+
 <dialog id="settings-dialog" class="sheet tall" aria-labelledby="settings-title">
   <div class="sheet-frame">
     <header class="sheet-head">
@@ -171,11 +272,16 @@
           <button type="button" id="sound-toggle" class="switch" role="switch" aria-checked="true" aria-labelledby="sound-label"></button>
         </div>
         <fieldset class="setting stacked">
-          <legend>Appearance</legend>
-          <div class="segmented" id="theme-choice">
-            <label><input type="radio" name="theme" value="dark" id="theme-dark"><span>Dark</span></label>
-            <label><input type="radio" name="theme" value="light" id="theme-light"><span>Light</span></label>
-            <label><input type="radio" name="theme" value="auto" id="theme-auto"><span>Match phone</span></label>
+          <legend>Theme</legend>
+          <div class="theme-grid" id="theme-choice"></div>
+        </fieldset>
+        <fieldset class="setting stacked">
+          <legend>Text size</legend>
+          <div class="segmented four" id="size-choice">
+            <label><input type="radio" name="size" value="s" id="size-s"><span>Small</span></label>
+            <label><input type="radio" name="size" value="m" id="size-m"><span>Standard</span></label>
+            <label><input type="radio" name="size" value="l" id="size-l"><span>Large</span></label>
+            <label><input type="radio" name="size" value="xl" id="size-xl"><span>Largest</span></label>
           </div>
         </fieldset>
       </section>
@@ -232,6 +338,7 @@
           <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
           <button type="button" id="import" class="row-btn">Restore from a backup file</button>
           <button type="button" id="reset" class="row-btn">Reset to the sample lists</button>
+          <button type="button" id="open-trash" class="row-btn">Recently deleted</button>
           <input type="file" id="file" accept="application/json,.json" hidden>
         </div>
         <div id="settings-confirm" class="confirm" hidden>
@@ -248,11 +355,15 @@
         <summary>Gestures and shortcuts</summary>
         <dl class="keys">
           <dt>Add</dt><dd>Pull the list down, tap +, or press <kbd>N</kbd>. Paste several lines to add them all.</dd>
-          <dt>Done</dt><dd>Swipe a task right, or tick the circle.</dd>
-          <dt>Delete</dt><dd>Swipe a task left, or open it and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes.</dd>
+          <dt>Insert between</dt><dd>Spread two fingers apart between two tasks, or open a task and choose Insert below (<kbd>+</kbd> on a focused task).</dd>
+          <dt>Done</dt><dd>Swipe a task right, or tick the circle. Quick runs climb in pitch.</dd>
+          <dt>Delete</dt><dd>Swipe a task left, or open it and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes; Recently deleted keeps it for 30 days.</dd>
           <dt>Reorder</dt><dd>Hold and drag, drag the grip, or focus the grip and press <kbd>↑</kbd> <kbd>↓</kbd>.</dd>
+          <dt>Move</dt><dd>Open a task and choose Move to send it to another list.</dd>
           <dt>Switch list</dt><dd>Swipe sideways anywhere that is not a task, use the dots, or press <kbd>[</kbd> <kbd>]</kbd>.</dd>
-          <dt>On the Lists screen</dt><dd>Swipe a list right to add to it without opening it (<kbd>+</kbd> when focused). Swipe left to delete it, after a confirmation (<kbd>Delete</kbd> when focused).</dd>
+          <dt>New list</dt><dd>On the Lists screen: pull down for one at the top, tap the empty space below for one at the end, spread two fingers between two lists for one in between, or use the New list button.</dd>
+          <dt>List swipes</dt><dd>Swipe a list right to add to it without opening it (<kbd>+</kbd> when focused). Swipe left to delete it, after a confirmation (<kbd>Delete</kbd> when focused).</dd>
+          <dt>Zoom</dt><dd>Two-finger zoom is off over the rows so the spread gesture can insert there. It still works on the title area, your phone's own zoom still works, and Text size above makes everything larger.</dd>
         </dl>
       </details>
     </div>

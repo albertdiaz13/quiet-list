@@ -19,12 +19,12 @@
   --muted-lc: 0.79 0.04;
   --accent-lc: 0.83 0.13;
   --on-accent-lc: 0.17 0.04;
-  --tile-lc: 0.52 0.2;
-  --tile2-lc: 0.34 0.16;
+  --tile-lc: 0.47 0.19;
+  --tile2-lc: 0.33 0.16;
   --on-tile-lc: 0.99 0.008;
   --danger: oklch(0.7 0.19 22);
   --on-danger: oklch(0.16 0.04 22);
-  --edge: oklch(1 0 0 / 0.09);                 /* hairline that catches the light */
+  --edge-lc: 1 0; --edge-a: 0.09;              /* hairline that catches the light */
   --shine: oklch(1 0 0 / 0.1);
   --glow-strength: 0.6;
   --shadow: inset 0 1px 0 var(--shine), 0 12px 26px -10px oklch(0 0 0 / 0.6);
@@ -55,13 +55,42 @@
   --on-accent-lc: 0.99 0.008;
   --danger: oklch(0.53 0.21 25);
   --on-danger: oklch(0.99 0.01 25);
-  --edge: oklch(0.3 0.08 290 / 0.1);
+  --edge-lc: 0.3 0.08; --edge-a: 0.1;
   --shine: oklch(1 0 0 / 0.9);
   --glow-strength: 0.75;
   --shadow: inset 0 1px 0 var(--shine), 0 10px 22px -12px oklch(0.3 0.12 290 / 0.35);
   --lift: inset 0 1px 0 var(--shine), 0 22px 40px -12px oklch(0.3 0.12 290 / 0.45);
   --scrim: oklch(0.2 0.06 290 / 0.45);
   --grain: 0.045;
+  color-scheme: light;
+}
+/* ----- more themes. Each keeps a hue per list; only the room, surfaces and finish change. ----- */
+:root[data-theme="noir"] {            /* Velvet Noir: near-black, gold highlights, quieter gems */
+  --bg-lc: 0.105 0.012; --glow-lc: 0.42 0.09; --surface-lc: 0.215 0.016; --surface-hi-lc: 0.25 0.018; --surface-lo-lc: 0.185 0.014;
+  --sunk-lc: 0.155 0.012; --line-lc: 0.42 0.03; --ink-lc: 0.96 0.012; --muted-lc: 0.77 0.02;
+  --accent-lc: 0.85 0.12; --accent-h: 85; --on-accent-lc: 0.18 0.03; --tile-lc: 0.44 0.13; --tile2-lc: 0.25 0.09;
+  --edge-lc: 0.85 0.1; --edge-h: 85; --edge-a: 0.17; --glow-strength: 0.4; --grain: 0.09;
+}
+:root[data-theme="neon"] {            /* Neon Arcade: black, electric colour, lit outlines */
+  --bg-lc: 0.07 0.012; --glow-lc: 0.6 0.26; --surface-lc: 0.15 0.03; --surface-hi-lc: 0.172 0.036; --surface-lo-lc: 0.125 0.026;
+  --sunk-lc: 0.105 0.02; --line-lc: 0.62 0.2; --ink-lc: 0.98 0.01; --muted-lc: 0.83 0.06;
+  --accent-lc: 0.88 0.2; --on-accent-lc: 0.14 0.04; --tile-lc: 0.46 0.26; --tile2-lc: 0.3 0.22;
+  --edge-lc: 0.82 0.22; --edge-a: 0.5; --glow-strength: 0.85; --grain: 0.04;
+  --shadow: inset 0 1px 0 var(--shine), 0 0 20px -8px oklch(0.82 0.22 var(--h) / 0.7);
+}
+:root[data-theme="aurora"] {          /* Aurora: night sky with green and violet light */
+  --bg-lc: 0.155 0.045; --glow-lc: 0.55 0.16; --surface-lc: 0.27 0.045; --surface-hi-lc: 0.305 0.05; --surface-lo-lc: 0.235 0.04;
+  --sunk-lc: 0.2 0.04; --line-lc: 0.42 0.05; --muted-lc: 0.8 0.04; --accent-lc: 0.86 0.13; --tile-lc: 0.46 0.17; --tile2-lc: 0.33 0.14;
+}
+:root[data-theme="sunset"] {          /* Sunset Lacquer: warm dusk, glossy and bright */
+  --bg-lc: 0.93 0.05; --glow-lc: 0.8 0.14; --surface-lc: 0.99 0.008; --surface-hi-lc: 1 0; --surface-lo-lc: 0.972 0.016;
+  --sunk-lc: 0.9 0.045; --line-lc: 0.8 0.06; --ink-lc: 0.2 0.05; --muted-lc: 0.4 0.06;
+  --accent-lc: 0.45 0.2; --on-accent-lc: 0.99 0.008; --tile-lc: 0.47 0.2; --tile2-lc: 0.36 0.18;
+  --danger: oklch(0.53 0.21 25); --on-danger: oklch(0.99 0.01 25);
+  --edge-lc: 0.3 0.08; --edge-a: 0.12; --shine: oklch(1 0 0 / 0.9); --glow-strength: 0.5;
+  --shadow: inset 0 1px 0 var(--shine), 0 10px 22px -12px oklch(0.35 0.14 20 / 0.4);
+  --lift: inset 0 1px 0 var(--shine), 0 22px 40px -12px oklch(0.35 0.14 20 / 0.5);
+  --scrim: oklch(0.25 0.08 20 / 0.45); --grain: 0.05;
   color-scheme: light;
 }
 /* Colours are composed where the hue is known: the root, and anything with its own hue. */
@@ -74,7 +103,8 @@
   --line: oklch(var(--line-lc) var(--h));
   --ink: oklch(var(--ink-lc) var(--h));
   --muted: oklch(var(--muted-lc) var(--h));
-  --accent: oklch(var(--accent-lc) var(--h));
+  --accent: oklch(var(--accent-lc) var(--accent-h, var(--h)));
+  --edge: oklch(var(--edge-lc) var(--edge-h, var(--h)) / var(--edge-a));
   --on-accent: oklch(var(--on-accent-lc) var(--h));
   --tile: oklch(var(--tile-lc) var(--h));
   --tile2: oklch(var(--tile2-lc) calc(var(--h) + 28));
@@ -86,6 +116,23 @@
     radial-gradient(95% 50% at 110% 102%, oklch(var(--glow-lc) calc(var(--h) + 42) / calc(var(--glow-strength) * 0.55)), transparent 66%),
     var(--bg);
 }
+
+:root[data-theme="aurora"], :root[data-theme="aurora"] .hue {
+  --room:
+    radial-gradient(120% 55% at 0% 0%, oklch(0.6 0.16 165 / 0.5), transparent 62%),
+    radial-gradient(110% 50% at 100% 16%, oklch(0.5 0.2 300 / 0.5), transparent 60%),
+    radial-gradient(90% 50% at 60% 110%, oklch(var(--glow-lc) var(--h) / 0.45), transparent 65%),
+    var(--bg);
+}
+:root[data-theme="sunset"], :root[data-theme="sunset"] .hue {
+  --room:
+    radial-gradient(110% 50% at 10% -6%, oklch(var(--glow-lc) var(--h) / 0.5), transparent 60%),
+    linear-gradient(172deg, oklch(0.95 0.06 75), oklch(0.89 0.09 35) 48%, oklch(0.84 0.1 345));
+}
+/* Text size (Settings). Everything is sized in rem, so the whole app scales together. */
+:root[data-size="s"] { font-size: 93.75%; }
+:root[data-size="l"] { font-size: 112.5%; }
+:root[data-size="xl"] { font-size: 125%; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html {
@@ -118,16 +165,28 @@ svg { width: 24px; height: 24px; flex: none; display: block; }
 kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; background: var(--sunk); border: 1px solid var(--edge); }
 
 /* ---------- panes ---------- */
-#app { position: relative; height: 100%; overflow: hidden; }
+#app { position: relative; height: 100%; overflow: hidden; overflow: clip; }   /* clip, so nothing inside can scroll the app frame itself */
 .pane {
   position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--room);
   transition: transform 0.36s var(--ease), opacity 0.36s var(--ease), visibility 0s linear 0.36s;
 }
-#app[data-view="list"] #home { transform: translateX(-22%) scale(0.96); opacity: 0; visibility: hidden; }
-#app[data-view="home"] #list { transform: translateX(100%); visibility: hidden; }
+#app[data-view="list"] #home { transform: scale(1.1); opacity: 0; visibility: hidden; }
+#app[data-view="home"] #list { transform: scale(0.9); opacity: 0; visibility: hidden; }
+.pane { overflow: hidden; overflow: clip; }      /* clip: a pane must never become scrollable itself */
+.pane > * { position: relative; z-index: 1; }
+.pane::before {                       /* a slow drift of light behind everything */
+  content: ""; position: absolute; inset: -25%; z-index: 0; pointer-events: none;
+  background: radial-gradient(34% 26% at 32% 34%, oklch(var(--glow-lc) var(--h) / 0.22), transparent 70%), radial-gradient(30% 24% at 70% 66%, oklch(var(--glow-lc) calc(var(--h) + 50) / 0.16), transparent 70%);
+  animation: drift 26s ease-in-out infinite alternate;
+}
+@keyframes drift { from { transform: translate(-6%, -4%) rotate(0deg); } to { transform: translate(7%, 5%) rotate(14deg); } }
+.pane.nav-drag, .pane.nav-settle { border-radius: 30px; box-shadow: 0 0 70px oklch(0 0 0 / 0.65); }
 #app[data-view="home"] #home, #app[data-view="list"] #list { transition-delay: 0s; }
 /* sideways list switching: the open list and the incoming one travel together */
 #list { touch-action: pan-y pinch-zoom; }
+/* Over the rows themselves two fingers belong to the spread-to-insert gesture, so pinch-zoom is off
+   there only. It stays available on the title area and everywhere else. */
+#open, #done, #lists { touch-action: pan-y; }
 .pane.ghost { z-index: 1; pointer-events: none; }
 .pane.nav-drag { transition: none !important; }
 .pane.nav-settle { transition: transform 0.34s var(--ease) !important; }
@@ -159,7 +218,7 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   background: var(--jewel); color: var(--on-tile);
   border: 1px solid oklch(1 0 0 / 0.16);
   box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 -18px 30px -18px oklch(0 0 0 / 0.35), 0 16px 30px -14px var(--jewel-glow);
-  touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   transition: box-shadow 0.25s;
 }
 /* a cut-gem highlight across the top-left corner */
@@ -209,14 +268,14 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 .pager [aria-current="true"]::before { width: 22px; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
 
 /* ---------- capture ---------- */
-#pull {
+.pull {
   position: absolute; left: 0; right: 0; top: 0; height: 56px; opacity: 0; pointer-events: none;
   display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-weight: 700;
 }
-#pull svg { transition: transform 0.25s var(--spring); }
-#pull.armed { color: var(--accent); text-shadow: 0 0 16px var(--accent); }
-#pull.armed svg { transform: rotate(90deg) scale(1.25); }
-#content.settle { transition: transform 0.3s var(--ease); }
+.pull svg { transition: transform 0.25s var(--spring); }
+.pull.armed { color: var(--accent); text-shadow: 0 0 16px var(--accent); }
+.pull.armed svg { transform: rotate(90deg) scale(1.25); }
+#content.settle, #home-content.settle { transition: transform 0.3s var(--ease); }
 .capture {
   display: flex; align-items: center; gap: 4px; min-height: 60px; padding: 0 6px 0 16px; margin-bottom: 12px;
   border-radius: var(--r-row); background: oklch(var(--sunk-lc) var(--h) / 0.72); border: 1.5px solid var(--edge);
@@ -250,7 +309,7 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) 44px; align-items: start; min-height: 60px;
   border-radius: var(--r-row); background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); color: var(--ink);
   border: 1px solid var(--edge); box-shadow: var(--shadow);
-  touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
 }
 .spring { transition: transform 0.34s var(--spring); }
 .fling { transition: transform 0.2s ease-in; }
@@ -282,6 +341,23 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 .row.completing .text .t, .row[data-done] .text .t { background-size: 100% 2px; color: var(--muted); }
 .row .handle { height: 58px; width: 44px; color: var(--muted); }
 .row.entering { animation: arrive 0.4s var(--spring); }
+/* rows rise in one after another when a list opens */
+.stagger > li { animation: rise 0.46s var(--spring) both; animation-delay: calc(var(--i, 0) * 32ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(18px) scale(0.96); } }
+/* spread-to-insert: the rows part and a slot appears */
+.spreading > li { transition: transform 0.12s linear; }
+.spread-slot {
+  position: absolute; left: 0; right: 0; height: 0; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 2;
+  border-radius: var(--r-row); border: 2px dashed var(--accent); color: var(--accent); font-weight: 700; overflow: hidden; opacity: 0; pointer-events: none;
+  background: oklch(var(--accent-lc) var(--h) / 0.1);
+}
+.spread-slot.armed { border-style: solid; background: oklch(var(--accent-lc) var(--h) / 0.22); box-shadow: 0 0 24px -4px var(--accent); }
+.rows, .tiles { position: relative; }
+.row.draft .card { box-shadow: 0 0 0 2px var(--accent), 0 0 30px -6px var(--accent), var(--shadow); }
+.row.found .card { animation: found 1.6s var(--ease); }
+@keyframes found { 0%, 60% { box-shadow: 0 0 0 2.5px var(--accent), 0 0 34px -4px var(--accent), var(--shadow); } }
+/* a few sparks from the tick */
+.spark { position: absolute; width: 7px; height: 7px; border-radius: 2px; pointer-events: none; z-index: 6; background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: bit 0.6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; }
 @keyframes arrive { from { opacity: 0; transform: translateY(-16px) scale(0.94); } }
 .dragging { z-index: 5; }
 .dragging .card, .dragging .tile { box-shadow: var(--lift), 0 0 0 1.5px var(--accent); }
@@ -308,6 +384,7 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 .edit-tools button:hover:not(:disabled) { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
 .edit-tools button:disabled { opacity: 0.35; cursor: default; }
 .edit-tools svg { width: 20px; height: 20px; }
+.edit-tools .icon-only span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .edit-tools .tool-delete:hover { color: var(--danger); }
 .edit-tools .tool-save, .edit-tools .tool-save:hover:not(:disabled) { margin-left: auto; background: var(--jewel); color: var(--on-tile); padding: 0 18px; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3); }
 
@@ -479,12 +556,108 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 #login-form .dialog-actions { flex-wrap: nowrap; }
 #login-form .dialog-actions .quiet-btn { padding: 0 12px; min-width: 0; }
 :root[data-theme="light"] .mark, :root[data-theme="light"] .empty-art svg { filter: drop-shadow(0 2px 3px oklch(0.55 0.2 40 / 0.55)); }
+
+/* ---------- search on the Lists screen ---------- */
+.search { margin-bottom: 14px; min-height: 54px; }
+.search input { height: 50px; }
+.search .icon-btn { width: 44px; height: 44px; }
+.results-note { margin: 0 4px 10px; }
+#results { margin-bottom: 18px; }
+.result { width: 100%; text-align: left; display: grid; gap: 4px; padding: 13px 16px; min-height: 60px; border-radius: var(--r-row);
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); border: 1px solid var(--edge); box-shadow: var(--shadow); overflow-wrap: anywhere; }
+.result small { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.8125rem; font-weight: 600; }
+.result small::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--jewel); flex: none; }
+.result.is-done > span { text-decoration: line-through; color: var(--muted); }
+.result mark { background: oklch(var(--accent-lc) var(--h) / 0.3); color: inherit; border-radius: 4px; padding: 0 1px; }
+
+/* ---------- combo badge, finale layer, trophy banner ---------- */
+#combo {
+  position: absolute; z-index: 12; top: 84px; right: max(18px, env(safe-area-inset-right, 0px)); min-width: 62px; padding: 6px 14px; text-align: center; pointer-events: none;
+  border-radius: 18px; background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.25);
+  font: 800 1.5rem/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), 0 10px 26px -6px var(--jewel-glow), 0 0 30px -4px var(--jewel-glow);
+  transform: rotate(6deg);
+}
+#combo.bump { animation: combo 0.34s var(--spring); }
+#combo.leave { transition: opacity 0.4s, transform 0.4s; opacity: 0; transform: rotate(6deg) translateY(-12px) scale(0.9); }
+@keyframes combo { from { transform: rotate(-8deg) scale(0.5); } 60% { transform: rotate(10deg) scale(1.25); } }
+#finale { position: absolute; inset: 0; z-index: 30; width: 100%; height: 100%; pointer-events: none; }
+#banner {
+  position: absolute; z-index: 31; left: 50%; top: calc(18px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px);
+  display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: 22px; pointer-events: none;
+  background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); color: var(--ink); border: 1px solid var(--edge);
+  box-shadow: var(--lift), 0 0 60px -10px oklch(0.85 0.14 85 / 0.7); animation: banner-in 0.5s var(--spring);
+}
+#banner svg { width: 34px; height: 34px; color: oklch(0.86 0.14 85); filter: drop-shadow(0 0 10px oklch(0.86 0.14 85 / 0.7)); }
+#banner b { display: block; font: 800 1.125rem/1.2 var(--font-display); }
+#banner small { display: block; font-size: 0.875rem; color: var(--muted); }
+@keyframes banner-in { from { opacity: 0; transform: translate(-50%, -24px) scale(0.9); } }
+
+/* ---------- pick one, move, recently deleted, trophies ---------- */
+.pick-task { font: 800 1.75rem/1.2 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; text-wrap: balance; padding: 14px 0 10px; }
+.pick-task.roll { animation: roll 0.4s var(--spring); }
+@keyframes roll { from { opacity: 0; transform: translateY(14px) rotate(-3deg) scale(0.94); } }
+.target-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 58px; padding: 0 18px; border-radius: 18px; text-align: left;
+  background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.16); font: 800 1.125rem/1.2 var(--font-display);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), 0 10px 20px -12px var(--jewel-glow); overflow-wrap: anywhere; }
+.target-btn small { font: 600 0.8125rem var(--font-body); opacity: 0.9; flex: none; }
+.trash-list li > span { text-decoration: none; }
+.trash-list .quiet-btn { color: var(--accent); flex: none; }
+.tally { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 4px; }
+.tally b { font: 800 3.25rem/1 var(--font-display); letter-spacing: -0.04em; color: oklch(0.86 0.14 85); text-shadow: 0 0 30px oklch(0.86 0.14 85 / 0.5); font-variant-numeric: tabular-nums; }
+:root[data-theme="light"] .tally b, :root[data-theme="sunset"] .tally b { color: oklch(0.5 0.14 70); text-shadow: none; }
+.tally span { font-weight: 700; color: var(--muted); }
+.trophy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.trophy { display: grid; justify-items: center; gap: 4px; padding: 16px 8px 14px; border-radius: 20px; text-align: center; background: var(--sunk); border: 1px solid var(--edge); }
+.trophy svg { width: 40px; height: 40px; color: var(--muted); opacity: 0.45; }
+.trophy b { font: 800 1rem/1.2 var(--font-display); }
+.trophy small { font-size: 0.8125rem; color: var(--muted); }
+.trophy.earned { background: linear-gradient(160deg, oklch(0.86 0.14 85 / 0.22), var(--sunk) 70%); border-color: oklch(0.86 0.14 85 / 0.5); }
+.trophy.earned svg { color: oklch(0.86 0.14 85); opacity: 1; filter: drop-shadow(0 0 10px oklch(0.86 0.14 85 / 0.6)); }
+:root[data-theme="light"] .trophy.earned svg, :root[data-theme="sunset"] .trophy.earned svg { color: oklch(0.55 0.15 70); }
+.choice { position: relative; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; margin: 0; border-radius: 16px; background: var(--sunk); border: 1.5px solid var(--edge); cursor: pointer; }
+.choice input { appearance: none; -webkit-appearance: none; margin: 0; width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--muted); flex: none; }
+.choice input:checked { border: 7px solid var(--accent); }
+.choice input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.choice span { flex: 1; font-size: 1rem; font-weight: 700; color: var(--ink); }
+.choice small { display: block; font-weight: 400; font-size: 0.8125rem; color: var(--muted); }
+.choice:has(input:checked) { border-color: var(--accent); }
+.choice:has(input:disabled) { opacity: 0.55; cursor: default; }
+
+/* ---------- theme picker and text size ---------- */
+.theme-grid { clear: both; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.theme-grid label { position: relative; margin: 0; cursor: pointer; }
+.theme-grid input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.theme-card { display: grid; gap: 6px; padding: 8px 8px 10px; border-radius: 16px; border: 2px solid transparent; background: oklch(0 0 0 / 0.14); font-size: 0.875rem; font-weight: 700; color: var(--ink); text-align: center; }
+.theme-chip { height: 46px; border-radius: 11px; border: 1px solid oklch(0.5 0 0 / 0.3); position: relative; overflow: hidden; }
+.theme-chip::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: 9px; height: 13px; border-radius: 6px; background: var(--chip-row); box-shadow: 0 -18px 0 -3px var(--chip-tile); }
+.theme-grid input:checked + .theme-card { border-color: var(--accent); box-shadow: 0 0 18px -6px var(--accent); }
+.theme-grid input:focus-visible + .theme-card { outline: 3px solid var(--accent); outline-offset: 2px; }
+.chip-jewel { background: radial-gradient(120% 90% at 10% 0%, #5b2fb5, #170c2e 70%); --chip-row: #3a2d5c; --chip-tile: #8a4de0; }
+.chip-noir { background: radial-gradient(120% 90% at 10% 0%, #3a3122, #0b0a09 70%); --chip-row: #2a2824; --chip-tile: #d9b45a; }
+.chip-neon { background: #050507; --chip-row: #15151d; --chip-tile: #ff2bd6; box-shadow: inset 0 0 0 1.5px #27f5ff; }
+.chip-aurora { background: radial-gradient(90% 80% at 0% 0%, #1fae8a, transparent 60%), radial-gradient(90% 80% at 100% 10%, #7a3fd0, transparent 60%), #0d1730; --chip-row: #263257; --chip-tile: #49d6b0; }
+.chip-sunset { background: linear-gradient(170deg, #ffe2b0, #ffb199 50%, #e58ab8); --chip-row: #fffaf5; --chip-tile: #c2410c; }
+.chip-light { background: radial-gradient(120% 90% at 10% 0%, #d9c8ff, #f4f0fd 70%); --chip-row: #ffffff; --chip-tile: #6d3fd1; }
+.chip-auto { background: linear-gradient(115deg, #170c2e 0 50%, #f4f0fd 50% 100%); --chip-row: #8d84a8; --chip-tile: #8a4de0; }
+.segmented.four { grid-template-columns: repeat(4, 1fr); }
+.segmented.four span { font-size: 0.8125rem; padding: 0 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pane::before { display: none; }
+  #finale { display: none !important; }
+}
 </style>
 <svg class="sprite" aria-hidden="true" focusable="false">
   <defs>
     <linearGradient id="g-metal" x1="18%" y1="8%" x2="86%" y2="96%"><stop offset="0" stop-color="#fff6e0"/><stop offset=".38" stop-color="#ffd27a"/><stop offset=".72" stop-color="#ff9f6b"/><stop offset="1" stop-color="#ff6fae"/></linearGradient>
   </defs>
   <symbol id="i-mark" viewBox="0 0 32 32"><g fill="none" stroke="url(#g-metal)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="14.2" cy="14.6" r="8.6"/><path d="M14.5 18.9l4.4 5.1 8.6-11.1"/></g></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M15 15l5 5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4.5" fill="none" stroke="currentColor" stroke-width="2.2"/><g fill="currentColor"><circle cx="8.6" cy="8.6" r="1.5"/><circle cx="15.4" cy="15.4" r="1.5"/><circle cx="12" cy="12" r="1.5"/></g></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 01-8 0zM8 6H5a3 3 0 003 3.5M16 6h3a3 3 0 01-3 3.5M12 13v4M8.5 20h7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-move" viewBox="0 0 24 24"><path d="M4 12h11M11 7.5l4.5 4.5-4.5 4.5M19 5v14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-insert" viewBox="0 0 24 24"><path d="M4 6h16M4 18h9M17.5 14.5v7M14 18h7" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.6 4.7L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
@@ -502,12 +675,24 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   <section id="home" class="pane" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
+      <button id="open-trophies" class="icon-btn" type="button" aria-label="Trophies"><svg><use href="#i-trophy"/></svg></button>
       <button id="open-settings" class="icon-btn" type="button" aria-label="Settings"><svg><use href="#i-gear"/></svg></button>
     </header>
     <div id="home-scroll" class="scroll">
+      <div id="home-pull" class="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="home-pull-text">Pull for a new list</span></div>
+      <div id="home-content">
+      <form id="search" class="capture search" role="search" autocomplete="off">
+        <label class="sr" for="search-text">Search all lists</label>
+        <svg class="capture-plus" aria-hidden="true"><use href="#i-search"/></svg>
+        <input id="search-text" type="text" inputmode="search" maxlength="100" enterkeyhint="search" autocapitalize="none" placeholder="Search all lists">
+        <button id="search-clear" class="icon-btn" type="button" aria-label="Clear search" hidden><svg><use href="#i-close"/></svg></button>
+      </form>
+      <p id="results-note" class="note results-note" role="status" aria-live="polite" hidden></p>
+      <ol id="results" class="rows" aria-label="Search results" hidden></ol>
       <ol id="lists" class="tiles" aria-label="Your lists"></ol>
       <button id="new-list" class="ghost-btn" type="button"><svg><use href="#i-plus"/></svg>New list</button>
       <p class="fineprint"><span id="sync-line">Saved in this browser only.</span> <button id="sync-action" type="button" class="link-btn" hidden>Sign in to sync</button></p>
+      </div>
     </div>
   </section>
 
@@ -518,11 +703,12 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
         <h1 id="title" class="title" tabindex="-1"></h1>
         <p id="count" class="count"></p>
       </div>
+      <button id="pick" class="icon-btn" type="button" aria-label="Pick one task for me"><svg><use href="#i-dice"/></svg></button>
       <button id="list-more" class="icon-btn" type="button" aria-label="List options"><svg><use href="#i-more"/></svg></button>
     </header>
     <nav id="pager" class="pager" aria-label="Switch list"></nav>
     <div id="scroller" class="scroll">
-      <div id="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
+      <div id="pull" class="pull" aria-hidden="true"><svg><use href="#i-plus"/></svg><span id="pull-text">Pull to add</span></div>
       <div id="content">
         <form id="capture" class="capture" autocomplete="off">
           <label class="sr" for="thought">Add to this list</label>
@@ -548,6 +734,9 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   </section>
   <button id="fab" type="button" aria-label="Add a thought"><svg><use href="#i-plus"/></svg></button>
 
+  <div id="combo" aria-hidden="true" hidden></div>
+  <canvas id="finale" aria-hidden="true" hidden></canvas>
+  <div id="banner" role="status" aria-live="polite" hidden><svg aria-hidden="true"><use href="#i-trophy"/></svg><span><b id="banner-title"></b><small id="banner-text"></small></span></div>
   <div id="toast" hidden>
     <span id="toast-text" role="status" aria-live="polite"></span>
     <button id="toast-undo" type="button">Undo</button>
@@ -620,6 +809,86 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   </form>
 </dialog>
 
+<dialog id="move-dialog" class="sheet" aria-labelledby="move-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="move-title">Move to…</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p id="move-text" class="note"></p>
+      <div id="move-targets" class="stack"></div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="pick-dialog" class="sheet hue" aria-labelledby="pick-kicker" aria-describedby="pick-task">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="pick-kicker">Just this one</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p id="pick-task" class="pick-task"></p>
+      <p id="pick-note" class="note"></p>
+    </div>
+    <footer class="sheet-foot">
+      <button type="button" id="pick-again" class="quiet-btn">Another</button>
+      <span class="spacer"></span>
+      <button type="button" id="pick-done" class="solid-btn">Done it</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="trash-dialog" class="sheet tall" aria-labelledby="trash-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="trash-title">Recently deleted</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p id="trash-note" class="note"></p>
+      <ul id="trash-list" class="connections trash-list" aria-label="Recently deleted items"></ul>
+      <div id="trash-confirm" class="confirm" hidden>
+        <p>Remove everything here for good? This cannot be undone.</p>
+        <div class="dialog-actions">
+          <span class="spacer"></span>
+          <button type="button" id="trash-confirm-no" class="quiet-btn">Keep them</button>
+          <button type="button" id="trash-confirm-yes" class="solid-btn danger">Remove all</button>
+        </div>
+      </div>
+    </div>
+    <footer class="sheet-foot">
+      <button type="button" id="trash-empty" class="danger-text">Empty now</button>
+      <span class="spacer"></span>
+      <button type="button" class="solid-btn" data-close>Done</button>
+    </footer>
+  </div>
+</dialog>
+
+<dialog id="trophy-dialog" class="sheet tall" aria-labelledby="trophy-title">
+  <div class="sheet-frame">
+    <header class="sheet-head">
+      <h2 id="trophy-title">Trophies</h2>
+      <button type="button" class="icon-btn" data-close aria-label="Close"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <p class="tally"><b id="tally-count">0</b><span id="tally-text">lists cleared</span></p>
+      <p id="tally-next" class="note"></p>
+      <h3>Trophies</h3>
+      <ul id="trophy-grid" class="trophy-grid"></ul>
+      <fieldset>
+        <legend>Finale when a list is cleared</legend>
+        <div id="finale-choice" class="stack"></div>
+      </fieldset>
+    </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" class="solid-btn" data-close>Done</button>
+    </footer>
+  </div>
+</dialog>
+
 <dialog id="settings-dialog" class="sheet tall" aria-labelledby="settings-title">
   <div class="sheet-frame">
     <header class="sheet-head">
@@ -634,11 +903,16 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
           <button type="button" id="sound-toggle" class="switch" role="switch" aria-checked="true" aria-labelledby="sound-label"></button>
         </div>
         <fieldset class="setting stacked">
-          <legend>Appearance</legend>
-          <div class="segmented" id="theme-choice">
-            <label><input type="radio" name="theme" value="dark" id="theme-dark"><span>Dark</span></label>
-            <label><input type="radio" name="theme" value="light" id="theme-light"><span>Light</span></label>
-            <label><input type="radio" name="theme" value="auto" id="theme-auto"><span>Match phone</span></label>
+          <legend>Theme</legend>
+          <div class="theme-grid" id="theme-choice"></div>
+        </fieldset>
+        <fieldset class="setting stacked">
+          <legend>Text size</legend>
+          <div class="segmented four" id="size-choice">
+            <label><input type="radio" name="size" value="s" id="size-s"><span>Small</span></label>
+            <label><input type="radio" name="size" value="m" id="size-m"><span>Standard</span></label>
+            <label><input type="radio" name="size" value="l" id="size-l"><span>Large</span></label>
+            <label><input type="radio" name="size" value="xl" id="size-xl"><span>Largest</span></label>
           </div>
         </fieldset>
       </section>
@@ -695,6 +969,7 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
           <button type="button" id="copy-backup" class="row-btn">Copy backup as text</button>
           <button type="button" id="import" class="row-btn">Restore from a backup file</button>
           <button type="button" id="reset" class="row-btn">Reset to the sample lists</button>
+          <button type="button" id="open-trash" class="row-btn">Recently deleted</button>
           <input type="file" id="file" accept="application/json,.json" hidden>
         </div>
         <div id="settings-confirm" class="confirm" hidden>
@@ -711,11 +986,15 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
         <summary>Gestures and shortcuts</summary>
         <dl class="keys">
           <dt>Add</dt><dd>Pull the list down, tap +, or press <kbd>N</kbd>. Paste several lines to add them all.</dd>
-          <dt>Done</dt><dd>Swipe a task right, or tick the circle.</dd>
-          <dt>Delete</dt><dd>Swipe a task left, or open it and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes.</dd>
+          <dt>Insert between</dt><dd>Spread two fingers apart between two tasks, or open a task and choose Insert below (<kbd>+</kbd> on a focused task).</dd>
+          <dt>Done</dt><dd>Swipe a task right, or tick the circle. Quick runs climb in pitch.</dd>
+          <dt>Delete</dt><dd>Swipe a task left, or open it and choose Delete. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes; Recently deleted keeps it for 30 days.</dd>
           <dt>Reorder</dt><dd>Hold and drag, drag the grip, or focus the grip and press <kbd>↑</kbd> <kbd>↓</kbd>.</dd>
+          <dt>Move</dt><dd>Open a task and choose Move to send it to another list.</dd>
           <dt>Switch list</dt><dd>Swipe sideways anywhere that is not a task, use the dots, or press <kbd>[</kbd> <kbd>]</kbd>.</dd>
-          <dt>On the Lists screen</dt><dd>Swipe a list right to add to it without opening it (<kbd>+</kbd> when focused). Swipe left to delete it, after a confirmation (<kbd>Delete</kbd> when focused).</dd>
+          <dt>New list</dt><dd>On the Lists screen: pull down for one at the top, tap the empty space below for one at the end, spread two fingers between two lists for one in between, or use the New list button.</dd>
+          <dt>List swipes</dt><dd>Swipe a list right to add to it without opening it (<kbd>+</kbd> when focused). Swipe left to delete it, after a confirmation (<kbd>Delete</kbd> when focused).</dd>
+          <dt>Zoom</dt><dd>Two-finger zoom is off over the rows so the spread gesture can insert there. It still works on the title area, your phone's own zoom still works, and Text size above makes everything larger.</dd>
         </dl>
       </details>
     </div>
@@ -826,9 +1105,49 @@ function validate(data) {
       if (!isRev(task.rev)) task.rev = 1;
     }
   }
+  // Optional extras. Anything malformed in them is dropped rather than refusing the whole document.
+  for (const list of data.lists) if ('fresh' in list && list.fresh !== false) delete list.fresh;
+  if ('trash' in data) data.trash = cleanTrash(data.trash);
+  if ('stats' in data) data.stats = { cleared: clearedOf(data) };
   data.version = SCHEMA_VERSION;
   return data;
 }
+
+// ---- recently deleted, and the tally of cleared lists ----
+// Deleted tasks and lists wait here for TRASH_DAYS before they are dropped for good. The day number
+// is housekeeping only; it is never shown, and lists and tasks themselves still carry no dates.
+const TRASH_DAYS = 30;
+const TRASH_MAX = 200;
+const DAY = 86400000;
+const okText = (value, max) => typeof value === 'string' && !!value.trim() && value.length <= max;
+const okTask = task => !!task && typeof task.id === 'string' && !!task.id && okText(task.text, LIMITS.text) && typeof task.done === 'boolean';
+function cleanTrash(trash) {
+  if (!Array.isArray(trash)) return [];
+  const seen = new Set();
+  return trash.filter(entry => {
+    if (!entry || typeof entry.id !== 'string' || !ID_PATTERN.test(entry.id) || seen.has(entry.id) || !Number.isInteger(entry.at)) return false;
+    seen.add(entry.id);
+    if (entry.kind === 'task') return typeof entry.listId === 'string' && okText(entry.listName, LIMITS.name) && okTask(entry.task);
+    if (entry.kind === 'list') {
+      const list = entry.list;
+      return !!list && typeof list.id === 'string' && !!list.id && okText(list.name, LIMITS.name) && Array.isArray(list.tasks)
+        && list.tasks.length <= LIMITS.tasks && list.tasks.every(okTask);
+    }
+    return false;
+  }).slice(0, TRASH_MAX);
+}
+const trashOf = state => (Array.isArray(state.trash) ? state.trash : []);
+const clearedOf = state => {
+  const n = state.stats?.cleared;
+  return Number.isInteger(n) && n >= 0 ? Math.min(n, 1_000_000) : 0;
+};
+function toTrash(state, entry, now) {
+  const today = Math.floor(now / DAY);
+  // The entry id comes from the deleted thing's own id, so the device and the server agree on it.
+  const record = { ...entry, at: today };
+  state.trash = [record, ...trashOf(state).filter(e => e.id !== record.id && today - e.at <= TRASH_DAYS)].slice(0, TRASH_MAX);
+}
+const plainTask = task => ({ id: task.id, text: task.text, done: task.done });
 
 function cleanName(name) {
   name = String(name ?? '').trim();
@@ -945,28 +1264,87 @@ function patchOf(op, rules) {
   return patch;
 }
 
-function applyOp(state, op) {
+function applyOp(state, op, now = Date.now()) {
   if (!op || typeof op !== 'object' || typeof op.type !== 'string') throw Error('Invalid change.');
   const list = () => findList(state, op.listId);
   const before = () => (op.beforeId == null ? null : op.beforeId);
   switch (op.type) {
-    case 'add_list':
+    case 'add_list': {
       if (typeof op.id === 'string' && state.lists.some(l => l.id === op.id)) return state;   // already applied
-      createList(state, op.name, op.color, op.id);
+      const made = createList(state, op.name, op.color, op.id);
+      // Optional position. If the neighbour has gone meanwhile, the new list simply stays last.
+      if (op.beforeId != null && state.lists.some(l => l.id === op.beforeId)) placeBefore(state.lists, made, op.beforeId, 'List not found.');
       return state;
+    }
     case 'update_list': updateList(state, op.listId, patchOf(op, { name: 'string', color: 'string' })); return state;
-    case 'delete_list': deleteList(state, op.listId); return state;
+    case 'delete_list': {
+      const gone = deleteList(state, op.listId);
+      toTrash(state, { id: `l-${gone.id}`.slice(0, 64), kind: 'list', list: { id: gone.id, name: gone.name, color: gone.color, tasks: gone.tasks.map(plainTask) } }, now);
+      return state;
+    }
     case 'move_list': moveList(state, op.listId, before()); return state;
     case 'add_item': {
       const target = list();
       if (typeof op.id === 'string' && target.tasks.some(t => t.id === op.id)) return state;  // already applied
-      addTask(target, op.text, { top: op.top === true, id: op.id, state });
+      const made = addTask(target, op.text, { top: op.top === true, id: op.id, state });
+      if (op.beforeId != null && target.tasks.some(t => t.id === op.beforeId)) placeBefore(target.tasks, made, op.beforeId, 'Task not found.');
+      delete target.fresh;                 // something new to finish: clearing this list can earn again
       return state;
     }
     case 'update_item': updateTask(list(), op.itemId, patchOf(op, { text: 'string', done: 'boolean' })); return state;
-    case 'delete_item': deleteTask(list(), op.itemId); return state;
+    case 'delete_item': {
+      const from = list();
+      const gone = deleteTask(from, op.itemId);
+      toTrash(state, { id: `t-${gone.id}`.slice(0, 64), kind: 'task', listId: from.id, listName: from.name, task: plainTask(gone) }, now);
+      return state;
+    }
+    case 'transfer_item': {
+      const from = list();
+      const to = findList(state, op.toListId);
+      if (from === to) return state;
+      if (to.tasks.length >= LIMITS.tasks) throw Error('That list is full.');
+      const moving = deleteTask(from, op.itemId);
+      moving.rev += 1;
+      to.tasks.unshift(moving);
+      delete to.fresh;
+      return state;
+    }
     case 'move_item': moveTask(list(), op.itemId, before()); return state;
-    case 'clear_done': clearDone(list()); return state;
+    case 'clear_done': {
+      const from = list();
+      for (const task of from.tasks.filter(t => t.done).reverse()) {
+        toTrash(state, { id: `t-${task.id}`.slice(0, 64), kind: 'task', listId: from.id, listName: from.name, task: plainTask(task) }, now);
+      }
+      clearDone(from);
+      return state;
+    }
+    case 'restore_trash': {
+      const entry = trashOf(state).find(e => e.id === op.trashId);
+      if (!entry) return state;                                                               // already restored or expired
+      if (entry.kind === 'task') {
+        const home = state.lists.find(l => l.id === entry.listId) ?? state.lists[0];
+        if (home.tasks.length >= LIMITS.tasks) throw Error('That list is full.');
+        home.tasks.unshift({ id: hasId(state, entry.task.id) ? id() : entry.task.id, text: entry.task.text.trim(), done: entry.task.done, rev: 1 });
+        if (!entry.task.done) delete home.fresh;
+      } else {
+        if (state.lists.length >= LIMITS.lists) throw Error(`This prototype supports ${LIMITS.lists} lists.`);
+        const back = newList(entry.list.name.trim(), COLORS.includes(entry.list.color) ? entry.list.color : COLORS[0], hasId(state, entry.list.id) ? id() : entry.list.id);
+        state.lists.push(back);
+        for (const task of entry.list.tasks) back.tasks.push({ id: hasId(state, task.id) ? id() : task.id, text: task.text.trim(), done: task.done, rev: 1 });
+      }
+      state.trash = trashOf(state).filter(e => e.id !== entry.id);
+      return state;
+    }
+    case 'empty_trash': state.trash = []; return state;
+    // Counts a cleared list, once per "fill": the list must have tasks, all done, and something
+    // must have been added since it last counted. Anything else is quietly ignored.
+    case 'award_clear': {
+      const target = list();
+      if (target.fresh === false || !target.tasks.length || target.tasks.some(t => !t.done)) return state;
+      state.stats = { cleared: clearedOf(state) + 1 };
+      target.fresh = false;
+      return state;
+    }
     case 'import_lists': {
       // Adds whole lists (used to copy a browser's local lists into an account). Never overwrites.
       const incoming = validate({ version: SCHEMA_VERSION, lists: structuredClone(op.lists) }).lists;
@@ -985,6 +1363,8 @@ function applyOp(state, op) {
       const doc = validate(structuredClone(op.doc));
       state.version = SCHEMA_VERSION;
       state.lists = doc.lists;
+      if ('trash' in doc) state.trash = doc.trash;
+      if ('stats' in doc) state.stats = doc.stats;
       return state;
     }
     default: throw Error('Unknown change.');
@@ -1186,6 +1566,7 @@ function createAccountSync({ storage, onChange, onStatus }) {
 
 const NOTE = name => 440 * 2 ** (name / 12);          // semitones from A4
 const PENTATONIC = [3, 5, 7, 10, 12, 15, 17, 19, 22, 24];   // C major pentatonic, from C5
+const CLIMB = [0, 2, 4, 7, 9, 12, 14, 16];                  // how far each step of a completion run is raised
 
 function createSound({ enabled = true } = {}) {
   let on = enabled;
@@ -1248,7 +1629,13 @@ function createSound({ enabled = true } = {}) {
   const CUES = {
     tick: () => tone({ from: 1500, to: 1100, length: 0.03, level: 0.07 }),
     add: () => chime([7, 12], { gap: 0.055, length: 0.14 }),
-    done: () => chime([3, 7, 10, 15], { gap: 0.05, length: 0.24 }),
+    // Finishing tasks in quick succession climbs a scale: each step starts a note higher and a touch
+    // softer, so a long run stays gentle. At the top it holds and adds a small sparkle instead of climbing on.
+    done: ({ step = 0 } = {}) => {
+      const rung = Math.min(step, CLIMB.length - 1), lift = CLIMB[rung];
+      chime([3, 7, 10, 15].map(n => n + lift), { gap: 0.05, length: 0.24, level: 0.16 * (1 - rung * 0.045) });
+      if (step >= CLIMB.length - 1) air({ at: 0.12, length: 0.3, from: 4000, to: 8000, level: 0.018 });
+    },
     undone: () => chime([10, 5], { gap: 0.07, length: 0.16, level: 0.12 }),
     delete: () => { tone({ from: 440, to: 130, length: 0.2, level: 0.18, shape: 'triangle' }); air({ length: 0.16, from: 1800, to: 500, level: 0.04 }); },
     undo: () => { tone({ from: 180, to: 520, length: 0.18, level: 0.16, shape: 'triangle' }); tone({ at: 0.12, from: NOTE(12), length: 0.16, level: 0.1 }); },
@@ -1264,6 +1651,10 @@ function createSound({ enabled = true } = {}) {
     pop: () => tone({ from: 520, to: 780, length: 0.06, level: 0.12 }),
     close: () => tone({ from: 700, to: 460, length: 0.06, level: 0.1 }),
     nope: () => { tone({ from: 150, length: 0.07, level: 0.2, shape: 'triangle' }); tone({ at: 0.1, from: 130, length: 0.09, level: 0.2, shape: 'triangle' }); },
+    spread: () => { tone({ from: 300, to: 520, length: 0.09, level: 0.1, shape: 'triangle' }); air({ length: 0.1, from: 600, to: 1800, level: 0.03 }); },
+    move: () => { air({ length: 0.18, from: 500, to: 2600, level: 0.05 }); chime([10, 15], { at: 0.06, gap: 0.05, length: 0.16, level: 0.11 }); },
+    pick: () => chime([15, 10, 12, 19], { gap: 0.06, length: 0.14, level: 0.11 }),
+    trophy: () => { chime([3, 7, 10, 15, 19], { gap: 0.09, length: 0.34, level: 0.17 }); chime([22, 27], { at: 0.5, gap: 0.12, length: 0.7, level: 0.14 }); air({ at: 0.45, length: 0.7, from: 2500, to: 8000, level: 0.03 }); },
     clear: () => { chime([3, 7, 10, 15, 19, 22], { gap: 0.065, length: 0.3 }); chime([27], { at: 0.42, length: 0.6, level: 0.12 }); air({ at: 0.36, length: 0.5, from: 3000, to: 7000, level: 0.03 }); },
   };
 
@@ -1278,7 +1669,7 @@ function createSound({ enabled = true } = {}) {
       }
     }
     // Lets tests (and nothing else) observe which cues were asked for.
-    document.dispatchEvent(new CustomEvent('quiet:cue', { detail: { name, played } }));
+    document.dispatchEvent(new CustomEvent('quiet:cue', { detail: { name, played, step: detail?.step } }));
     return played;
   }
 
@@ -1327,9 +1718,13 @@ try { prefs = JSON.parse(storage.getItem(UI_KEY)) || {}; } catch { prefs = {}; }
 // Per-device preferences: sound is on unless switched off; dark is the default look.
 const sound = createSound({ enabled: prefs.sound !== false });
 const phoneIsLight = matchMedia('(prefers-color-scheme: light)');
+const THEMES = [['jewel', 'Jewel'], ['noir', 'Velvet Noir'], ['neon', 'Neon Arcade'], ['aurora', 'Aurora'], ['sunset', 'Sunset Lacquer'], ['light', 'Light'], ['auto', 'Match phone']];
+const SIZES = ['s', 'm', 'l', 'xl'];
+const themeChoice = () => (prefs.theme === 'dark' ? 'jewel' : THEMES.some(([id]) => id === prefs.theme) ? prefs.theme : 'jewel');
 function applyTheme() {
-  const choice = ['dark', 'light', 'auto'].includes(prefs.theme) ? prefs.theme : 'dark';
-  document.documentElement.dataset.theme = choice === 'auto' ? (phoneIsLight.matches ? 'light' : 'dark') : choice;
+  const choice = themeChoice();
+  document.documentElement.dataset.theme = choice === 'auto' ? (phoneIsLight.matches ? 'light' : 'jewel') : choice;
+  document.documentElement.dataset.size = SIZES.includes(prefs.size) ? prefs.size : 'm';
 }
 applyTheme();
 // Sheets size themselves to the part of the screen that is actually visible (the keyboard shrinks it).
@@ -1384,10 +1779,20 @@ function countText(list) {
   const open = list.tasks.filter(t => !t.done).length, done = list.tasks.length - open;
   return summary(list) + (done && open ? ` · ${done} done` : '');
 }
+// A brand-new list greets you with one of these; which one is fixed per list, so it does not flicker.
+const FRESH_WORDS = [
+  ['A fresh page', 'What is rattling around in there? Put the first thought down.'],
+  ['Wide open', 'Nothing to do yet, which is the nice part. Add one thing.'],
+  ['Ready when you are', 'Start small. One thought is plenty.'],
+  ['Room to think', 'Empty on purpose. Fill it at your own pace.'],
+  ['Clean slate', 'Type above, or pull down, and let it land here.'],
+  ['First things first', 'Whatever is loudest in your head goes here.'],
+];
 function emptyWords(list) {
-  return list.tasks.length
-    ? ['All clear', 'Everything on this list is done.']
-    : ['Nothing here yet', 'Type a thought above. On a phone you can also pull the list down.'];
+  if (list.tasks.length) return ['All clear', 'Everything on this list is done.'];
+  let sum = 0;
+  for (const ch of list.id) sum = (sum + ch.charCodeAt(0)) % 997;
+  return FRESH_WORDS[sum % FRESH_WORDS.length];
 }
 function summary(list) {
   const open = list.tasks.filter(t => !t.done).length;
@@ -1508,10 +1913,13 @@ function rowEl(task, index, openTasks) {
       b.append(icon(name), el('span', '', text)); return b;
     };
     tools.append(
-      tool('tool-up', 'i-up', 'Up', 'u', index === 0),
-      tool('tool-down', 'i-down', 'Down', 'd', index === openTasks.length - 1),
-      tool('tool-delete', 'i-trash', 'Delete', 'r'),
+      tool('tool-up icon-only', 'i-up', 'Move up', 'u', index === 0),
+      tool('tool-down icon-only', 'i-down', 'Move down', 'd', index === openTasks.length - 1),
+      tool('tool-insert icon-only', 'i-insert', 'Insert a task below', 'i'),
+      tool('tool-move icon-only', 'i-move', 'Move to another list', 'm', state.lists.length < 2),
+      tool('tool-delete icon-only', 'i-trash', 'Delete', 'r'),
     );
+    for (const b of tools.children) b.title = b.textContent;
     const save = el('button', 'tool-save', 'Save'); save.type = 'button';
     tools.append(save);
     card.append(area, tools);
@@ -1529,6 +1937,50 @@ function rowEl(task, index, openTasks) {
   return li;
 }
 
+// A not-yet-saved task, opened at a chosen place by spread-to-insert or "Insert below".
+let draft = null;                // { beforeId } while one is open
+function draftEl() {
+  const li = el('li', 'row draft entering');
+  li.dataset.id = 'draft';
+  const card = el('div', 'card editing');
+  const dot = el('span', 'check'); dot.append(icon('i-plus'));
+  const area = el('textarea', 'edit-text draft-text');
+  area.maxLength = 2000; area.rows = 1; area.dataset.fk = 'draft'; area.placeholder = 'New task here';
+  area.setAttribute('aria-label', 'New task'); area.setAttribute('enterkeyhint', 'done');
+  const tools = el('div', 'edit-tools');
+  const cancel = el('button', 'draft-cancel', 'Cancel'); cancel.type = 'button';
+  const add = el('button', 'tool-save draft-add', 'Add'); add.type = 'button';
+  tools.append(cancel, add);
+  card.append(dot, area, tools);
+  li.append(card);
+  return li;
+}
+function startDraft(beforeId) {
+  if (editingId) finishEdit({ refocus: false });
+  draft = { beforeId: beforeId ?? null };
+  render({ focus: 'draft' });
+  content.querySelector('.draft')?.scrollIntoView({ block: 'nearest' });
+}
+function insertBelow(taskId) {
+  const open = current().tasks.filter(t => !t.done);
+  const at = open.findIndex(t => t.id === taskId);
+  if (editingId) finishEdit({ refocus: false });
+  sound.play('spread');
+  startDraft(open[at + 1]?.id ?? null);
+}
+function cancelDraft() { if (!draft) return; draft = null; render({ flip: true }); }
+function commitDraft({ keepFocus = true } = {}) {
+  if (!draft) return;
+  const text = content.querySelector('.draft-text')?.value ?? '';
+  const { beforeId } = draft;
+  draft = null;
+  if (text.trim()) {
+    const id = crypto.randomUUID();
+    if (act({ type: 'add_item', listId: current().id, id, text, ...(beforeId ? { beforeId } : {}) })) { enteringId = id; sound.play('add'); buzz(8); }
+  }
+  render({ focus: keepFocus && text.trim() ? 't:' + enteringId : null });
+}
+
 function renderList() {
   const list = current();
   const openTasks = list.tasks.filter(t => !t.done);
@@ -1542,11 +1994,16 @@ function renderList() {
   paintBrowserChrome();
 
   openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
-  openEl.hidden = !openTasks.length;
+  if (draft) {
+    const before = draft.beforeId ? openEl.querySelector(`.row[data-id="${CSS.escape(draft.beforeId)}"]`) : null;
+    openEl.insertBefore(draftEl(), before);
+  }
+  openEl.hidden = !openTasks.length && !draft;
   doneEl.replaceChildren(...doneTasks.map(t => rowEl(t)));
 
-  $('empty').hidden = openTasks.length > 0;
+  $('empty').hidden = openTasks.length > 0 || !!draft;
   [$('empty-title').textContent, $('empty-text').textContent] = emptyWords(list);
+  $('empty').dataset.kind = list.tasks.length ? 'clear' : 'fresh';
 
   $('done-wrap').hidden = !doneTasks.length;
   $('done-toggle').textContent = `${doneTasks.length} done`;
@@ -1568,6 +2025,7 @@ function renderList() {
 }
 
 function renderHome() {
+  renderSearch();
   listsEl.replaceChildren(...state.lists.map(list => {
     const li = el('li', 'tile-row hue');
     li.dataset.id = list.id;
@@ -1631,15 +2089,29 @@ function setHash(hash, replace) {
 }
 function showHome({ focus = true } = {}) {
   view = 'home';
-  editingId = null;
+  editingId = null; draft = null;
   applyView();
   render({ flip: false });
   setHash('lists');
-  if (focus && !wide.matches) document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`)?.focus();
+  if (focus && !wide.matches) {
+    const tile = document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`);
+    tile?.focus({ preventScroll: true });
+    tile?.scrollIntoView({ block: 'nearest' });
+  }
+}
+// Rows rise in one after another when a list appears.
+function stagger() {
+  if (calm.matches) return;
+  [...openEl.children].slice(0, 12).forEach((li, i) => li.style.setProperty('--i', i));
+  openEl.classList.remove('stagger');
+  void openEl.offsetWidth;
+  openEl.classList.add('stagger');
+  setTimeout(() => openEl.classList.remove('stagger'), 900);
 }
 function openList(listId, { replace = false, focus = false } = {}) {
   if (!state.lists.some(l => l.id === listId)) return;
   const changed = listId !== activeId;
+  if (changed) { run = 0; draft = null; $('combo').hidden = true; }
   activeId = listId;
   view = 'list';
   editingId = null;
@@ -1680,23 +2152,62 @@ function collapse(li) {
   return Promise.race([animation.finished.catch(() => {}), wait(260)]);
 }
 
+let run = 0, lastDoneAt = 0;       // tasks finished in quick succession
+const RUN_WINDOW = 3200;           // ms between completions that still count as the same run
 async function setDone(taskId, done, li, { swiped = false } = {}) {
   const list = current();
   const task = list.tasks.find(t => t.id === taskId);
   if (!task || !act({ type: 'update_item', listId: list.id, itemId: taskId, done })) { render(); return; }
   announce((done ? 'Done: ' : 'Reopened: ') + task.text);
   const cleared = done && !list.tasks.some(t => !t.done);
-  sound.play(cleared ? 'clear' : done ? 'done' : 'undone');
+  if (done) { const t = performance.now(); run = t - lastDoneAt < RUN_WINDOW ? run + 1 : 1; lastDoneAt = t; } else run = 0;
+  let reward = null;
+  if (cleared) {
+    const before = clearedOf(state);
+    act({ type: 'award_clear', listId: list.id });
+    reward = { counted: clearedOf(state) > before, total: clearedOf(state) };
+  }
+  sound.play(cleared ? 'clear' : done ? 'done' : 'undone', { step: run - 1 });
   if (done) {
     buzz(12);
+    showRun();
+    if (li) sparks(li);
     if (!calm.matches && li) {
       if (!swiped) { li.classList.add('completing'); await wait(340); }
       await collapse(li);
     }
   }
   render({ focus: done ? null : 'c:' + taskId });
-  if (cleared) cheer();
+  if (cleared) celebrate(list, reward);
   if (done) thoughtOrNext();
+}
+let runTimer = 0;
+function showRun() {
+  const badge = $('combo');
+  clearTimeout(runTimer);
+  if (run < 2) { badge.hidden = true; return; }
+  badge.textContent = `×${run}`;
+  badge.hidden = false;
+  badge.classList.remove('leave', 'bump');
+  void badge.offsetWidth;
+  badge.classList.add('bump');
+  runTimer = setTimeout(() => { badge.classList.add('leave'); runTimer = setTimeout(() => { badge.hidden = true; }, calm.matches ? 0 : 420); }, RUN_WINDOW - 500);
+}
+function sparks(li) {
+  if (calm.matches) return;
+  const from = li.querySelector('.check')?.getBoundingClientRect(), frame = app.getBoundingClientRect();
+  if (!from) return;
+  for (let i = 0; i < 7; i++) {
+    const spark = el('span', 'spark');
+    const angle = (i / 7) * Math.PI * 2 + Math.random() * 0.6, reach = 26 + Math.random() * 26;
+    spark.style.left = `${from.left - frame.left + from.width / 2 - 3}px`;
+    spark.style.top = `${from.top - frame.top + from.height / 2 - 3}px`;
+    spark.style.setProperty('--bx', `${Math.cos(angle) * reach}px`);
+    spark.style.setProperty('--by', `${Math.sin(angle) * reach}px`);
+    spark.style.setProperty('--br', `${Math.random() * 300}deg`);
+    app.append(spark);
+    setTimeout(() => spark.remove(), 650);
+  }
 }
 function thoughtOrNext() {
   // After a row disappears, keep keyboard users in the list instead of dropping focus on the page.
@@ -1744,17 +2255,6 @@ function cheer() {
   void empty.offsetWidth;
   empty.classList.add('cheer');
   buzz(24);
-  for (let i = 0; i < 14; i++) {
-    const bit = el('span', 'bit');
-    const angle = (i / 14) * Math.PI * 2 + Math.random() * 0.4;
-    const reach = 60 + Math.random() * 60;
-    bit.style.setProperty('--bx', `${Math.cos(angle) * reach}px`);
-    bit.style.setProperty('--by', `${Math.sin(angle) * reach - 30}px`);
-    bit.style.setProperty('--br', `${Math.random() * 360}deg`);
-    bit.style.setProperty('--bh', String((i * 47) % 360));
-    empty.append(bit);
-    setTimeout(() => bit.remove(), 900);
-  }
 }
 
 /* ---------- editing in place ---------- */
@@ -1968,45 +2468,114 @@ document.addEventListener('touchmove', event => { if (gesture && event.cancelabl
 content.addEventListener('contextmenu', event => { if (event.target.closest('.card') && !event.target.closest('textarea')) event.preventDefault(); });
 
 /* ---------- touch: pull down to add ---------- */
-let pull = null;
 const PULL_AT = 58;
-scroller.addEventListener('touchstart', event => {
-  pull = event.touches.length === 1 && scroller.scrollTop <= 0 && !editingId && !gesture
-    ? { x: event.touches[0].clientX, y: event.touches[0].clientY, active: false, distance: 0 } : null;
-}, { passive: true });
-scroller.addEventListener('touchmove', event => {
-  if (!pull || (gesture && gesture !== 'pull')) return;
-  const dx = event.touches[0].clientX - pull.x, dy = event.touches[0].clientY - pull.y;
-  if (!pull.active) {
-    if (dy > 10 && dy > Math.abs(dx) * 1.5 && scroller.scrollTop <= 0) { pull.active = true; gesture = 'pull'; content.classList.remove('settle'); }
-    else if (dy < -4 || Math.abs(dx) > 12) { pull = null; return; }
-    else return;
-  }
-  if (event.cancelable) event.preventDefault();
-  pull.distance = Math.max(0, (dy - 10) * 0.55);
-  content.style.transform = `translateY(${pull.distance}px)`;
-  const armed = pull.distance >= PULL_AT;
-  const hint = $('pull');
-  hint.style.opacity = String(Math.min(1, pull.distance / PULL_AT));
-  if (armed !== hint.classList.contains('armed')) {
-    hint.classList.toggle('armed', armed);
-    $('pull-text').textContent = armed ? 'Release to add' : 'Pull to add';
-    if (armed) { buzz(6); sound.play('tick'); }
-  }
-}, { passive: false });
-const endPull = event => {
-  if (!pull?.active) { pull = null; return; }
-  const armed = event.type === 'touchend' && pull.distance >= PULL_AT;
-  pull = null; gesture = null;
-  content.classList.add('settle');
-  content.style.transform = '';
-  $('pull').style.opacity = '0';
-  $('pull').classList.remove('armed');
-  $('pull-text').textContent = 'Pull to add';
-  if (armed) { sound.play('pop'); focusCapture(); }
-};
-scroller.addEventListener('touchend', endPull);
-scroller.addEventListener('touchcancel', endPull);
+function watchPull({ box, moved, hint, label, idle, ready, allowed, onRelease }) {
+  let pull = null;
+  box.addEventListener('touchstart', event => {
+    pull = event.touches.length === 1 && box.scrollTop <= 0 && !editingId && !draft && !gesture && allowed()
+      ? { x: event.touches[0].clientX, y: event.touches[0].clientY, active: false, distance: 0 } : null;
+  }, { passive: true });
+  box.addEventListener('touchmove', event => {
+    if (!pull || (gesture && gesture !== 'pull')) return;
+    if (event.touches.length !== 1) { if (pull.active) end({ type: 'touchcancel' }); else pull = null; return; }
+    const dx = event.touches[0].clientX - pull.x, dy = event.touches[0].clientY - pull.y;
+    if (!pull.active) {
+      if (dy > 10 && dy > Math.abs(dx) * 1.5 && box.scrollTop <= 0) { pull.active = true; gesture = 'pull'; moved.classList.remove('settle'); }
+      else if (dy < -4 || Math.abs(dx) > 12) { pull = null; return; }
+      else return;
+    }
+    if (event.cancelable) event.preventDefault();
+    pull.distance = Math.max(0, (dy - 10) * 0.55);
+    moved.style.transform = `translateY(${pull.distance}px)`;
+    const armed = pull.distance >= PULL_AT;
+    hint.style.opacity = String(Math.min(1, pull.distance / PULL_AT));
+    if (armed !== hint.classList.contains('armed')) {
+      hint.classList.toggle('armed', armed);
+      label.textContent = armed ? ready : idle;
+      if (armed) { buzz(6); sound.play('tick'); }
+    }
+  }, { passive: false });
+  const end = event => {
+    if (!pull?.active) { pull = null; return; }
+    const armed = event.type === 'touchend' && pull.distance >= PULL_AT;
+    pull = null; gesture = null;
+    moved.classList.add('settle');
+    moved.style.transform = '';
+    hint.style.opacity = '0';
+    hint.classList.remove('armed');
+    label.textContent = idle;
+    if (armed) { sound.play('pop'); onRelease(); }
+  };
+  box.addEventListener('touchend', end);
+  box.addEventListener('touchcancel', end);
+}
+watchPull({ box: scroller, moved: content, hint: $('pull'), label: $('pull-text'), idle: 'Pull to add', ready: 'Release to add', allowed: () => true, onRelease: focusCapture });
+watchPull({ box: $('home-scroll'), moved: $('home-content'), hint: $('home-pull'), label: $('home-pull-text'), idle: 'Pull for a new list', ready: 'Release for a new list',
+  allowed: () => !searching(), onRelease: () => openListDialog('new', { at: 'top' }) });
+
+/* ---------- touch: spread two fingers apart between two rows to insert there ----------
+   Two fingers, moving apart vertically, with the gap between two rows under them. Everything else
+   uses one finger, and the moment a second finger lands no one-finger gesture can start.
+   Over the rows the browser's own two-finger zoom is switched off in CSS (touch-action: pan-y);
+   on iPhone, Safari's gesturestart is declined there as well. */
+function watchSpread({ box, container, itemSelector, label, allowed, onInsert }) {
+  let spread = null;
+  const stop = commit => {
+    if (!spread) return;
+    const { items, slot, index, active } = spread;
+    spread = null;
+    for (const li of items) li.style.transform = '';
+    slot?.remove();
+    setTimeout(() => { container.classList.remove('spreading'); if (gesture === 'spread') gesture = null; }, 140);
+    if (active) suppressClick(box);
+    if (commit) { buzz(10); onInsert(items[index]?.dataset.id ?? null); }
+  };
+  box.addEventListener('touchstart', event => {
+    if (event.touches.length !== 2) { if (spread) stop(false); return; }
+    if (gesture || editingId || draft || navBusy || wide.matches || !allowed() || document.querySelector('dialog[open]')) return;
+    const items = [...container.querySelectorAll(`:scope > ${itemSelector}`)];
+    if (!items.length) return;
+    const [upper, lower] = [...event.touches].sort((a, b) => a.clientY - b.clientY);
+    const frame = container.getBoundingClientRect();
+    if (upper.clientY < frame.top - 36 || lower.clientY > frame.bottom + 36) return;       // not over the rows
+    const rects = items.map(li => li.getBoundingClientRect());
+    const middle = (upper.clientY + lower.clientY) / 2;
+    const index = rects.filter(r => r.top + r.height / 2 < middle).length;                  // insert before this row
+    const edge = index === 0 ? rects[0].top - 5 : index === items.length ? rects.at(-1).bottom + 5 : (rects[index - 1].bottom + rects[index].top) / 2;
+    spread = { items, index, edge: edge - frame.top, apart: lower.clientY - upper.clientY, across: Math.abs(lower.clientX - upper.clientX), active: false, armed: false, slot: null };
+    gesture = 'spread';
+  }, { passive: true });
+  box.addEventListener('touchmove', event => {
+    if (!spread) return;
+    if (event.touches.length !== 2) { stop(false); return; }
+    if (event.cancelable) event.preventDefault();
+    const [upper, lower] = [...event.touches].sort((a, b) => a.clientY - b.clientY);
+    const grown = (lower.clientY - upper.clientY) - spread.apart;
+    const sideways = Math.abs(Math.abs(lower.clientX - upper.clientX) - spread.across);
+    if (!spread.active) {
+      if (grown < -24 || sideways > 44) { stop(false); return; }                           // a pinch-in or a sideways stretch: not ours
+      if (grown < 14 || grown < sideways * 1.2) return;
+      spread.active = true;
+      container.classList.add('spreading');
+      spread.slot = el('li', 'spread-slot'); spread.slot.setAttribute('aria-hidden', 'true');
+      spread.slot.append(icon('i-plus'), el('span', '', label));
+      container.append(spread.slot);
+      sound.play('spread');
+    }
+    const open = Math.max(0, Math.min(104, grown * 0.75));
+    spread.items.forEach((li, i) => { li.style.transform = `translateY(${i < spread.index ? -open / 2 : open / 2}px)`; });
+    Object.assign(spread.slot.style, { top: `${spread.edge - open / 2 + 4}px`, height: `${Math.max(0, open - 8)}px`, opacity: String(Math.min(1, open / 40)) });
+    const armed = open >= 54;
+    if (armed !== spread.armed) { spread.armed = armed; spread.slot.classList.toggle('armed', armed); if (armed) { buzz(6); sound.play('tick'); } }
+  }, { passive: false });
+  box.addEventListener('touchend', () => stop(!!spread?.active && spread.armed));
+  box.addEventListener('touchcancel', () => stop(false));
+}
+watchSpread({ box: scroller, container: openEl, itemSelector: '.row:not(.draft)', label: 'New task here', allowed: () => view === 'list', onInsert: beforeId => startDraft(beforeId) });
+watchSpread({ box: $('home-scroll'), container: listsEl, itemSelector: '.tile-row', label: 'New list here', allowed: () => view === 'home' && !searching(),
+  onInsert: beforeId => openListDialog('new', { beforeId }) });
+// iPhone Safari announces a two-finger zoom with its own event; decline it over the rows only.
+document.addEventListener('gesturestart', event => { if (event.target.closest?.('#open, #done, #lists')) event.preventDefault(); });
 
 /* ---------- touch: swipe sideways between lists ----------
    How this stays out of the way of the other gestures:
@@ -2014,6 +2583,7 @@ scroller.addEventListener('touchcancel', endPull);
    - each touch commits to one axis in its first 10px, so a vertical drag can only scroll or pull-to-add;
    - touches that start within 24px of the screen edge are left to the phone's own back gesture. */
 let navBusy = false;
+const DEPTH = 0.08;
 
 // A stand-in for the neighbouring list, in its own colour, that travels in beside the open one.
 function ghostPane(list) {
@@ -2053,6 +2623,7 @@ function landOnList(target, direction, ghost) {
   listPane.style.transform = '';
   void listPane.offsetWidth;
   requestAnimationFrame(() => { listPane.classList.remove('nav-drag'); ghost?.remove(); navBusy = false; if (gesture === 'nav') gesture = null; });
+  stagger();
   announce(target.name);
 }
 // Finishes a switch: both panes glide the rest of the way, then the real list takes over.
@@ -2065,8 +2636,8 @@ function settleNav(target, direction, ghost) {
   const width = listPane.offsetWidth;
   for (const pane of [listPane, ghost]) { pane.classList.remove('nav-drag'); pane.classList.add('nav-settle'); }
   void listPane.offsetWidth;
-  listPane.style.transform = `translateX(${-direction * width}px)`;
-  ghost.style.transform = 'translateX(0px)';
+  listPane.style.transform = `translateX(${-direction * width}px) scale(${1 - DEPTH})`;
+  ghost.style.transform = 'translateX(0px) scale(1)';
   setTimeout(() => landOnList(target, direction, ghost), 350);
 }
 function cancelNav(direction, ghost) {
@@ -2074,7 +2645,7 @@ function cancelNav(direction, ghost) {
   for (const pane of [listPane, ghost]) { pane?.classList.remove('nav-drag'); pane?.classList.add('nav-settle'); }
   void listPane.offsetWidth;
   listPane.style.transform = '';
-  if (ghost) ghost.style.transform = `translateX(${direction * width}px)`;
+  if (ghost) ghost.style.transform = `translateX(${direction * width}px) scale(${1 - DEPTH})`;
   setTimeout(() => { ghost?.remove(); listPane.classList.remove('nav-settle'); if (gesture === 'nav') gesture = null; }, calm.matches ? 0 : 350);
 }
 // Used by the dots, the [ and ] keys, and anything else that is not a drag.
@@ -2087,7 +2658,7 @@ function slideToList(target, direction) {
     return;
   }
   const ghost = ghostPane(target);
-  ghost.style.transform = `translateX(${direction * listPane.offsetWidth}px)`;
+  ghost.style.transform = `translateX(${direction * listPane.offsetWidth}px) scale(${1 - DEPTH})`;
   app.append(ghost);
   listPane.classList.add('nav-drag');
   void ghost.offsetWidth;
@@ -2124,8 +2695,9 @@ listPane.addEventListener('pointerdown', event => {
       ghostDirection = direction;
     }
     const shown = target ? dx : dx * 0.2;                                     // nothing that way: resist
-    listPane.style.transform = `translateX(${shown}px)`;
-    if (ghost) ghost.style.transform = `translateX(${shown + direction * width}px)`;
+    const far = Math.min(1, Math.abs(shown) / width);                          // the leaving list sinks back, the arriving one rises
+    listPane.style.transform = `translateX(${shown}px) scale(${1 - far * DEPTH})`;
+    if (ghost) ghost.style.transform = `translateX(${shown + direction * width}px) scale(${1 - DEPTH + far * DEPTH})`;
   };
   const up = ev => {
     if (ev.pointerId !== event.pointerId) return;
@@ -2192,12 +2764,16 @@ content.addEventListener('click', event => {
   const li = event.target.closest('.row');
   if (!li) return;
   const taskId = li.dataset.id;
-  if (event.target.closest('button.text')) startEdit(taskId);
+  if (event.target.closest('.draft-add')) commitDraft();
+  else if (event.target.closest('.draft-cancel')) cancelDraft();
+  else if (event.target.closest('button.text')) startEdit(taskId);
   else if (event.target.closest('.row-x')) removeTask(taskId, li);
   else if (event.target.closest('.tool-save')) finishEdit();
   else if (event.target.closest('.tool-delete')) removeTask(taskId, li);
   else if (event.target.closest('.tool-up')) { if (commitEditText()) shiftTask(taskId, -1, 'u:' + taskId); }
   else if (event.target.closest('.tool-down')) { if (commitEditText()) shiftTask(taskId, 1, 'd:' + taskId); }
+  else if (event.target.closest('.tool-insert')) { if (commitEditText()) insertBelow(taskId); }
+  else if (event.target.closest('.tool-move')) { if (commitEditText()) openMove(taskId); }
 });
 content.addEventListener('input', event => { if (event.target.matches('.edit-text')) autosize(event.target); });
 content.addEventListener('keydown', event => {
@@ -2205,12 +2781,19 @@ content.addEventListener('keydown', event => {
   if (!li) return;
   const taskId = li.dataset.id;
   const arrow = event.key === 'ArrowUp' ? -1 : event.key === 'ArrowDown' ? 1 : 0;
-  if (event.target.matches('.edit-text')) {
+  if (event.target.matches('.edit-text:not(.draft-text)')) {
     if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); finishEdit(); }
     else if (event.key === 'Escape') { event.preventDefault(); finishEdit({ save: false }); }
     else if (arrow && event.altKey) { event.preventDefault(); if (commitEditText()) shiftTask(taskId, arrow, 'e:' + taskId); }
     return;
   }
+  if (event.target.matches('.draft-text')) {
+    if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); commitDraft(); }
+    else if (event.key === 'Escape') { event.preventDefault(); cancelDraft(); }
+    return;
+  }
+  // + on a focused task opens a new one directly below it (keyboard twin of spread-to-insert).
+  if ((event.key === '+' || event.key === '=') && event.target.closest('button.text') && !('done' in li.dataset)) { event.preventDefault(); insertBelow(taskId); return; }
   if (!arrow || 'done' in li.dataset) return;
   if (event.target.closest('.handle')) { event.preventDefault(); shiftTask(taskId, arrow, 'h:' + taskId); }
   else if (event.altKey && event.target.closest('button.text')) { event.preventDefault(); shiftTask(taskId, arrow, 't:' + taskId); }
@@ -2229,6 +2812,11 @@ addEventListener('pointerdown', () => { pointerIsDown = true; }, true);
 for (const type of ['pointerup', 'pointercancel']) addEventListener(type, () => { pointerIsDown = false; }, true);
 content.addEventListener('focusout', event => {
   const card = event.target.closest('.card.editing');
+  if (card?.closest('.draft')) {
+    if (pressedInsideEdit || card.contains(event.relatedTarget) || !document.hasFocus()) return;
+    setTimeout(() => { if (draft && !content.querySelector('.draft')?.contains(document.activeElement)) commitDraft({ keepFocus: false }); }, 120);
+    return;
+  }
   if (!card || !editingId || pressedInsideEdit || card.contains(event.relatedTarget)) return;
   if (!document.hasFocus()) return;           // switching apps or tabs keeps the edit open
   const taskId = editingId;
@@ -2260,7 +2848,18 @@ $('pager').addEventListener('click', event => {
 /* ---------- home events ---------- */
 listsEl.addEventListener('click', event => {
   const open = event.target.closest('.tile-open');
-  if (open) { sound.play('open'); openList(open.closest('.tile-row').dataset.id, { focus: !wide.matches }); }
+  if (open) {
+    const from = open.closest('.tile-row').getBoundingClientRect(), frame = app.getBoundingClientRect();
+    sound.play('open');
+    clearSearch();
+    openList(open.closest('.tile-row').dataset.id, { focus: !wide.matches });
+    if (!wide.matches && !calm.matches) {
+      const inset = `inset(${from.top - frame.top}px ${frame.right - from.right}px ${frame.bottom - from.bottom}px ${from.left - frame.left}px round 26px)`;
+      listPane.animate([{ clipPath: inset, opacity: 0.4 }, { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1 }], { duration: 440, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+      listPane.animate([{ transform: 'scale(1)' }, { transform: 'scale(1)' }], { duration: 440 });     // hold full size while the reveal plays
+    }
+    stagger();
+  }
 });
 listsEl.addEventListener('keydown', event => {
   const row = event.target.closest('.tile-row');
@@ -2277,11 +2876,16 @@ function openSheet(dialog) {
   if (dialog.open) return;
   syncViewport();
   dialog.showModal();
+  dialog.dataset.openedAt = String(performance.now());
   sound.play('pop');
 }
 // Tapping the dimmed area outside a sheet closes it, like pressing Escape.
 for (const dialog of document.querySelectorAll('dialog.sheet')) {
-  dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  dialog.addEventListener('click', event => {
+    // A sheet opened by a gesture can receive that same gesture's trailing tap; ignore it.
+    const fresh = performance.now() - Number(dialog.dataset.openedAt || 0) < 250;
+    if ((event.target === dialog && !fresh) || event.target.closest('[data-close]')) dialog.close();
+  });
 }
 
 /* ---------- deleting a whole list (swipe left on the Lists screen, or Delete on the keyboard) ---------- */
@@ -2364,8 +2968,10 @@ $('swatches').replaceChildren(...COLORS.map(color => {
   label.append(radio);
   return label;
 }));
-function openListDialog(mode) {
+let newListBefore = null;        // where a new list goes: before this list's id, or null for the end
+function openListDialog(mode, { at = 'end', beforeId = null } = {}) {
   listDialogMode = mode;
+  newListBefore = mode === 'new' ? (at === 'top' ? state.lists[0]?.id ?? null : beforeId) : null;
   const list = current();
   $('list-dialog-title').textContent = mode === 'new' ? 'New list' : 'List options';
   $('list-name').value = mode === 'new' ? '' : list.name;
@@ -2381,6 +2987,12 @@ function openListDialog(mode) {
   if (mode !== 'new') $('list-name').select();
 }
 $('new-list').addEventListener('click', () => openListDialog('new'));
+// Tapping the empty space under the lists offers a new list at the end.
+$('home-scroll').addEventListener('click', event => {
+  if (![$('home-scroll'), $('home-content'), listsEl].includes(event.target) || searching() || gesture) return;
+  const last = listsEl.lastElementChild?.getBoundingClientRect();
+  if (!last || event.clientY > last.bottom) openListDialog('new');
+});
 $('list-more').addEventListener('click', () => openListDialog('edit'));
 $('list-cancel').addEventListener('click', () => listDialog.close());
 $('list-cancel-x').addEventListener('click', () => listDialog.close());
@@ -2391,7 +3003,7 @@ $('list-form').addEventListener('submit', event => {
   try {
     if (listDialogMode === 'new') {
       const id = crypto.randomUUID();
-      act({ type: 'add_list', id, name, color }, { throws: true });
+      act({ type: 'add_list', id, name, color, ...(newListBefore ? { beforeId: newListBefore } : {}) }, { throws: true });
       listDialog.close();
       sound.play('add');
       openList(id, { focus: true });
@@ -2425,7 +3037,9 @@ const settingsStatus = message => { $('settings-status').textContent = message; 
 $('open-settings').addEventListener('click', () => {
   $('settings-confirm').hidden = true;
   $('sound-toggle').setAttribute('aria-checked', String(sound.enabled));
-  $('theme-' + (['light', 'auto'].includes(prefs.theme) ? prefs.theme : 'dark')).checked = true;
+  $('theme-' + themeChoice()).checked = true;
+  $('size-' + (SIZES.includes(prefs.size) ? prefs.size : 'm')).checked = true;
+  $('open-trash').textContent = `Recently deleted (${trashOf(state).length})`;
   renderAccount();
   // Ask the server again each time this screen opens, so a setting changed on the server
   // (such as sign-up being switched on) shows without reloading the app.
@@ -2445,6 +3059,14 @@ $('sound-toggle').addEventListener('click', () => {
   settingsStatus(next ? 'Sound effects are on.' : 'Sound effects are off.');
   if (next) sound.play('done');                 // a taste of what was just switched on
 });
+$('theme-choice').replaceChildren(...THEMES.map(([id, name]) => {
+  const label = el('label');
+  const radio = el('input'); radio.type = 'radio'; radio.name = 'theme'; radio.value = id; radio.id = 'theme-' + id;
+  const card = el('span', 'theme-card'); card.append(el('span', 'theme-chip chip-' + id), el('span', '', name));
+  label.append(radio, card);
+  return label;
+}));
+$('size-choice').addEventListener('change', event => { prefs.size = event.target.value; savePrefs(); applyTheme(); syncViewport(); });
 $('theme-choice').addEventListener('change', event => {
   prefs.theme = event.target.value;
   savePrefs();
@@ -2682,6 +3304,255 @@ async function checkSession() {
     if (account) renderSyncLine({ online: false });
   }
   renderSyncLine();
+}
+
+/* ---------- search across every list ---------- */
+const searchText = $('search-text');
+const searching = () => searchText.value.trim().length >= 2;
+function renderSearch() {
+  const query = searchText.value.trim().toLowerCase();
+  const active = query.length >= 2;
+  $('search-clear').hidden = !searchText.value;
+  $('results').hidden = $('results-note').hidden = !active;
+  listsEl.hidden = $('new-list').hidden = active;
+  if (!active) { $('results').replaceChildren(); return; }
+  const found = [];
+  for (const list of state.lists) for (const task of list.tasks) {
+    const at = task.text.toLowerCase().indexOf(query);
+    if (at >= 0 && found.length < 60) found.push({ list, task, at });
+  }
+  $('results-note').textContent = found.length ? `${plural(found.length, 'match')}${found.length === 60 ? ' (showing the first 60)' : ''}`.replace('matchs', 'matches') : 'Nothing matches that.';
+  $('results').replaceChildren(...found.map(({ list, task, at }) => {
+    const li = el('li', 'hue'); li.style.setProperty('--h', hueOf(list));
+    const button = el('button', 'result' + (task.done ? ' is-done' : '')); button.type = 'button';
+    button.dataset.list = list.id; button.dataset.task = task.id;
+    const line = el('span');
+    line.append(task.text.slice(0, at), el('mark', '', task.text.slice(at, at + query.length)), task.text.slice(at + query.length));
+    button.append(line, el('small', '', list.name + (task.done ? ' · done' : '')));
+    li.append(button);
+    return li;
+  }));
+}
+function clearSearch() { if (!searchText.value) return; searchText.value = ''; renderSearch(); }
+searchText.addEventListener('input', () => { renderSearch(); $('home-scroll').scrollTop = 0; });
+searchText.addEventListener('keydown', event => { if (event.key === 'Escape') { clearSearch(); searchText.blur(); } });
+$('search').addEventListener('submit', event => { event.preventDefault(); $('results').querySelector('button')?.focus(); });
+$('search-clear').addEventListener('click', () => { clearSearch(); searchText.focus(); });
+$('results').addEventListener('click', event => {
+  const hit = event.target.closest('.result');
+  if (!hit) return;
+  const { list: listId, task: taskId } = hit.dataset;
+  const task = state.lists.find(l => l.id === listId)?.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  clearSearch();
+  if (task.done && !doneOpen) { doneOpen = true; savePrefs(); }
+  sound.play('open');
+  openList(listId, { focus: false });
+  const row = content.querySelector(`.row[data-id="${CSS.escape(taskId)}"]`);
+  if (row) { row.scrollIntoView({ block: 'center' }); row.classList.add('found'); row.querySelector('button.text, .check input')?.focus({ preventScroll: true }); setTimeout(() => row.classList.remove('found'), 1700); }
+});
+
+/* ---------- move a task to another list ---------- */
+const moveDialog = $('move-dialog');
+function openMove(taskId) {
+  const from = current();
+  const task = from.tasks.find(t => t.id === taskId);
+  if (!task) return;
+  $('move-text').textContent = `“${task.text.length > 80 ? task.text.slice(0, 80) + '…' : task.text}” goes to the top of the list you pick.`;
+  $('move-targets').replaceChildren(...state.lists.filter(l => l.id !== from.id).map(list => {
+    const button = el('button', 'target-btn hue'); button.type = 'button';
+    button.style.setProperty('--h', hueOf(list));
+    button.append(el('span', '', list.name), el('small', '', summary(list)));
+    button.addEventListener('click', () => {
+      moveDialog.close();
+      if (!act({ type: 'transfer_item', listId: from.id, itemId: taskId, toListId: list.id }, { toast: `Moved to “${list.name}”`, undo: true })) return;
+      editingId = null;
+      sound.play('move');
+      render();
+    });
+    return button;
+  }));
+  openSheet(moveDialog);
+  $('move-targets').querySelector('button')?.focus();
+}
+
+/* ---------- pick one for me ---------- */
+const pickDialog = $('pick-dialog');
+let pickedId = null;
+function rollPick() {
+  const open = current().tasks.filter(t => !t.done);
+  if (!open.length) return false;
+  const pool = open.length > 1 ? open.filter(t => t.id !== pickedId) : open;
+  const task = pool[Math.floor(Math.random() * pool.length)];
+  pickedId = task.id;
+  const line = $('pick-task');
+  line.textContent = task.text;
+  line.classList.remove('roll'); void line.offsetWidth; line.classList.add('roll');
+  $('pick-note').textContent = open.length > 1 ? `One of ${open.length} open here. The rest can wait.` : 'The only one left on this list.';
+  $('pick-again').disabled = open.length < 2;
+  return true;
+}
+$('pick').addEventListener('click', () => {
+  if (editingId) finishEdit({ refocus: false });
+  pickedId = null;
+  if (!rollPick()) { sound.play('nope'); showToast('Nothing open on this list to pick from.'); return; }
+  pickDialog.style.setProperty('--h', hueOf(current()));
+  openSheet(pickDialog);
+  sound.play('pick');
+  $('pick-done').focus();
+});
+$('pick-again').addEventListener('click', () => { if (rollPick()) sound.play('pick'); });
+$('pick-done').addEventListener('click', () => {
+  const taskId = pickedId;
+  pickDialog.close();
+  if (taskId) setDone(taskId, true, content.querySelector(`.row[data-id="${CSS.escape(taskId)}"]`));
+});
+
+/* ---------- recently deleted ---------- */
+const trashDialog = $('trash-dialog');
+function renderTrash() {
+  const trash = trashOf(state);
+  $('trash-note').textContent = trash.length
+    ? `Deleted tasks and lists wait here for ${TRASH_DAYS} days, then go for good.`
+    : `Nothing here. Deleted tasks and lists wait here for ${TRASH_DAYS} days.`;
+  $('trash-empty').hidden = !trash.length;
+  $('trash-confirm').hidden = true;
+  $('trash-list').replaceChildren(...trash.map(entry => {
+    const li = el('li');
+    const isList = entry.kind === 'list';
+    const label = el('span', '', isList ? entry.list.name : entry.task.text);
+    label.append(el('small', '', isList ? `A whole list, with ${plural(entry.list.tasks.length, 'task')}` : `From ${entry.listName}${entry.task.done ? ' · was done' : ''}`));
+    const restore = el('button', 'quiet-btn', 'Restore'); restore.type = 'button';
+    restore.setAttribute('aria-label', `Restore: ${isList ? entry.list.name : entry.task.text}`);
+    restore.addEventListener('click', () => {
+      if (!act({ type: 'restore_trash', trashId: entry.id })) return;
+      sound.play('undo');
+      announce('Restored.');
+      render();
+      renderTrash();
+    });
+    li.append(label, restore);
+    return li;
+  }));
+}
+$('open-trash').addEventListener('click', () => { renderTrash(); openSheet(trashDialog); });
+$('trash-empty').addEventListener('click', () => { $('trash-confirm').hidden = false; $('trash-confirm-no').focus(); $('trash-confirm').scrollIntoView({ block: 'nearest' }); });
+$('trash-confirm-no').addEventListener('click', () => { $('trash-confirm').hidden = true; });
+$('trash-confirm-yes').addEventListener('click', () => { if (act({ type: 'empty_trash' })) { sound.play('delete'); renderTrash(); } });
+trashDialog.addEventListener('close', () => { $('open-trash').textContent = `Recently deleted (${trashOf(state).length})`; });
+
+/* ---------- rewards: trophies and finales for clearing whole lists ---------- */
+const TROPHIES = [[1, 'First Sweep'], [5, 'High Five'], [10, 'Clear Head'], [25, 'Quiet Mind'], [50, 'Golden Hush'], [100, 'Hundred Hushes']];
+const FINALES = [['confetti', 'Confetti', 0], ['fireworks', 'Fireworks', 3], ['gems', 'Gem shower', 10], ['aurora', 'Aurora wave', 25]];
+const finaleChoice = () => {
+  const mine = FINALES.find(([id, , at]) => id === prefs.finale && clearedOf(state) >= at);
+  return mine ? mine[0] : 'confetti';
+};
+let bannerTimer = 0;
+function showBanner(title, text) {
+  $('banner-title').textContent = title;
+  $('banner-text').textContent = text;
+  const banner = $('banner');
+  banner.hidden = true; void banner.offsetWidth; banner.hidden = false;
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { banner.hidden = true; }, 4200);
+}
+// Called only when the person's own tick cleared the list, never for changes from another device.
+function celebrate(list, reward) {
+  cheer();
+  runFinale(finaleChoice(), hueOf(list));
+  if (!reward?.counted) return;
+  const total = reward.total;
+  const trophy = TROPHIES.find(([at]) => at === total);
+  const unlocked = FINALES.find(([, , at]) => at === total && at > 0);
+  const next = TROPHIES.find(([at]) => at > total);
+  if (trophy) { sound.play('trophy'); showBanner(`Trophy: ${trophy[1]}`, `${plural(total, 'list')} cleared${unlocked ? `. New finale unlocked: ${unlocked[1]}` : ''}`); }
+  else if (unlocked) { sound.play('trophy'); showBanner(`New finale: ${unlocked[1]}`, 'Choose it under Trophies.'); }
+  else showBanner(`“${list.name}” cleared`, next ? `${plural(total, 'list')} so far. ${next[0] - total} more for ${next[1]}.` : `${plural(total, 'list')} so far.`);
+}
+const trophyDialog = $('trophy-dialog');
+function renderTrophies() {
+  const total = clearedOf(state);
+  $('tally-count').textContent = String(total);
+  $('tally-text').textContent = total === 1 ? 'list cleared' : 'lists cleared';
+  const next = TROPHIES.find(([at]) => at > total);
+  $('tally-next').textContent = next
+    ? `Finish every task on a list to clear it. ${next[0] - total} more for ${next[1]}.`
+    : 'Every trophy earned. Still counting.';
+  $('trophy-grid').replaceChildren(...TROPHIES.map(([at, name]) => {
+    const li = el('li', 'trophy' + (total >= at ? ' earned' : ''));
+    li.append(icon('i-trophy'), el('b', '', name), el('small', '', total >= at ? `Earned at ${at}` : `At ${plural(at, 'cleared list')}`));
+    return li;
+  }));
+  const chosen = finaleChoice();
+  $('finale-choice').replaceChildren(...FINALES.map(([id, name, at]) => {
+    const label = el('label', 'choice');
+    const radio = el('input'); radio.type = 'radio'; radio.name = 'finale'; radio.value = id; radio.id = 'finale-' + id;
+    radio.checked = id === chosen; radio.disabled = total < at;
+    const text = el('span', '', name); text.append(el('small', '', total >= at ? (at ? `Unlocked at ${at}` : 'Yours from the start') : `Unlocks at ${plural(at, 'cleared list')}`));
+    label.append(radio, text);
+    return label;
+  }));
+}
+$('open-trophies').addEventListener('click', () => { renderTrophies(); openSheet(trophyDialog); });
+$('finale-choice').addEventListener('change', event => {
+  prefs.finale = event.target.value;
+  savePrefs();
+  runFinale(prefs.finale, hueOf(current()));          // a preview of the one just chosen
+});
+
+// The finale itself: a short burst drawn on a canvas above everything, then gone.
+let finaleFrame = 0;
+function runFinale(kind, hue) {
+  const canvas = $('finale');
+  document.dispatchEvent(new CustomEvent('quiet:finale', { detail: { kind, shown: !calm.matches } }));
+  if (calm.matches) return;
+  cancelAnimationFrame(finaleFrame);
+  const scale = Math.min(2, devicePixelRatio || 1), width = app.clientWidth, height = app.clientHeight;
+  canvas.width = width * scale; canvas.height = height * scale; canvas.hidden = false;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const tint = (shift, light = 62) => `hsl(${(hue + shift + 360) % 360} 92% ${light}%)`;
+  const bits = [];
+  const burst = (x, y, count, speed, delay = 0) => { for (let i = 0; i < count; i++) { const angle = rand(0, Math.PI * 2), v = rand(speed * 0.4, speed); bits.push({ x, y, vx: Math.cos(angle) * v, vy: Math.sin(angle) * v, g: 0.06, size: rand(2, 4), color: tint(rand(-40, 60), rand(58, 78)), life: rand(0.7, 1.1), delay, shape: 'dot', trail: true }); } };
+  if (kind === 'fireworks') { burst(width * 0.3, height * 0.32, 46, 6); burst(width * 0.72, height * 0.24, 46, 6, 0.28); burst(width * 0.5, height * 0.45, 60, 7, 0.56); }
+  else if (kind === 'gems') { for (let i = 0; i < 44; i++) bits.push({ x: rand(0, width), y: rand(-height * 0.5, -10), vx: rand(-0.5, 0.5), vy: rand(3, 6.5), g: 0.05, size: rand(8, 15), color: i % 4 ? tint(rand(-25, 25), rand(60, 76)) : 'hsl(46 95% 68%)', life: 1.6, delay: rand(0, 0.5), shape: 'gem', spin: rand(-0.1, 0.1), turn: rand(0, 6) }); }
+  else if (kind === 'aurora') { for (let i = 0; i < 4; i++) bits.push({ shape: 'wave', band: i, life: 1.5, delay: i * 0.12, color: `hsl(${[150, 175, 280, (hue + 360) % 360][i]} 85% 62%)` }); for (let i = 0; i < 36; i++) bits.push({ x: rand(0, width), y: rand(0, height * 0.7), vx: 0, vy: -0.15, g: 0, size: rand(1, 2.6), color: 'hsl(60 100% 92%)', life: rand(0.8, 1.5), delay: rand(0, 0.7), shape: 'dot' }); }
+  else { for (let i = 0; i < 96; i++) bits.push({ x: width / 2 + rand(-40, 40), y: height * 0.34, vx: rand(-7, 7), vy: rand(-12, -3), g: 0.28, size: rand(6, 11), color: tint(i * 37, rand(58, 74)), life: rand(1.1, 1.7), delay: rand(0, 0.12), shape: 'card', spin: rand(-0.3, 0.3), turn: rand(0, 6) }); }
+  const start = performance.now(), length = 2300;
+  let last = start;
+  const frame = now => {
+    const t = (now - start) / 1000, step = Math.min(2.5, (now - last) / 16.7);
+    last = now;
+    ctx.clearRect(0, 0, width, height);
+    for (const b of bits) {
+      const age = t - (b.delay || 0);
+      if (age < 0 || age > b.life) continue;
+      const fade = Math.min(1, (b.life - age) / (b.life * 0.4));
+      ctx.globalAlpha = fade;
+      ctx.fillStyle = ctx.strokeStyle = b.color;
+      if (b.shape === 'wave') {
+        const rise = height * (0.75 - age / b.life * 0.75);
+        ctx.globalAlpha = fade * 0.32;
+        ctx.beginPath(); ctx.moveTo(0, height);
+        for (let x = 0; x <= width; x += 12) ctx.lineTo(x, rise + Math.sin(x / 70 + b.band * 1.7 + age * 3) * 34 + b.band * 34);
+        ctx.lineTo(width, height); ctx.closePath(); ctx.fill();
+        continue;
+      }
+      b.vy += b.g * step; b.x += b.vx * step; b.y += b.vy * step; if (b.turn != null) b.turn += (b.spin || 0) * step;
+      if (b.trail) { b.vx *= 0.985; b.vy *= 0.985; }
+      ctx.save(); ctx.translate(b.x, b.y);
+      if (b.shape === 'card') { ctx.rotate(b.turn); ctx.fillRect(-b.size / 2, -b.size / 3, b.size, b.size * 0.66); }
+      else if (b.shape === 'gem') { ctx.rotate(b.turn); ctx.shadowColor = b.color; ctx.shadowBlur = 12; ctx.beginPath(); ctx.moveTo(0, -b.size); ctx.lineTo(b.size * 0.72, -b.size * 0.2); ctx.lineTo(0, b.size); ctx.lineTo(-b.size * 0.72, -b.size * 0.2); ctx.closePath(); ctx.fill(); ctx.globalAlpha = fade * 0.5; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(0, -b.size); ctx.lineTo(b.size * 0.3, -b.size * 0.25); ctx.lineTo(-b.size * 0.3, -b.size * 0.25); ctx.closePath(); ctx.fill(); }
+      else { ctx.shadowColor = b.color; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(0, 0, b.size, 0, Math.PI * 2); ctx.fill(); }
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    if (now - start < length) finaleFrame = requestAnimationFrame(frame);
+    else { ctx.clearRect(0, 0, width, height); canvas.hidden = true; }
+  };
+  finaleFrame = requestAnimationFrame(frame);
 }
 
 /* ---------- toast + keyboard ---------- */

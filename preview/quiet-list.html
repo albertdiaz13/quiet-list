@@ -36,7 +36,13 @@
   --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   --r-row: 18px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --spring: cubic-bezier(0.3, 1.5, 0.5, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);     /* arrivals: fast start, long soft landing */
+  --ease-in: cubic-bezier(0.5, 0, 0.9, 0.4);     /* exits: quicker than arrivals */
+  --spring: cubic-bezier(0.3, 1.3, 0.5, 1);      /* a small overshoot, kept for confirmations only */
+  /* The phone's status bar / Dynamic Island and home indicator. Everything reads these two. */
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --vv-bottom: 0px;                 /* height hidden by the on-screen keyboard, from script */
   --vv-h: 100dvh;                   /* visible height and offset, kept current from script (keyboard aware) */
   --vv-top: 0px;
   color-scheme: dark;
@@ -64,6 +70,9 @@
   --grain: 0.045;
   color-scheme: light;
 }
+@property --lit { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --far { syntax: "<number>"; inherits: true; initial-value: 0; }
+
 /* ----- more themes. Each keeps a hue per list; only the room, surfaces and finish change. ----- */
 :root[data-theme="noir"] {            /* Velvet Noir: near-black, gold highlights, quieter gems */
   --bg-lc: 0.105 0.012; --glow-lc: 0.42 0.09; --surface-lc: 0.215 0.016; --surface-hi-lc: 0.25 0.018; --surface-lo-lc: 0.185 0.014;
@@ -110,7 +119,7 @@
   --tile2: oklch(var(--tile2-lc) calc(var(--h) + 28));
   --on-tile: oklch(var(--on-tile-lc) var(--h));
   --jewel: linear-gradient(140deg, var(--tile), var(--tile2));
-  --jewel-glow: oklch(var(--tile-lc) var(--h) / 0.5);
+  --jewel-glow: oklch(var(--tile-lc) var(--h) / 0.34);        /* coloured light cast below a jewel; always used with an offset */
   --room:
     radial-gradient(130% 62% at 12% -6%, oklch(var(--glow-lc) var(--h) / var(--glow-strength)), transparent 64%),
     radial-gradient(95% 50% at 110% 102%, oklch(var(--glow-lc) calc(var(--h) + 42) / calc(var(--glow-strength) * 0.55)), transparent 66%),
@@ -137,7 +146,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 html {
   height: 100%;
-  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  /* Full bleed: each screen paints its own colour right up under the status bar and home indicator,
+     and keeps its controls clear of them with --sat / --sab. */
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
 }
@@ -150,9 +160,11 @@ body {
 }
 /* A whisper of film grain over everything keeps the gradients from looking flat. */
 body::after {
-  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: var(--grain); mix-blend-mode: overlay;
+  content: ""; position: fixed; inset: 0; z-index: 50; pointer-events: none; opacity: calc(var(--grain) * 0.6);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
+::selection { background: oklch(var(--accent-lc) var(--h) / 0.35); color: var(--ink); }
+input, textarea { caret-color: var(--accent); }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; touch-action: manipulation; }
 h1, h2, h3, p, ol, ul, dl, dd, fieldset { margin: 0; padding: 0; border: 0; }
@@ -168,19 +180,22 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 #app { position: relative; height: 100%; overflow: hidden; overflow: clip; }   /* clip, so nothing inside can scroll the app frame itself */
 .pane {
   position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--room);
-  transition: transform 0.36s var(--ease), opacity 0.36s var(--ease), visibility 0s linear 0.36s;
+  transition: transform 0.34s var(--ease-out), opacity 0.22s ease-out, visibility 0s linear 0.34s;
 }
 #app[data-view="list"] #home { transform: scale(1.1); opacity: 0; visibility: hidden; }
 #app[data-view="home"] #list { transform: scale(0.9); opacity: 0; visibility: hidden; }
 .pane { overflow: hidden; overflow: clip; }      /* clip: a pane must never become scrollable itself */
 .pane > * { position: relative; z-index: 1; }
-.pane::before {                       /* a slow drift of light behind everything */
-  content: ""; position: absolute; inset: -25%; z-index: 0; pointer-events: none;
-  background: radial-gradient(34% 26% at 32% 34%, oklch(var(--glow-lc) var(--h) / 0.22), transparent 70%), radial-gradient(30% 24% at 70% 66%, oklch(var(--glow-lc) calc(var(--h) + 50) / 0.16), transparent 70%);
-  animation: drift 26s ease-in-out infinite alternate;
-}
-@keyframes drift { from { transform: translate(-6%, -4%) rotate(0deg); } to { transform: translate(7%, 5%) rotate(14deg); } }
-.pane.nav-drag, .pane.nav-settle { border-radius: 30px; box-shadow: 0 0 70px oklch(0 0 0 / 0.65); }
+.pane.nav-drag, .pane.nav-settle { border-radius: 30px; box-shadow: 0 24px 70px oklch(0 0 0 / 0.6); }
+/* While two lists travel together, the one further away dims and its title lags a little: depth, not just a slide. */
+.pane { --far: 0; --side: 1; }
+.pane::after { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: oklch(0.05 0.02 var(--h)); opacity: calc(var(--far) * 0.42); }
+.pane.nav-drag .bar-title, .pane.nav-settle .bar-title { transform: translateX(calc(var(--far) * var(--side) * 48px)); }
+.pane.closing-to-tile { transform: none !important; visibility: visible !important; z-index: 2; transition: none !important; }   /* opacity is left to the fold animation */
+.pane.closing-to-tile > * { opacity: 0; transition: opacity 0.07s linear; }
+.pane.closing-to-tile { background: var(--jewel); }                 /* the surface that folds is the tile's own colour */
+.pane > .reveal-tint { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: var(--jewel); }
+
 #app[data-view="home"] #home, #app[data-view="list"] #list { transition-delay: 0s; }
 /* sideways list switching: the open list and the incoming one travel together */
 #list { touch-action: pan-y pinch-zoom; }
@@ -189,21 +204,21 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 #open, #done, #lists { touch-action: pan-y; }
 .pane.ghost { z-index: 1; pointer-events: none; }
 .pane.nav-drag { transition: none !important; }
-.pane.nav-settle { transition: transform 0.34s var(--ease) !important; }
+.pane.nav-settle { transition: transform 0.32s var(--ease-out), --far 0.32s var(--ease-out) !important; }
 .bar {
-  display: flex; align-items: center; gap: 4px; min-height: 68px;
-  padding: 10px max(8px, env(safe-area-inset-right, 0px)) 4px max(8px, env(safe-area-inset-left, 0px));
+  display: flex; align-items: center; gap: 4px; min-height: calc(68px + var(--sat));
+  padding: calc(10px + var(--sat)) max(8px, env(safe-area-inset-right, 0px)) 4px max(8px, env(safe-area-inset-left, 0px));
 }
 .scroll {
   flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; position: relative;
-  padding: 6px max(16px, env(safe-area-inset-right, 0px)) 128px max(16px, env(safe-area-inset-left, 0px));
+  padding: 6px max(16px, env(safe-area-inset-right, 0px)) calc(128px + var(--sab)) max(16px, env(safe-area-inset-left, 0px));
   scrollbar-width: thin; scrollbar-color: var(--line) transparent;
 }
 .icon-btn {
   width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--ink);
   transition: background-color 0.2s, transform 0.2s var(--spring);
 }
-.icon-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); }
+@media (hover: hover) { .icon-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); } }
 .icon-btn:active { transform: scale(0.88); }
 
 /* ---------- home ---------- */
@@ -214,40 +229,52 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 .tile-row { position: relative; border-radius: 26px; background: var(--accent); color: var(--on-accent); }
 .tile-row[data-swipe="delete"] { background: var(--danger); color: var(--on-danger); }
 .tile {
-  position: relative; display: flex; align-items: stretch; min-height: 92px; border-radius: 26px; overflow: hidden;
-  background: var(--jewel); color: var(--on-tile);
-  border: 1px solid oklch(1 0 0 / 0.16);
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 -18px 30px -18px oklch(0 0 0 / 0.35), 0 16px 30px -14px var(--jewel-glow);
+  --lx: 50%; --ly: 50%; --lit: 0;
+  position: relative; display: flex; align-items: stretch; min-height: 92px; border-radius: 26px; overflow: hidden; isolation: isolate;
+  color: var(--on-tile);
+  /* colour deepens away from the light: one smooth fall-off, then shade pooling in the far corner */
+  background:
+    radial-gradient(115% 150% at 104% 128%, oklch(0.16 0.08 calc(var(--h) + 36) / 0.72), transparent 60%),
+    linear-gradient(172deg, var(--tile) 8%, var(--tile2) 96%);
+  border: 1px solid oklch(1 0 0 / 0.13);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), inset 0 -1px 0 oklch(0 0 0 / 0.35), 0 20px 30px -20px var(--jewel-glow), 0 4px 10px -3px oklch(0 0 0 / 0.45);
   touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
-  transition: box-shadow 0.25s;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.25s, --lit 0.5s ease-out;
 }
-/* a cut-gem highlight across the top-left corner */
+/* light from above, falling off softly across the top edge; plus a bloom under the finger while pressed */
 .tile::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(118deg, oklch(1 0 0 / 0.26) 0%, oklch(1 0 0 / 0.06) 34%, transparent 34.2%), radial-gradient(60% 90% at 100% 100%, oklch(0 0 0 / 0.22), transparent 70%);
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(170px circle at var(--lx) var(--ly), oklch(1 0 0 / calc(var(--lit) * 0.3)), transparent 72%),
+    radial-gradient(105% 62% at 30% -36%, oklch(1 0 0 / 0.3), oklch(1 0 0 / 0.07) 56%, transparent 76%);
 }
+/* one soft pass of light when the Lists screen appears (see .glint) */
+.tile::after {
+  content: ""; position: absolute; inset: -30% -70%; z-index: -1; pointer-events: none; opacity: 0;
+  background: linear-gradient(102deg, transparent 40%, oklch(1 0 0 / 0.2) 50%, transparent 60%);
+}
+.glint .tile::after { animation: glint 0.9s var(--ease-out) both; animation-delay: calc(min(var(--i, 0), 6) * 55ms + 120ms); }
+@keyframes glint { 0% { transform: translateX(-62%); opacity: 0; } 25% { opacity: 1; } 100% { transform: translateX(62%); opacity: 0; } }
+.tile.pressed { --lit: 1; transform: scale(0.985); transition: transform 0.12s var(--ease-out), --lit 0.08s; }
 .tile-open {
   position: relative; flex: 1; min-width: 0; text-align: left; padding: 20px 4px 20px 22px; display: grid; gap: 4px; align-content: center; color: inherit;
 }
-.tile-name { font: 800 1.5rem/1.1 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; text-wrap: balance; text-shadow: 0 1px 12px oklch(0 0 0 / 0.25); }
-.tile-count { font-size: 0.875rem; font-weight: 600; opacity: 0.9; font-variant-numeric: tabular-nums; }
-.tile-row[aria-current="true"] .tile::after {
-  content: ""; position: absolute; left: 9px; top: 50%; width: 5px; height: 26px; margin-top: -13px;
-  border-radius: 3px; background: var(--on-tile); box-shadow: 0 0 12px var(--on-tile);
-}
-.tile:has(.tile-open:active) { box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.28), inset 0 0 40px oklch(0 0 0 / 0.3), 0 6px 14px -10px var(--jewel-glow); }
+.tile-name { font: 800 1.5rem/1.1 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; text-wrap: balance; text-shadow: 0 1px 2px oklch(0 0 0 / 0.28), 0 6px 18px oklch(0 0 0 / 0.22); }
+.tile-count { font-size: 0.875rem; font-weight: 600; color: oklch(var(--on-tile-lc) var(--h) / 0.9); font-variant-numeric: tabular-nums; }
 .tile :focus-visible { outline-color: var(--on-tile); outline-offset: -6px; border-radius: 22px; }
 .handle {
   position: relative; width: 48px; display: grid; place-items: center; flex: none; touch-action: none; cursor: grab;
   color: inherit; opacity: 0.6; border-radius: 12px;
 }
-.handle:hover, .handle:focus-visible { opacity: 1; }
+@media (hover: hover) { .handle:hover, .handle:focus-visible { opacity: 1; } }
 .ghost-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 60px; margin-top: 12px;
-  border-radius: 26px; border: 2px dashed var(--line); color: var(--muted); font-weight: 700;
-  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+  border-radius: 26px; border: 1px solid var(--edge); background: oklch(var(--ink-lc) var(--h) / 0.05); color: var(--muted); font-weight: 700;
+  box-shadow: inset 0 1px 0 var(--shine);
+  transition: color 0.2s, background-color 0.2s, transform 0.15s var(--ease-out);
 }
-.ghost-btn:hover { color: var(--ink); border-color: var(--muted); background: oklch(var(--ink-lc) var(--h) / 0.05); }
+@media (hover: hover) { .ghost-btn:hover { color: var(--ink); background: oklch(var(--ink-lc) var(--h) / 0.09); } }
+.ghost-btn:active { transform: scale(0.98); }
 .fineprint { margin-top: 20px; font-size: 0.8125rem; color: var(--muted); text-align: center; }
 .link-btn { color: var(--accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 0 4px; }
 
@@ -265,7 +292,7 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   content: ""; width: 8px; height: 8px; border-radius: 4px; background: oklch(var(--ink-lc) var(--h) / 0.28);
   transition: width 0.3s var(--spring), background-color 0.25s, box-shadow 0.25s;
 }
-.pager [aria-current="true"]::before { width: 22px; background: var(--accent); box-shadow: 0 0 14px var(--accent); }
+.pager [aria-current="true"]::before { width: 22px; background: var(--accent); box-shadow: 0 2px 6px -1px oklch(0 0 0 / 0.5); }
 
 /* ---------- capture ---------- */
 .pull {
@@ -273,7 +300,7 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-weight: 700;
 }
 .pull svg { transition: transform 0.25s var(--spring); }
-.pull.armed { color: var(--accent); text-shadow: 0 0 16px var(--accent); }
+.pull.armed { color: var(--accent); }
 .pull.armed svg { transform: rotate(90deg) scale(1.25); }
 #content.settle, #home-content.settle { transition: transform 0.3s var(--ease); }
 .capture {
@@ -324,11 +351,17 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   content: ""; width: 12px; height: 6.5px; margin-top: -3px; border: solid var(--on-tile); border-width: 0 0 2.8px 2.8px;
   transform: rotate(-45deg) scale(0); transition: transform 0.22s var(--spring);
 }
-.check input:checked { background: var(--jewel); border-color: transparent; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.35), 0 0 16px var(--jewel-glow); }
+.check input:checked { background: var(--jewel); border-color: transparent; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.35), 0 4px 9px -3px oklch(0 0 0 / 0.55); }
 .check input:checked::after { transform: rotate(-45deg) scale(1); }
-.check input:hover { border-color: var(--accent); }
-.row.completing .check input { animation: pop 0.36s var(--spring); }
-@keyframes pop { 40% { transform: scale(1.32); } }
+@media (hover: hover) { .check input:hover { border-color: var(--accent); } }
+.check { position: relative; }
+.row.completing .check input { animation: pop 0.3s var(--spring); }
+@keyframes pop { 40% { transform: scale(1.26); } }
+.row.completing .check::after { content: ""; position: absolute; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--accent); pointer-events: none; animation: ring 0.46s var(--ease-out) forwards; }
+@keyframes ring { from { transform: scale(1); opacity: 0.85; } to { transform: scale(2.4); opacity: 0; } }
+.row-ghost { z-index: 4; pointer-events: none; margin: 0; list-style: none; display: block; }
+.capture.pulse { animation: pulse 0.45s var(--ease-out); }
+@keyframes pulse { from { box-shadow: 0 0 0 0 oklch(var(--accent-lc) var(--h) / 0.55); } to { box-shadow: 0 0 0 14px oklch(var(--accent-lc) var(--h) / 0); } }
 .text {
   text-align: left; padding: 17px 2px 17px 0; min-height: 58px; width: 100%; border-radius: 8px;
   white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; user-select: none; -webkit-user-select: none;
@@ -336,13 +369,14 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 .text .t {
   background: linear-gradient(currentColor, currentColor) 0 56% / 0 2px no-repeat;
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
-  transition: background-size 0.28s var(--ease), color 0.28s;
+  transition: background-size 0.2s var(--ease-out), color 0.2s;
 }
 .row.completing .text .t, .row[data-done] .text .t { background-size: 100% 2px; color: var(--muted); }
 .row .handle { height: 58px; width: 44px; color: var(--muted); }
-.row.entering { animation: arrive 0.4s var(--spring); }
+/* a new task drops into place */
+.row.entering { animation: arrive 0.36s var(--ease-out); }
 /* rows rise in one after another when a list opens */
-.stagger > li { animation: rise 0.46s var(--spring) both; animation-delay: calc(var(--i, 0) * 32ms); }
+.stagger > li { animation: rise 0.4s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 26ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(18px) scale(0.96); } }
 /* spread-to-insert: the rows part and a slot appears */
 .spreading > li { transition: transform 0.12s linear; }
@@ -351,14 +385,14 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   border-radius: var(--r-row); border: 2px dashed var(--accent); color: var(--accent); font-weight: 700; overflow: hidden; opacity: 0; pointer-events: none;
   background: oklch(var(--accent-lc) var(--h) / 0.1);
 }
-.spread-slot.armed { border-style: solid; background: oklch(var(--accent-lc) var(--h) / 0.22); box-shadow: 0 0 24px -4px var(--accent); }
+.spread-slot.armed { border-style: solid; background: oklch(var(--accent-lc) var(--h) / 0.22); }
 .rows, .tiles { position: relative; }
-.row.draft .card { box-shadow: 0 0 0 2px var(--accent), 0 0 30px -6px var(--accent), var(--shadow); }
+.row.draft .card { box-shadow: 0 0 0 2px var(--accent), 0 14px 30px -14px var(--accent), var(--shadow); }
 .row.found .card { animation: found 1.6s var(--ease); }
 @keyframes found { 0%, 60% { box-shadow: 0 0 0 2.5px var(--accent), 0 0 34px -4px var(--accent), var(--shadow); } }
 /* a few sparks from the tick */
-.spark { position: absolute; width: 7px; height: 7px; border-radius: 2px; pointer-events: none; z-index: 6; background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: bit 0.6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; }
-@keyframes arrive { from { opacity: 0; transform: translateY(-16px) scale(0.94); } }
+.spark { position: absolute; width: 7px; height: 7px; border-radius: 2px; pointer-events: none; z-index: 6; background: var(--accent); animation: bit 0.6s cubic-bezier(0.1, 0.7, 0.3, 1) forwards; }
+@keyframes arrive { from { opacity: 0; transform: translateY(-22px) scale(0.92); } 70% { opacity: 1; } }
 .dragging { z-index: 5; }
 .dragging .card, .dragging .tile { box-shadow: var(--lift), 0 0 0 1.5px var(--accent); }
 .sorting > :not(.dragging) { transition: transform 0.22s var(--ease); }
@@ -368,10 +402,10 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 .row[data-done] .card { background: oklch(var(--sunk-lc) var(--h) / 0.6); box-shadow: none; color: var(--muted); }
 .row[data-done] .text { cursor: default; }
 .row-x { width: 44px; height: 58px; display: grid; place-items: center; color: var(--muted); }
-.row-x:hover { color: var(--danger); }
+@media (hover: hover) { .row-x:hover { color: var(--danger); } }
 
 /* editing in place */
-.card.editing { grid-template-columns: 50px minmax(0, 1fr); box-shadow: 0 0 0 2px var(--accent), 0 0 30px -6px var(--accent), var(--shadow); user-select: auto; -webkit-user-select: auto; }
+.card.editing { grid-template-columns: 50px minmax(0, 1fr); box-shadow: 0 0 0 2px var(--accent), 0 14px 30px -14px var(--accent), var(--shadow); user-select: auto; -webkit-user-select: auto; }
 .edit-text {
   width: 100%; border: 0; outline: none; background: none; resize: none; overflow: hidden;
   padding: 17px 14px 6px 0; min-height: 52px; line-height: 1.4; field-sizing: content;
@@ -381,12 +415,12 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 10px; border-radius: 12px;
   font-size: 0.875rem; font-weight: 600; color: var(--muted);
 }
-.edit-tools button:hover:not(:disabled) { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
+@media (hover: hover) { .edit-tools button:hover:not(:disabled) { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); } }
 .edit-tools button:disabled { opacity: 0.35; cursor: default; }
 .edit-tools svg { width: 20px; height: 20px; }
 .edit-tools .icon-only span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.edit-tools .tool-delete:hover { color: var(--danger); }
-.edit-tools .tool-save, .edit-tools .tool-save:hover:not(:disabled) { margin-left: auto; background: var(--jewel); color: var(--on-tile); padding: 0 18px; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3); }
+@media (hover: hover) { .edit-tools .tool-delete:hover { color: var(--danger); } }
+@media (hover: hover) { .edit-tools .tool-save, .edit-tools .tool-save:hover:not(:disabled) { margin-left: auto; background: var(--jewel); color: var(--on-tile); padding: 0 18px; box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3); } }
 
 /* ---------- done section + empty ---------- */
 .done-head { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; min-height: 48px; }
@@ -397,28 +431,24 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
   transform: rotate(-45deg); transition: transform 0.2s var(--ease);
 }
 #done-toggle[aria-expanded="true"]::before { transform: rotate(45deg) translate(-2px, -2px); }
-#done-toggle:hover, #clear-done:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
+@media (hover: hover) { #done-toggle:hover, #clear-done:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); } }
 #done { margin-top: 4px; }
 .empty { display: grid; justify-items: center; gap: 6px; padding: 44px 12px 16px; text-align: center; position: relative; }
-.empty-art {
-  width: 96px; height: 96px; border-radius: 32px; display: grid; place-items: center; margin-bottom: 12px;
-  background: linear-gradient(150deg, var(--surface-hi), var(--surface-lo)); border: 1px solid var(--edge);
-  box-shadow: var(--shadow), 0 0 60px -6px oklch(var(--glow-lc) var(--h) / 0.8); transform: rotate(-6deg);
-}
-.empty-art svg { width: 58px; height: 58px; }
+.empty-art { display: grid; place-items: center; margin-bottom: 6px; transform: rotate(-6deg); }
+.empty-art svg { width: 76px; height: 76px; filter: drop-shadow(0 10px 14px oklch(0 0 0 / 0.45)); }
 .empty.cheer .empty-art { animation: cheer 0.7s var(--spring); }
-@keyframes cheer { 0% { transform: rotate(-6deg) scale(0.4); } 60% { transform: rotate(9deg) scale(1.15); } }
+@keyframes cheer { 0% { transform: rotate(-6deg) scale(0.5); } 60% { transform: rotate(7deg) scale(1.1); } }
 .empty h2 { font: 800 1.5rem/1.2 var(--font-display); letter-spacing: -0.03em; }
 .empty p { color: var(--muted); max-width: 30ch; text-wrap: balance; }
 .bit {
   position: absolute; left: 50%; top: 92px; width: 9px; height: 9px; border-radius: 3px; pointer-events: none;
-  background: oklch(0.82 0.16 var(--bh)); box-shadow: 0 0 10px oklch(0.82 0.16 var(--bh)); animation: bit 0.9s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
+  background: oklch(0.82 0.16 var(--bh)); animation: bit 0.9s cubic-bezier(0.1, 0.7, 0.3, 1) forwards;
 }
 @keyframes bit { to { transform: translate(var(--bx), var(--by)) rotate(var(--br)); opacity: 0; } }
 
 /* ---------- floating add button + toast ---------- */
 #fab {
-  position: absolute; z-index: 3; right: max(20px, env(safe-area-inset-right, 0px)); bottom: 22px; width: 64px; height: 64px; border-radius: 24px;
+  position: absolute; z-index: 3; right: max(20px, env(safe-area-inset-right, 0px)); bottom: calc(22px + var(--sab)); width: 64px; height: 64px; border-radius: 24px;
   display: grid; place-items: center; background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.2);
   box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), inset 0 -10px 18px -10px oklch(0 0 0 / 0.4), 0 16px 34px -8px var(--jewel-glow), 0 6px 16px oklch(0 0 0 / 0.4);
   transition: transform 0.28s var(--spring), opacity 0.2s, visibility 0s;
@@ -427,7 +457,7 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 #fab:active { transform: scale(0.88) rotate(90deg); }
 #app[data-view="home"] #fab, #app:has(#capture:focus-within) #fab, #app:has(.card.editing) #fab { transform: scale(0.4); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, 0.28s; }
 #toast {
-  position: absolute; left: 50%; bottom: 22px; z-index: 20; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: calc(22px + var(--sab)); z-index: 20; transform: translateX(-50%);
   display: flex; align-items: center; gap: 4px; max-width: min(440px, calc(100% - 32px)); width: max-content;
   padding: 4px 4px 4px 18px; min-height: 54px; border-radius: 20px;
   background: oklch(var(--ink-lc) var(--h) / 0.94); color: var(--bg); box-shadow: 0 18px 40px -10px oklch(0 0 0 / 0.7); font-size: 0.9375rem; font-weight: 600;
@@ -438,43 +468,66 @@ kbd { font: 600 0.8em var(--font-body); padding: 1px 6px; border-radius: 6px; ba
 #toast-undo { min-height: 44px; padding: 0 16px; border-radius: 15px; font-weight: 800; color: inherit; background: oklch(var(--bg-lc) var(--h) / 0.16); flex: none; }
 #toast-undo:focus-visible { outline-color: var(--bg); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 18px) scale(0.92); } }
-@media (max-width: 899px) { #app[data-view="list"] #toast { bottom: 98px; } }
+@media (max-width: 899px) { #app[data-view="list"] #toast { bottom: calc(98px + var(--sab)); } }
 
 /* ---------- sheets (dialogs): fixed header, scrolling middle, pinned actions ---------- */
-dialog.sheet {
-  position: fixed; inset: auto 0 auto 0; top: calc(var(--vv-top) + 12px); margin: 0 auto; padding: 0;
-  width: min(460px, calc(100vw - 24px)); max-height: calc(var(--vv-h) - 24px);
-  border: 1px solid var(--edge); border-radius: 28px; overflow: hidden;
+/* On a phone a sheet is attached to the bottom edge, where the thumb is: the close button, the grab
+   handle and the action buttons are all within reach. Its top can never enter the status bar /
+   Dynamic Island (--sat), its buttons clear the home indicator (--sab), and when the keyboard is up
+   it sits on top of the keyboard (--vv-bottom, --vv-h). */
+dialog.sheet, .sheet-ghost {
+  position: fixed; inset: auto 0 var(--vv-bottom) 0; margin: 0 auto; padding: 0;
+  width: min(520px, 100vw); max-width: 100vw; max-height: calc(var(--vv-h) - var(--sat) - 10px);
+  border: 1px solid var(--edge); border-bottom: 0; border-radius: 30px 30px 0 0; overflow: hidden;
   background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); color: var(--ink);
-  box-shadow: var(--lift), 0 0 80px -20px oklch(var(--glow-lc) var(--h) / 0.7);
+  box-shadow: inset 0 1px 0 var(--shine), 0 -22px 60px -14px oklch(0 0 0 / 0.65);
 }
-dialog.sheet[open] { display: flex; animation: sheet 0.3s var(--ease); }
-dialog.sheet.tall { height: calc(var(--vv-h) - 24px); max-height: 760px; }
-dialog.sheet::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-@keyframes sheet { from { opacity: 0; transform: translateY(-16px) scale(0.96); } }
+dialog.sheet[open], .sheet-ghost { display: flex; }
+dialog.sheet[open] { animation: sheet-up 0.42s var(--ease-out); }
+dialog.sheet.tall, .sheet-ghost.tall { height: min(800px, calc(var(--vv-h) - var(--sat) - 10px)); }
+dialog.sheet.dragging { animation: none; transition: none; }
+dialog.sheet.settling { animation: none; transition: transform 0.3s var(--ease-out); }
+dialog.sheet::backdrop { background: var(--scrim); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); animation: scrim-in 0.3s ease-out; }
+@keyframes sheet-up { from { transform: translateY(102%); } }
+@keyframes scrim-in { from { opacity: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+/* the leaving copy of a sheet: the real one has already closed, so nothing waits on this */
+.sheet-ghost { z-index: 60; pointer-events: none; }
+.sheet-ghost * { animation: none !important; transition: none !important; }     /* it leaves exactly as it looked */
+.sheet-scrim { position: fixed; inset: 0; z-index: 59; pointer-events: none; background: var(--scrim); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
 .sheet-frame { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
-.sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 10px 8px 6px 22px; }
+.sheet-grab { flex: none; height: 24px; display: grid; place-items: center; touch-action: none; cursor: grab; }
+.sheet-grab::before { content: ""; width: 42px; height: 5px; border-radius: 3px; background: oklch(var(--ink-lc) var(--h) / 0.3); }
+.sheet-head { flex: none; display: flex; align-items: center; gap: 8px; padding: 0 8px 6px 22px; touch-action: none; }
 .sheet-head h2 { flex: 1; min-width: 0; }
 .sheet-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 22px 18px; outline: none; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-.sheet-body:first-child { padding-top: 24px; }
+.sheet-body:last-child { padding-bottom: calc(22px + var(--sab)); }
 .sheet-foot {
-  flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px 16px calc(12px + var(--sab));
   border-top: 1px solid var(--edge); background: oklch(var(--sunk-lc) var(--h) / 0.7);
 }
+.kb-open .sheet-foot { padding-bottom: 12px; }                 /* the keyboard already covers the home indicator */
+.kb-open .sheet-body:last-child { padding-bottom: 22px; }
 .sheet-foot .note { flex: 1; min-width: 0; }
-dialog h2 { font: 800 1.5rem/1.15 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
-dialog h3 { font: 800 1.0625rem/1.2 var(--font-display); letter-spacing: -0.01em; margin: 24px 0 10px; }
-dialog section:first-child > h3 { margin-top: 6px; }
-dialog label, dialog legend { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+:where(.sheet) h2 { font: 800 1.5rem/1.15 var(--font-display); letter-spacing: -0.03em; overflow-wrap: anywhere; }
+:where(.sheet) h3 { font: 800 1.0625rem/1.2 var(--font-display); letter-spacing: -0.01em; margin: 24px 0 10px; }
+:where(.sheet) section:first-child > h3 { margin-top: 6px; }
+:where(.sheet) label, :where(.sheet) legend { display: block; font-size: 0.8125rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
 .lead { margin-top: 10px; color: var(--muted); line-height: 1.5; }
 .field { width: 100%; height: 54px; padding: 0 14px; border-radius: 15px; border: 1.5px solid var(--line); background: var(--sunk); outline: none; margin-bottom: 10px; box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.18); }
 .field:focus { border-color: var(--accent); box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.18), 0 0 0 4px oklch(var(--accent-lc) var(--h) / 0.2); }
 .field::placeholder { color: var(--muted); opacity: 1; }
-dialog fieldset { margin-top: 12px; }
+:where(.sheet) fieldset { margin-top: 12px; }
+.preview { position: relative; margin: 2px 0 16px; pointer-events: none; }
+.preview .tile { min-height: 86px; }
+.preview .tile-open { padding-right: 22px; }
+.preview .tile-name.is-empty { opacity: 0.62; }
+.preview .fade { position: absolute; inset: 0; }
+legend b { color: var(--ink); font-weight: 800; }
 .swatches { display: flex; flex-wrap: wrap; gap: 6px; }
 .swatch { position: relative; width: 50px; height: 50px; display: grid; place-items: center; cursor: pointer; }
 .swatch input { appearance: none; -webkit-appearance: none; margin: 0; width: 40px; height: 40px; border-radius: 50%; background: var(--jewel); cursor: pointer; border: 1px solid oklch(1 0 0 / 0.2); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), 0 6px 14px -6px var(--jewel-glow); transition: transform 0.2s var(--spring); }
-.swatch input:checked { transform: scale(0.8); box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--tile), 0 0 18px var(--jewel-glow); }
+.swatch input:checked { transform: scale(0.8); box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--tile), 0 8px 16px -6px var(--jewel-glow); }
 .swatch input:focus-visible { outline: 3px solid var(--ink); outline-offset: 8px; }
 .error { color: var(--danger); font-size: 0.875rem; min-height: 1.3em; margin-top: 4px; }
 .dialog-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -483,16 +536,16 @@ dialog fieldset { margin-top: 12px; }
 .solid-btn { background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.18); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.35), 0 10px 22px -10px var(--jewel-glow); }
 .solid-btn:active, .quiet-btn:active { transform: scale(0.95); }
 .solid-btn:disabled { filter: saturate(0.3) brightness(0.8); cursor: default; }
-.solid-btn.danger { background: var(--danger); color: var(--on-danger); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 10px 22px -10px var(--danger); }
+.solid-btn.danger { background: var(--danger); color: var(--on-danger); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 10px 20px -12px oklch(0 0 0 / 0.6); }
 .quiet-btn { color: var(--muted); }
-.quiet-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); }
+@media (hover: hover) { .quiet-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); color: var(--ink); } }
 .danger-text { color: var(--danger); padding: 0 10px; }
 .danger-text:disabled { opacity: 0.4; cursor: default; }
 .confirm { margin-top: 14px; padding: 14px; border-radius: 18px; background: var(--sunk); border: 1px solid var(--edge); }
 .note { font-size: 0.875rem; color: var(--muted); line-height: 1.5; }
 .stack { display: grid; gap: 8px; margin: 12px 0 4px; }
 .row-btn { min-height: 54px; padding: 0 16px; border-radius: 16px; background: var(--sunk); border: 1px solid var(--edge); text-align: left; font-weight: 700; }
-.row-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); }
+@media (hover: hover) { .row-btn:hover { background: oklch(var(--ink-lc) var(--h) / 0.1); } }
 #login-form .note { margin-bottom: 12px; }
 .copy-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 4px 4px 14px; border-radius: 16px; background: var(--sunk); border: 1px solid var(--edge); }
 .copy-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 0.875rem; }
@@ -516,7 +569,7 @@ dialog fieldset { margin-top: 12px; }
   content: ""; position: absolute; top: 3px; left: 3px; width: 28px; height: 28px; border-radius: 50%; background: oklch(0.97 0.01 290);
   box-shadow: 0 2px 6px oklch(0 0 0 / 0.4); transition: transform 0.25s var(--spring);
 }
-.switch[aria-checked="true"] { background: var(--jewel); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 0 18px -4px var(--jewel-glow); }
+.switch[aria-checked="true"] { background: var(--jewel); box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), inset 0 -6px 10px -6px oklch(0 0 0 / 0.4); }
 .switch[aria-checked="true"]::after { transform: translateX(24px); }
 .segmented { clear: both; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; border-radius: 15px; background: oklch(0 0 0 / 0.16); }
 .segmented label { margin: 0; position: relative; }
@@ -538,19 +591,21 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   #home { border-right: 1px solid var(--edge); }
   #list { align-items: center; }
   #list > * { width: min(100%, 720px); }
-  #list-bar { padding-top: 30px; }
+  #list-bar { padding-top: calc(30px + var(--sat)); }
   #back, #fab, .pane.ghost { display: none; }
   .title { font-size: 2.75rem; }
   .bar-title { padding-left: 16px; }
   .pager { display: none; }
   .scroll { padding-top: 12px; }
-  dialog.sheet { top: max(12px, 9vh); }
-  dialog.sheet.tall { max-height: min(760px, calc(100vh - 18vh)); }
+  dialog.sheet, .sheet-ghost { inset: max(12px, 9vh) 0 auto 0; width: min(460px, calc(100vw - 24px)); border-bottom: 1px solid var(--edge); border-radius: 28px; box-shadow: var(--lift); }
+  dialog.sheet[open] { animation: sheet-in 0.3s var(--ease-out); }
+  dialog.sheet.tall, .sheet-ghost.tall { height: auto; max-height: min(760px, calc(100vh - 18vh)); }
+  .sheet-grab { display: none; }
+  .sheet-head { padding-top: 10px; touch-action: auto; }
+  /* two panes are visible, so the open list is marked in the sidebar */
+  .tile-row[aria-current="true"] .tile { outline: 2px solid oklch(var(--on-tile-lc) var(--h) / 0.9); outline-offset: 3px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-}
 
 /* small refinements */
 #login-form .dialog-actions { flex-wrap: nowrap; }
@@ -572,10 +627,10 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 
 /* ---------- combo badge, finale layer, trophy banner ---------- */
 #combo {
-  position: absolute; z-index: 12; top: 84px; right: max(18px, env(safe-area-inset-right, 0px)); min-width: 62px; padding: 6px 14px; text-align: center; pointer-events: none;
+  position: absolute; z-index: 12; top: calc(84px + var(--sat)); right: max(18px, env(safe-area-inset-right, 0px)); min-width: 62px; padding: 6px 14px; text-align: center; pointer-events: none;
   border-radius: 18px; background: var(--jewel); color: var(--on-tile); border: 1px solid oklch(1 0 0 / 0.25);
   font: 800 1.5rem/1.1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
-  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), 0 10px 26px -6px var(--jewel-glow), 0 0 30px -4px var(--jewel-glow);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.4), 0 12px 22px -10px oklch(0 0 0 / 0.6);
   transform: rotate(6deg);
 }
 #combo.bump { animation: combo 0.34s var(--spring); }
@@ -583,12 +638,12 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 @keyframes combo { from { transform: rotate(-8deg) scale(0.5); } 60% { transform: rotate(10deg) scale(1.25); } }
 #finale { position: absolute; inset: 0; z-index: 30; width: 100%; height: 100%; pointer-events: none; }
 #banner {
-  position: absolute; z-index: 31; left: 50%; top: calc(18px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px);
+  position: absolute; z-index: 31; left: 50%; top: calc(18px + var(--sat)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px);
   display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: 22px; pointer-events: none;
   background: linear-gradient(180deg, var(--surface-hi), var(--surface-lo)); color: var(--ink); border: 1px solid var(--edge);
-  box-shadow: var(--lift), 0 0 60px -10px oklch(0.85 0.14 85 / 0.7); animation: banner-in 0.5s var(--spring);
+  box-shadow: var(--lift); animation: banner-in 0.42s var(--ease-out);
 }
-#banner svg { width: 34px; height: 34px; color: oklch(0.86 0.14 85); filter: drop-shadow(0 0 10px oklch(0.86 0.14 85 / 0.7)); }
+#banner svg { width: 34px; height: 34px; color: oklch(0.86 0.14 85); filter: drop-shadow(0 3px 5px oklch(0 0 0 / 0.5)); }
 #banner b { display: block; font: 800 1.125rem/1.2 var(--font-display); }
 #banner small { display: block; font-size: 0.875rem; color: var(--muted); }
 @keyframes banner-in { from { opacity: 0; transform: translate(-50%, -24px) scale(0.9); } }
@@ -604,7 +659,7 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 .trash-list li > span { text-decoration: none; }
 .trash-list .quiet-btn { color: var(--accent); flex: none; }
 .tally { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 4px; }
-.tally b { font: 800 3.25rem/1 var(--font-display); letter-spacing: -0.04em; color: oklch(0.86 0.14 85); text-shadow: 0 0 30px oklch(0.86 0.14 85 / 0.5); font-variant-numeric: tabular-nums; }
+.tally b { font: 800 3.25rem/1 var(--font-display); letter-spacing: -0.04em; color: oklch(0.86 0.14 85); text-shadow: 0 3px 10px oklch(0 0 0 / 0.45); font-variant-numeric: tabular-nums; }
 :root[data-theme="light"] .tally b, :root[data-theme="sunset"] .tally b { color: oklch(0.5 0.14 70); text-shadow: none; }
 .tally span { font-weight: 700; color: var(--muted); }
 .trophy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
@@ -613,7 +668,7 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 .trophy b { font: 800 1rem/1.2 var(--font-display); }
 .trophy small { font-size: 0.8125rem; color: var(--muted); }
 .trophy.earned { background: linear-gradient(160deg, oklch(0.86 0.14 85 / 0.22), var(--sunk) 70%); border-color: oklch(0.86 0.14 85 / 0.5); }
-.trophy.earned svg { color: oklch(0.86 0.14 85); opacity: 1; filter: drop-shadow(0 0 10px oklch(0.86 0.14 85 / 0.6)); }
+.trophy.earned svg { color: oklch(0.86 0.14 85); opacity: 1; filter: drop-shadow(0 3px 5px oklch(0 0 0 / 0.5)); }
 :root[data-theme="light"] .trophy.earned svg, :root[data-theme="sunset"] .trophy.earned svg { color: oklch(0.55 0.15 70); }
 .choice { position: relative; display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 16px; margin: 0; border-radius: 16px; background: var(--sunk); border: 1.5px solid var(--edge); cursor: pointer; }
 .choice input { appearance: none; -webkit-appearance: none; margin: 0; width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--muted); flex: none; }
@@ -631,7 +686,7 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 .theme-card { display: grid; gap: 6px; padding: 8px 8px 10px; border-radius: 16px; border: 2px solid transparent; background: oklch(0 0 0 / 0.14); font-size: 0.875rem; font-weight: 700; color: var(--ink); text-align: center; }
 .theme-chip { height: 46px; border-radius: 11px; border: 1px solid oklch(0.5 0 0 / 0.3); position: relative; overflow: hidden; }
 .theme-chip::after { content: ""; position: absolute; left: 9px; right: 9px; bottom: 9px; height: 13px; border-radius: 6px; background: var(--chip-row); box-shadow: 0 -18px 0 -3px var(--chip-tile); }
-.theme-grid input:checked + .theme-card { border-color: var(--accent); box-shadow: 0 0 18px -6px var(--accent); }
+.theme-grid input:checked + .theme-card { border-color: var(--accent); }
 .theme-grid input:focus-visible + .theme-card { outline: 3px solid var(--accent); outline-offset: 2px; }
 .chip-jewel { background: radial-gradient(120% 90% at 10% 0%, #5b2fb5, #170c2e 70%); --chip-row: #3a2d5c; --chip-tile: #8a4de0; }
 .chip-noir { background: radial-gradient(120% 90% at 10% 0%, #3a3122, #0b0a09 70%); --chip-row: #2a2824; --chip-tile: #d9b45a; }
@@ -643,8 +698,14 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 .segmented.four { grid-template-columns: repeat(4, 1fr); }
 .segmented.four span { font-size: 0.8125rem; padding: 0 2px; }
 
+@keyframes sheet-in { from { opacity: 0; transform: translateY(-14px) scale(0.97); } }
+
+/* Reduce Motion: nothing slides, scales or sweeps. Short fades that confirm a change remain. */
 @media (prefers-reduced-motion: reduce) {
-  .pane::before { display: none; }
+  *, *::before, *::after { animation: none !important; transition-property: opacity, color, background-color, border-color, box-shadow !important; transition-duration: 0.12s !important; }
+  dialog.sheet[open] { animation: fade-in 0.14s ease-out !important; }
+  .pane { transition: none !important; }
+  .tile::after { display: none; }
   #finale { display: none !important; }
 }
 </style>
@@ -672,7 +733,7 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
 </svg>
 
 <div id="app" data-view="list">
-  <section id="home" class="pane" aria-label="All lists">
+  <section id="home" class="pane hue" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
       <button id="open-trophies" class="icon-btn" type="button" aria-label="Trophies"><svg><use href="#i-trophy"/></svg></button>
@@ -744,17 +805,20 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
   <p id="live" class="sr" role="status" aria-live="polite"></p>
 </div>
 
-<dialog id="list-dialog" class="sheet" aria-labelledby="list-dialog-title">
+<dialog id="list-dialog" class="sheet hue" aria-labelledby="list-dialog-title">
   <form id="list-form" method="dialog" class="sheet-frame">
     <header class="sheet-head">
       <h2 id="list-dialog-title">New list</h2>
       <button type="button" id="list-cancel-x" class="icon-btn" aria-label="Close"><svg><use href="#i-close"/></svg></button>
     </header>
     <div class="sheet-body">
+      <div id="list-preview" class="tile-row hue preview" aria-hidden="true">
+        <div class="tile"><div class="tile-open"><span id="preview-name" class="tile-name"></span><span id="preview-count" class="tile-count"></span></div></div>
+      </div>
       <label for="list-name">Name</label>
       <input id="list-name" class="field" type="text" maxlength="80" autocomplete="off" enterkeyhint="done">
       <fieldset>
-        <legend>Colour</legend>
+        <legend>Colour: <b id="colour-name" aria-live="polite"></b></legend>
         <div id="swatches" class="swatches"></div>
       </fieldset>
       <p id="list-error" class="error" role="alert"></p>
@@ -819,6 +883,10 @@ summary { min-height: 44px; display: flex; align-items: center; cursor: pointer;
       <p id="move-text" class="note"></p>
       <div id="move-targets" class="stack"></div>
     </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" class="quiet-btn" data-close>Cancel</button>
+    </footer>
   </div>
 </dialog>
 
@@ -1730,8 +1798,13 @@ applyTheme();
 // Sheets size themselves to the part of the screen that is actually visible (the keyboard shrinks it).
 function syncViewport() {
   const view = window.visualViewport;
-  document.documentElement.style.setProperty('--vv-h', `${view ? view.height : innerHeight}px`);
-  document.documentElement.style.setProperty('--vv-top', `${view ? view.offsetTop : 0}px`);
+  const height = view ? view.height : innerHeight, top = view ? view.offsetTop : 0;
+  const covered = Math.max(0, innerHeight - (top + height));       // what the on-screen keyboard hides
+  const root = document.documentElement;
+  root.style.setProperty('--vv-h', `${height}px`);
+  root.style.setProperty('--vv-top', `${top}px`);
+  root.style.setProperty('--vv-bottom', `${covered}px`);
+  root.classList.toggle('kb-open', covered > 80);
 }
 syncViewport();
 addEventListener('resize', syncViewport);
@@ -1866,12 +1939,13 @@ function undo() {
 function measure() {
   const tops = new Map();
   for (const li of content.querySelectorAll('.row')) tops.set(li.dataset.id, li.getBoundingClientRect().top);
+  for (const node of [$('done-wrap'), $('empty')]) if (!node.hidden) tops.set('#' + node.id, node.getBoundingClientRect().top);
   for (const li of listsEl.children) tops.set(li.dataset.id, li.getBoundingClientRect().top);
   return tops;
 }
 function playFlip(before) {
-  for (const li of [...content.querySelectorAll('.row'), ...listsEl.children]) {
-    const old = before.get(li.dataset.id);
+  for (const li of [...content.querySelectorAll('.row'), ...listsEl.children, $('done-wrap'), $('empty')]) {
+    const old = before.get(li.dataset.id ?? '#' + li.id);
     if (old == null || li.classList.contains('entering')) continue;
     const dy = old - li.getBoundingClientRect().top;
     if (Math.abs(dy) > 1) {
@@ -1991,6 +2065,9 @@ function renderList() {
   $('count').textContent = countText(list);
   document.title = `${list.name} · Quiet List`;
   document.documentElement.style.setProperty('--h', hueOf(list));
+  // The Lists screen has its own copy, refreshed only while it is on show, so opening a list
+  // does not recolour the screen being left before the new one has covered it.
+  if (wide.matches || view === 'home') home.style.setProperty('--h', hueOf(list));
   paintBrowserChrome();
 
   openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
@@ -2030,6 +2107,7 @@ function renderHome() {
     const li = el('li', 'tile-row hue');
     li.dataset.id = list.id;
     li.style.setProperty('--h', hueOf(list));
+    li.style.setProperty('--i', String(state.lists.indexOf(list)));
     if (list.id === activeId) li.setAttribute('aria-current', 'true');
     const left = el('span', 'reveal left'); left.append(icon('i-plus'));
     const right = el('span', 'reveal right'); right.append(icon('i-trash'));
@@ -2081,18 +2159,62 @@ function applyView() {
   home.inert = !wide.matches && view !== 'home';
   listPane.inert = !wide.matches && view !== 'list';
 }
+// The Lists screen's address. It must not equal any element's id: browsers scroll to the element
+// whose id matches the address, which is what used to push the search field out of view.
+const HOME_HASH = 'overview';
 function setHash(hash, replace) {
   try {
     if (location.hash === '#' + hash) return;
     if (replace) location.replace('#' + hash); else location.hash = hash;
   } catch { /* sandboxed frames may refuse; the view has already changed */ }
 }
-function showHome({ focus = true } = {}) {
+let lastGlint = -Infinity;
+function glint() {
+  if (calm.matches || performance.now() - lastGlint < 20000) return;       // an occasional touch, not a habit
+  lastGlint = performance.now();
+  listsEl.classList.remove('glint');
+  void listsEl.offsetWidth;
+  listsEl.classList.add('glint');
+  setTimeout(() => listsEl.classList.remove('glint'), 2200);
+}
+// Going back, the list folds into the tile it came from.
+function foldIntoTile() {
+  if (wide.matches || calm.matches) return;
+  const tile = listsEl.querySelector(`.tile-row[data-id="${CSS.escape(activeId)}"]`);
+  if (!tile) return;
+  const frame = app.getBoundingClientRect(), pane = home.getBoundingClientRect(), box = tile.getBoundingClientRect();
+  const scale = pane.width / home.offsetWidth || 1, cx = pane.left + pane.width / 2, cy = pane.top + pane.height / 2;
+  const at = (value, centre) => centre + (value - centre) / scale;          // where the tile will be once the screen has settled
+  const top = at(box.top, cy) - frame.top, left = at(box.left, cx) - frame.left, right = frame.right - at(box.right, cx), bottom = frame.bottom - at(box.bottom, cy);
+  if (top < 0 || bottom < 0) return;                                        // its tile is scrolled out of view: a plain fade is clearer
+  const small = `inset(${top}px ${right}px ${bottom}px ${left}px round 26px)`;
+  listPane.classList.add('closing-to-tile');
+  // The list's content goes at once (CSS); its coloured surface shrinks onto its own tile and then dissolves into it.
+  const fold = listPane.animate([
+    { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1, offset: 0, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    { clipPath: small, opacity: 0.9, offset: 0.55, easing: 'ease-out' },
+    { clipPath: small, opacity: 0, offset: 1 },
+  ], { duration: 250 });
+  const done = () => {                        // hand back to the normal hidden state without replaying a fade
+    listPane.style.transition = 'none';
+    listPane.classList.remove('closing-to-tile');
+    void listPane.offsetWidth;
+    listPane.style.transition = '';
+  };
+  fold.finished.then(done, done);
+}
+function showHome({ focus = true, fold = false } = {}) {
+  const wasList = view === 'list';
+  const folding = fold && wasList && !wide.matches && !calm.matches;
   view = 'home';
   editingId = null; draft = null;
+  // When the list folds back into its tile, the Lists screen is already at rest underneath it.
+  if (folding) home.style.transition = 'none';
   applyView();
   render({ flip: false });
-  setHash('lists');
+  if (folding) { void home.offsetWidth; home.style.transition = ''; foldIntoTile(); }
+  if (wasList) setTimeout(glint, folding ? 270 : 0);                 // the light pass waits until the fold has gone
+  setHash(HOME_HASH);
   if (focus && !wide.matches) {
     const tile = document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`);
     tile?.focus({ preventScroll: true });
@@ -2130,7 +2252,7 @@ function stepList(direction) {
 }
 function route() {
   const hash = location.hash.slice(1);
-  if (hash === 'lists') { if (view !== 'home') showHome({ focus: false }); return; }
+  if (hash === HOME_HASH || hash === 'lists') { if (view !== 'home') showHome({ focus: false }); return; }
   const listId = hash.startsWith('list-') ? hash.slice(5) : null;
   if (listId && state.lists.some(l => l.id === listId)) {
     if (view !== 'list' || listId !== activeId) openList(listId, { replace: true });
@@ -2142,14 +2264,42 @@ let usingKeyboard = false;
 addEventListener('keydown', () => { usingKeyboard = true; }, true);
 addEventListener('pointerdown', () => { usingKeyboard = false; }, true);
 
-function collapse(li) {
-  if (calm.matches || !li.isConnected) return Promise.resolve();
-  li.style.overflow = 'hidden';
-  const animation = li.animate(
-    [{ height: li.offsetHeight + 'px', opacity: 1, marginBottom: '0px' }, { height: '0px', opacity: 0, marginBottom: '-8px' }],
-    { duration: 200, easing: 'ease-in', fill: 'forwards' },
-  );
-  return Promise.race([animation.finished.catch(() => {}), wait(260)]);
+// A finished or deleted row leaves as a copy that floats above the list, while the real list
+// has already closed the gap. Nothing is ever waiting on an animation.
+function sendOff(li, kind) {
+  if (calm.matches || !li?.isConnected) return;
+  const from = li.getBoundingClientRect(), frame = app.getBoundingClientRect();
+  const liveCard = li.querySelector('.card');
+  const swipedAt = liveCard?.style.transform || '';
+  const ghost = li.cloneNode(true);
+  ghost.classList.add('row-ghost');
+  ghost.classList.remove('entering', 'found');
+  ghost.removeAttribute('data-id');
+  ghost.inert = true;
+  ghost.setAttribute('aria-hidden', 'true');
+  for (const node of ghost.querySelectorAll('[data-fk]')) node.removeAttribute('data-fk');
+  Object.assign(ghost.style, { position: 'absolute', left: `${from.left - frame.left}px`, top: `${from.top - frame.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+  const card = ghost.querySelector('.card');
+  const done = kind === 'done';
+  if (done) { const box = ghost.querySelector('.check input'); if (box) box.checked = true; }
+  app.append(ghost);
+  const gone = () => ghost.remove();
+  if (swipedAt) {                                   // carry on in the direction of the swipe
+    card.classList.remove('spring', 'fling');
+    card.animate([{ transform: swipedAt }, { transform: `translateX(${done ? 112 : -112}%)` }], { duration: 190, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
+    ghost.animate([{ opacity: 1 }, { opacity: 1, offset: 0.55 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(gone, gone);
+  } else {
+    // Stays solid the whole way (no see-through overlap with the rows closing up beneath it):
+    // a finished task shows its tick and strike for a beat, then slides off to the done side; a deleted one leaves the other way at once.
+    ghost.style.background = 'transparent';
+    if (done) requestAnimationFrame(() => ghost.classList.add('completing'));
+    const hold = done ? 0.34 : 0;
+    card.animate([
+      { transform: 'translateX(0)', offset: 0 },
+      { transform: 'translateX(0)', offset: hold, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)' },
+      { transform: `translateX(${done ? 112 : -112}%)`, offset: 1 },
+    ], { duration: done ? 330 : 200, fill: 'forwards' }).finished.then(gone, gone);
+  }
 }
 
 let run = 0, lastDoneAt = 0;       // tasks finished in quick succession
@@ -2171,11 +2321,7 @@ async function setDone(taskId, done, li, { swiped = false } = {}) {
   if (done) {
     buzz(12);
     showRun();
-    if (li) sparks(li);
-    if (!calm.matches && li) {
-      if (!swiped) { li.classList.add('completing'); await wait(340); }
-      await collapse(li);
-    }
+    if (li) { sparks(li); sendOff(li, 'done'); }
   }
   render({ focus: done ? null : 'c:' + taskId });
   if (cleared) celebrate(list, reward);
@@ -2197,9 +2343,10 @@ function sparks(li) {
   if (calm.matches) return;
   const from = li.querySelector('.check')?.getBoundingClientRect(), frame = app.getBoundingClientRect();
   if (!from) return;
-  for (let i = 0; i < 7; i++) {
+  const count = 6 + Math.min(run, 8) * 2;                 // a longer run throws more sparks
+  for (let i = 0; i < count; i++) {
     const spark = el('span', 'spark');
-    const angle = (i / 7) * Math.PI * 2 + Math.random() * 0.6, reach = 26 + Math.random() * 26;
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.6, reach = 26 + Math.random() * 26;
     spark.style.left = `${from.left - frame.left + from.width / 2 - 3}px`;
     spark.style.top = `${from.top - frame.top + from.height / 2 - 3}px`;
     spark.style.setProperty('--bx', `${Math.cos(angle) * reach}px`);
@@ -2220,7 +2367,7 @@ async function removeTask(taskId, li) {
   if (!act({ type: 'delete_item', listId: list.id, itemId: taskId }, { toast: 'Deleted', undo: true })) return;
   sound.play('delete');
   if (editingId === taskId) editingId = null;
-  if (li) await collapse(li);
+  sendOff(li, 'delete');
   render();
   thoughtOrNext();
 }
@@ -2425,12 +2572,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe, cardSel
       if (!armed) { settle(); return; }
       const action = dx > 0 ? 'complete' : 'delete';
       if (!fling) { settle(); swipe(li, action); return; }     // the item stays; the action opens something
-      if (!calm.matches) {
-        card.classList.add('fling');
-        card.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`;
-        await wait(190);
-      }
-      swipe(li, action);
+      swipe(li, action);                         // the row's exit continues from where the finger left it; nothing waits
     };
     const cancel = ev => {
       if (ev.pointerId !== event.pointerId) return;
@@ -2584,6 +2726,8 @@ document.addEventListener('gesturestart', event => { if (event.target.closest?.(
    - touches that start within 24px of the screen edge are left to the phone's own back gesture. */
 let navBusy = false;
 const DEPTH = 0.08;
+// How far a pane is from the front (0 to 1) drives its dimming and the lag of its title, in CSS.
+const setDepth = (pane, far, side) => { pane.style.setProperty('--far', String(far)); pane.style.setProperty('--side', String(side)); };
 
 // A stand-in for the neighbouring list, in its own colour, that travels in beside the open one.
 function ghostPane(list) {
@@ -2621,6 +2765,7 @@ function landOnList(target, direction, ghost) {
   listPane.classList.remove('nav-settle');
   listPane.classList.add('nav-drag');
   listPane.style.transform = '';
+  setDepth(listPane, 0, 1);
   void listPane.offsetWidth;
   requestAnimationFrame(() => { listPane.classList.remove('nav-drag'); ghost?.remove(); navBusy = false; if (gesture === 'nav') gesture = null; });
   stagger();
@@ -2638,14 +2783,16 @@ function settleNav(target, direction, ghost) {
   void listPane.offsetWidth;
   listPane.style.transform = `translateX(${-direction * width}px) scale(${1 - DEPTH})`;
   ghost.style.transform = 'translateX(0px) scale(1)';
-  setTimeout(() => landOnList(target, direction, ghost), 350);
+  setDepth(listPane, 1, direction); setDepth(ghost, 0, direction);
+  setTimeout(() => landOnList(target, direction, ghost), 330);
 }
 function cancelNav(direction, ghost) {
   const width = listPane.offsetWidth;
   for (const pane of [listPane, ghost]) { pane?.classList.remove('nav-drag'); pane?.classList.add('nav-settle'); }
   void listPane.offsetWidth;
   listPane.style.transform = '';
-  if (ghost) ghost.style.transform = `translateX(${direction * width}px) scale(${1 - DEPTH})`;
+  setDepth(listPane, 0, direction);
+  if (ghost) { ghost.style.transform = `translateX(${direction * width}px) scale(${1 - DEPTH})`; setDepth(ghost, 1, direction); }
   setTimeout(() => { ghost?.remove(); listPane.classList.remove('nav-settle'); if (gesture === 'nav') gesture = null; }, calm.matches ? 0 : 350);
 }
 // Used by the dots, the [ and ] keys, and anything else that is not a drag.
@@ -2659,6 +2806,7 @@ function slideToList(target, direction) {
   }
   const ghost = ghostPane(target);
   ghost.style.transform = `translateX(${direction * listPane.offsetWidth}px) scale(${1 - DEPTH})`;
+  setDepth(ghost, 1, direction);
   app.append(ghost);
   listPane.classList.add('nav-drag');
   void ghost.offsetWidth;
@@ -2697,7 +2845,8 @@ listPane.addEventListener('pointerdown', event => {
     const shown = target ? dx : dx * 0.2;                                     // nothing that way: resist
     const far = Math.min(1, Math.abs(shown) / width);                          // the leaving list sinks back, the arriving one rises
     listPane.style.transform = `translateX(${shown}px) scale(${1 - far * DEPTH})`;
-    if (ghost) ghost.style.transform = `translateX(${shown + direction * width}px) scale(${1 - DEPTH + far * DEPTH})`;
+    setDepth(listPane, target ? far : 0, direction);
+    if (ghost) { ghost.style.transform = `translateX(${shown + direction * width}px) scale(${1 - DEPTH + far * DEPTH})`; setDepth(ghost, 1 - far, direction); }
   };
   const up = ev => {
     if (ev.pointerId !== event.pointerId) return;
@@ -2736,6 +2885,7 @@ $('capture').addEventListener('submit', event => {
   scroller.scrollTop = 0;
   thought.focus({ preventScroll: true });
   buzz(8); sound.play('add');
+  const field = $('capture'); field.classList.remove('pulse'); void field.offsetWidth; field.classList.add('pulse');
   announce('Added: ' + task.text);
 });
 // Pasting several lines drops each one in as its own thought.
@@ -2837,7 +2987,7 @@ $('clear-done').addEventListener('click', () => {
   const count = list.tasks.filter(t => t.done).length;
   if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { sound.play('delete'); render(); thought.focus({ preventScroll: true }); }
 });
-$('back').addEventListener('click', () => { sound.play('back'); showHome(); });
+$('back').addEventListener('click', () => { sound.play('back'); showHome({ fold: true }); });
 $('pager').addEventListener('click', event => {
   const dot = event.target.closest('button');
   if (!dot || dot.dataset.id === activeId) return;
@@ -2855,8 +3005,12 @@ listsEl.addEventListener('click', event => {
     openList(open.closest('.tile-row').dataset.id, { focus: !wide.matches });
     if (!wide.matches && !calm.matches) {
       const inset = `inset(${from.top - frame.top}px ${frame.right - from.right}px ${frame.bottom - from.bottom}px ${from.left - frame.left}px round 26px)`;
-      listPane.animate([{ clipPath: inset, opacity: 0.4 }, { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1 }], { duration: 440, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
-      listPane.animate([{ transform: 'scale(1)' }, { transform: 'scale(1)' }], { duration: 440 });     // hold full size while the reveal plays
+      listPane.animate([{ clipPath: inset, opacity: 1 }, { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1 }], { duration: 400, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+      listPane.animate([{ transform: 'scale(1)' }, { transform: 'scale(1)' }], { duration: 400 });
+      const tint = el('div', 'reveal-tint');
+      listPane.append(tint);
+      const drop = () => tint.remove();
+      tint.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 230, easing: 'cubic-bezier(0.4, 0, 0.6, 1)', fill: 'forwards' }).finished.then(drop, drop);     // hold full size while the reveal plays
     }
     stagger();
   }
@@ -2871,15 +3025,95 @@ listsEl.addEventListener('keydown', event => {
   else if (event.key === '+' || event.key === '=') { event.preventDefault(); openQuickAdd(row.dataset.id); }
 });
 
+// Light blooms under the finger while a list tile is pressed.
+listsEl.addEventListener('pointerdown', event => {
+  const tile = event.target.closest('.tile');
+  if (!tile || event.target.closest('.handle')) return;
+  const box = tile.getBoundingClientRect();
+  tile.style.setProperty('--lx', `${event.clientX - box.left}px`);
+  tile.style.setProperty('--ly', `${event.clientY - box.top}px`);
+  tile.classList.add('pressed');
+  const lift = () => { tile.classList.remove('pressed'); removeEventListener('pointerup', lift); removeEventListener('pointercancel', lift); };
+  addEventListener('pointerup', lift);
+  addEventListener('pointercancel', lift);
+});
+
 /* ---------- sheets ---------- */
 function openSheet(dialog) {
   if (dialog.open) return;
   syncViewport();
+  dialog.classList.remove('dragging', 'settling');
+  dialog.style.transform = '';
   dialog.showModal();
   dialog.dataset.openedAt = String(performance.now());
   sound.play('pop');
 }
 // Tapping the dimmed area outside a sheet closes it, like pressing Escape.
+// A closing sheet leaves as a copy sliding off the bottom; the real one is already closed, so focus,
+// keyboard and whatever happens next never wait for it.
+function leaveSheet(dialog) {
+  sound.play('close');
+  if (calm.matches || !dialog.open) return;
+  const copy = el('div', dialog.className + ' sheet-ghost');
+  copy.style.cssText = dialog.style.cssText;
+  copy.inert = true;
+  copy.setAttribute('aria-hidden', 'true');
+  for (const child of dialog.children) copy.append(child.cloneNode(true));
+  // Unnamed, so copied radio buttons cannot join (and silently change) the real groups.
+  for (const node of copy.querySelectorAll('[name]')) node.removeAttribute('name');
+  const scrim = el('div', 'sheet-scrim');
+  document.body.append(scrim, copy);
+  const scrolled = dialog.querySelector('.sheet-body')?.scrollTop;
+  if (scrolled) copy.querySelector('.sheet-body').scrollTop = scrolled;
+  const from = dialog.style.transform || 'translateY(0px)';
+  const exit = wide.matches
+    ? [{ transform: 'none', opacity: 1 }, { transform: 'translateY(-10px) scale(0.97)', opacity: 0 }]
+    : [{ transform: from }, { transform: 'translateY(104%)' }];
+  const drop = node => () => node.remove();
+  copy.animate(exit, { duration: 200, easing: 'cubic-bezier(0.3, 0, 0.8, 0.6)', fill: 'forwards' }).finished.then(drop(copy), drop(copy));
+  scrim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 210, fill: 'forwards' }).finished.then(drop(scrim), drop(scrim));
+}
+for (const dialog of document.querySelectorAll('dialog.sheet')) {
+  const frame = dialog.querySelector('.sheet-frame');
+  const grab = el('div', 'sheet-grab'); grab.setAttribute('aria-hidden', 'true');
+  frame.prepend(grab);
+  const nativeClose = dialog.close.bind(dialog);
+  dialog.close = value => {
+    if (!dialog.open) return;
+    leaveSheet(dialog);
+    nativeClose(value);
+    dialog.classList.remove('dragging', 'settling');
+    dialog.style.transform = '';
+  };
+  dialog.addEventListener('cancel', () => leaveSheet(dialog));          // Escape and the phone's back gesture
+  // Drag the handle or the title bar down to dismiss (phones). Buttons in the bar still work as buttons.
+  for (const zone of [grab, dialog.querySelector('.sheet-head')].filter(Boolean)) {
+    zone.addEventListener('pointerdown', event => {
+      if (event.button || wide.matches || event.target.closest('button, input, a')) return;
+      const y0 = event.clientY;
+      let dy = 0, lastY = y0, lastTime = event.timeStamp, speed = 0;
+      const move = ev => {
+        if (ev.pointerId !== event.pointerId) return;
+        dy = Math.max(0, ev.clientY - y0);
+        if (ev.timeStamp > lastTime) { speed = (ev.clientY - lastY) / (ev.timeStamp - lastTime); lastY = ev.clientY; lastTime = ev.timeStamp; }
+        if (dy > 4) { dialog.classList.remove('settling'); dialog.classList.add('dragging'); dialog.style.transform = `translateY(${dy}px)`; ev.preventDefault(); }
+      };
+      const up = ev => {
+        if (ev.pointerId !== event.pointerId) return;
+        removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+        if (!dialog.classList.contains('dragging')) return;
+        if (ev.type === 'pointerup' && (dy > 110 || (speed > 0.55 && dy > 24))) { dialog.close(); return; }
+        dialog.classList.remove('dragging');
+        dialog.classList.add('settling');
+        dialog.style.transform = '';
+        setTimeout(() => dialog.classList.remove('settling'), 320);
+      };
+      addEventListener('pointermove', move, { passive: false });
+      addEventListener('pointerup', up);
+      addEventListener('pointercancel', up);
+    });
+  }
+}
 for (const dialog of document.querySelectorAll('dialog.sheet')) {
   dialog.addEventListener('click', event => {
     // A sheet opened by a gesture can receive that same gesture's trailing tap; ignore it.
@@ -2969,6 +3203,29 @@ $('swatches').replaceChildren(...COLORS.map(color => {
   return label;
 }));
 let newListBefore = null;        // where a new list goes: before this list's id, or null for the end
+// The card at the top of the sheet is the real card component, repainted as you type and pick.
+function paintListPreview({ fade = false } = {}) {
+  const color = listDialog.querySelector('input[name="color"]:checked')?.value ?? COLORS[0];
+  const preview = $('list-preview'), tile = preview.querySelector('.tile');
+  if (fade && !calm.matches) {                      // the old colour dissolves into the new one
+    const old = tile.cloneNode(true);
+    old.classList.add('fade');
+    old.style.setProperty('--h', getComputedStyle(preview).getPropertyValue('--h'));
+    old.classList.add('hue');
+    preview.append(old);
+    const drop = () => old.remove();
+    old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' }).finished.then(drop, drop);
+  }
+  preview.style.setProperty('--h', HUES[color]);
+  listDialog.style.setProperty('--h', HUES[color]);            // the sheet's own buttons and focus rings follow
+  const typed = $('list-name').value.trim();
+  $('preview-name').textContent = typed || 'New list';
+  $('preview-name').classList.toggle('is-empty', !typed);
+  $('preview-count').textContent = listDialogMode === 'new' ? 'Empty' : summary(current());
+  $('colour-name').textContent = GEMS[color];
+}
+$('swatches').addEventListener('change', () => { sound.play('tick'); paintListPreview({ fade: true }); });
+$('list-name').addEventListener('input', () => paintListPreview());
 function openListDialog(mode, { at = 'end', beforeId = null } = {}) {
   listDialogMode = mode;
   newListBefore = mode === 'new' ? (at === 'top' ? state.lists[0]?.id ?? null : beforeId) : null;
@@ -2982,6 +3239,7 @@ function openListDialog(mode, { at = 'end', beforeId = null } = {}) {
   $('list-delete').hidden = mode === 'new';
   $('list-delete').disabled = state.lists.length === 1;
   $('list-save').textContent = mode === 'new' ? 'Create' : 'Save';
+  paintListPreview();
   openSheet(listDialog);
   $('list-name').focus();
   if (mode !== 'new') $('list-name').select();

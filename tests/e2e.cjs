@@ -168,7 +168,7 @@ const touchFlows = async page => {
   assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
   assert.equal(await page.evaluate(() => document.getElementById('list').inert), true);
   await layoutChecks(page);
-  await page.tap('.tile-row:nth-child(4) .tile-open');
+  await page.tap('#lists .tile-row:nth-child(4) .tile-open');
   await page.waitForTimeout(450);
   assert.equal(await page.textContent('#title'), 'Gift ideas');
   assert.equal(await page.getAttribute('#empty', 'data-kind'), 'fresh');
@@ -257,6 +257,8 @@ const keyboardFlows = async page => {
   assert.equal(await page.locator('#open .row:nth-child(3) .card.editing').count(), 1);
   await page.keyboard.press('Escape');
 
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#lists .tile-row[aria-current="true"] .tile')).outlineStyle), 'solid', 'the open list is marked in the sidebar');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector('#lists .tile-row:not([aria-current]) .tile')).outlineStyle), 'none');
   // lists: create, rename, recolour, delete, undo
   await page.click('#new-list');
   await page.keyboard.type('Errands');
@@ -264,7 +266,7 @@ const keyboardFlows = async page => {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(300);
   assert.equal(await page.textContent('#title'), 'Errands');
-  assert.equal(await page.locator('.tile-row').count(), 5);
+  assert.equal(await page.locator('#lists .tile-row').count(), 5);
   assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--h')), '258');
   await page.click('#list-more');
   await page.fill('#list-name', '   ');
@@ -277,14 +279,14 @@ const keyboardFlows = async page => {
   await page.click('#list-delete');
   await page.click('#list-confirm-yes');
   await page.waitForTimeout(300);
-  assert.equal(await page.locator('.tile-row').count(), 4);
+  assert.equal(await page.locator('#lists .tile-row').count(), 4);
   await page.click('#toast-undo');
-  assert.equal(await page.locator('.tile-row').count(), 5);
+  assert.equal(await page.locator('#lists .tile-row').count(), 5);
   await page.keyboard.press('[');
   assert.equal(await page.textContent('#title'), 'Gift ideas');
 
   // done section: show, reopen, clear
-  await page.click('.tile-row:nth-child(1) .tile-open');
+  await page.click('#lists .tile-row:nth-child(1) .tile-open');
   await page.click('#done-toggle');
   assert.equal(await page.locator('#done .row').count(), 2);
   await page.click('#done .row:nth-child(1) .check');
@@ -328,7 +330,9 @@ const reducedMotion = async page => {
   await page.click('#open .row:nth-child(1) .check');
   await page.waitForTimeout(60);
   assert.equal((await openTexts(page)).length, 4, 'completes at once');
-  assert.equal(await page.evaluate(() => document.getAnimations().length), 0, 'nothing animates');
+  const moving = () => page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running' && (a.transitionProperty ? /transform|translate|scale|rotate|clip/.test(a.transitionProperty) : a.animationName !== 'fade-in')).length);
+  assert.equal(await moving(), 0, 'nothing moves (short fades are allowed)');
+  assert.equal(await page.locator('.row-ghost, .spark').count(), 0, 'no leaving copies or sparks');
   const row = await center(page, '#open .row:nth-child(1) .text');
   await page.mouse.move(row.x, row.y); await page.mouse.down(); await page.mouse.move(row.x + 80, row.y, { steps: 4 }); await page.mouse.move(row.x + 200, row.y, { steps: 4 }); await page.mouse.up();
   await page.waitForTimeout(80);
@@ -337,7 +341,7 @@ const reducedMotion = async page => {
   assert.deepEqual(await page.evaluate(() => window.__finales), ['confetti:still'], 'the finale is not animated');
   assert.equal(await page.isVisible('#finale'), false);
   assert.equal(await page.textContent('#banner-title'), 'Trophy: First Sweep', 'the reward is still given, in words');
-  assert.equal(await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running').length), 0);
+  assert.equal(await moving(), 0);
 };
 
 const previewBundle = async page => {
@@ -372,7 +376,7 @@ const waitFor = async (check, label, ms = 15000) => {
   const end = Date.now() + ms;
   for (;;) { if (await check()) return; if (Date.now() > end) throw Error('timed out: ' + label); await new Promise(r => setTimeout(r, 250)); }
 };
-const titles = page => page.$$eval('.tile-name', nodes => nodes.map(n => n.textContent));
+const titles = page => page.$$eval('#lists .tile-name', nodes => nodes.map(n => n.textContent));
 async function signIn(page, { create = false } = {}) {
   await page.evaluate(() => document.getElementById('open-settings').click());
   await page.waitForSelector('#login-form:not([hidden])');
@@ -443,12 +447,12 @@ async function accountFlows() {
       await closeSettings(B);
       await waitFor(async () => (await titles(B)).length === 5, 'lists on second device');
       await B.evaluate(() => document.getElementById('back').click());
-      await B.tap('.tile-row:nth-child(2) .tile-open');
+      await B.tap('#lists .tile-row:nth-child(2) .tile-open');
       await waitFor(async () => (await openTexts(B))[0] === 'Written before signing in', 'migrated item visible on phone 2');
     });
 
     await step('A task added on phone 2 appears on phone 1 without a reload', async () => {
-      await A.tap('.tile-row:nth-child(2) .tile-open');
+      await A.tap('#lists .tile-row:nth-child(2) .tile-open');
       await A.evaluate(() => window.__cues.splice(0));
       await addThought(B, 'Added on the Pixel');
       await waitFor(async () => (await openTexts(A))[0] === 'Added on the Pixel', 'phone 1 receives it');
@@ -492,7 +496,7 @@ async function accountFlows() {
 
     await step('Insert-at-position, move, Recently deleted and the trophy tally all sync', async () => {
       await A.waitForTimeout(600);
-      await B.tap('.tile-row:nth-child(2) .tile-open'); await B.waitForTimeout(500);     // phone 2 was on the Lists screen
+      await B.tap('#lists .tile-row:nth-child(2) .tile-open'); await B.waitForTimeout(500);     // phone 2 was on the Lists screen
       await A.focus('#open .row:nth-child(1) button.text'); await A.keyboard.press('+');
       await A.keyboard.type('Inserted second'); await A.keyboard.press('Enter');
       await waitFor(async () => (await openTexts(B))[1] === 'Inserted second', 'phone 2 sees it in the same position');
@@ -514,7 +518,7 @@ async function accountFlows() {
       await waitFor(async () => (await openTexts(A))[0] === gone, 'phone 1 gets the restored task back');
       await B.evaluate(() => { document.getElementById('trash-dialog').close(); document.getElementById('settings-dialog').close(); });
       // clear a list on phone 2; the trophy tally arrives on phone 1 without a sound there
-      await B.tap('.tile-row:nth-child(5) .tile-open'); await B.waitForTimeout(400);
+      await B.tap('#lists .tile-row:nth-child(5) .tile-open'); await B.waitForTimeout(400);
       await addThought(B, 'One small thing');
       await B.tap('#title'); await B.tap('#open .row:nth-child(1) .check'); await B.waitForTimeout(1200);
       assert.equal(await B.textContent('#banner-title'), 'Trophy: First Sweep');
@@ -522,7 +526,7 @@ async function accountFlows() {
       await A.evaluate(() => document.getElementById('back').click()); await A.waitForTimeout(400);
       await waitFor(async () => { await A.evaluate(() => document.getElementById('open-trophies').click()); const n = await A.textContent('#tally-count'); await A.evaluate(() => document.getElementById('trophy-dialog').close()); return n === '1'; }, 'phone 1 shows the same tally');
       assert.deepEqual(await A.evaluate(() => window.__finales), [], 'no finale plays on the other phone');
-      await A.tap('.tile-row:nth-child(2) .tile-open'); await A.waitForTimeout(400);
+      await A.tap('#lists .tile-row:nth-child(2) .tile-open'); await A.waitForTimeout(400);
       await B.evaluate(() => document.getElementById('back').click()); await B.waitForTimeout(400);
     });
 
@@ -565,7 +569,7 @@ async function accountFlows() {
       await waitFor(async () => (await openTexts(A))[0] === 'Edited by the assistant', 'phone 1 shows the edit');
       await call('complete_task', { list_id: listId, task_id: tasks[0].id });
       await waitFor(async () => !(await openTexts(A)).includes('Thought while offline'), 'phone 1 shows completion');
-      await B.tap('.tile-row:nth-child(2) .tile-open');
+      await B.tap('#lists .tile-row:nth-child(2) .tile-open');
       await waitFor(async () => (await openTexts(B))[0] === 'Edited by the assistant', 'phone 2 too');
     });
 
@@ -680,26 +684,26 @@ const gestureConflicts = async page => {
 const listSwipes = async page => {
   await page.tap('#back'); await page.waitForTimeout(500);
   await cues(page);
-  const tile = n => center(page, `.tile-row:nth-child(${n}) .tile-open`);
+  const tile = n => center(page, `#lists .tile-row:nth-child(${n}) .tile-open`);
   // swipe LEFT on a list: asks first, says tasks go too, and Keep it changes nothing
   let t = await tile(2);
   await finger(page, [t, { x: t.x - 170, y: t.y }]);
   assert.equal(await page.isVisible('#confirm-dialog'), true);
   assert.equal(await page.textContent('#confirm-title'), 'Delete “Weekend”?');
   assert.match(await page.textContent('#confirm-text'), /deletes the list and the 3 tasks in it \(3 open, 0 done\)/);
-  assert.equal(await page.locator('.tile-row').count(), 4, 'nothing is deleted before the answer');
+  assert.equal(await page.locator('#lists .tile-row').count(), 4, 'nothing is deleted before the answer');
   assert.ok(await inView(page, '#confirm-yes') && await inView(page, '#confirm-no'));
   await page.tap('#confirm-no'); await page.waitForTimeout(300);
-  assert.equal(await page.locator('.tile-row').count(), 4);
+  assert.equal(await page.locator('#lists .tile-row').count(), 4);
   assert.equal(await page.getAttribute('#app', 'data-view'), 'home', 'the swipe did not open the list');
   // confirm: gone, with Undo
   await finger(page, [t, { x: t.x - 170, y: t.y }]);
   await page.tap('#confirm-yes'); await page.waitForTimeout(500);
-  assert.deepEqual(await page.$$eval('.tile-name', n => n.map(x => x.textContent)), ['Brain dump', 'Someday', 'Gift ideas']);
+  assert.deepEqual(await page.$$eval('#lists .tile-name', n => n.map(x => x.textContent)), ['Brain dump', 'Someday', 'Gift ideas']);
   assert.ok((await cues(page)).includes('delete'));
   await page.tap('#toast-undo'); await page.waitForTimeout(500);
-  assert.deepEqual(await page.$$eval('.tile-name', n => n.map(x => x.textContent)), ['Brain dump', 'Weekend', 'Someday', 'Gift ideas']);
-  assert.equal(await page.textContent('.tile-row:nth-child(2) .tile-count'), '3 open', 'its tasks came back with it');
+  assert.deepEqual(await page.$$eval('#lists .tile-name', n => n.map(x => x.textContent)), ['Brain dump', 'Weekend', 'Someday', 'Gift ideas']);
+  assert.equal(await page.textContent('#lists .tile-row:nth-child(2) .tile-count'), '3 open', 'its tasks came back with it');
   // a short swipe springs back and asks nothing
   t = await tile(2);
   await finger(page, [t, { x: t.x - 40, y: t.y }]);
@@ -716,30 +720,30 @@ const listSwipes = async page => {
   assert.match(await page.textContent('#quick-status'), /Added 2 thoughts/);
   assert.ok(await inView(page, '#quick-done'));
   await page.tap('#quick-done'); await page.waitForTimeout(300);
-  assert.equal(await page.textContent('.tile-row:nth-child(4) .tile-count'), '2 open');
+  assert.equal(await page.textContent('#lists .tile-row:nth-child(4) .tile-count'), '2 open');
   assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
-  await page.tap('.tile-row:nth-child(4) .tile-open'); await page.waitForTimeout(500);
+  await page.tap('#lists .tile-row:nth-child(4) .tile-open'); await page.waitForTimeout(500);
   assert.deepEqual(await openTexts(page), ['Good socks', 'A candle']);
   // vertical scrolling over the tiles and hold-to-drag reordering still work
   await page.tap('#back'); await page.waitForTimeout(500);
   const a = await tile(1), c = await tile(3);
   await finger(page, [a, { x: a.x, y: c.y + 20 }], { hold: 560 });
-  assert.deepEqual(await page.$$eval('.tile-name', n => n.map(x => x.textContent)), ['Weekend', 'Someday', 'Brain dump', 'Gift ideas']);
+  assert.deepEqual(await page.$$eval('#lists .tile-name', n => n.map(x => x.textContent)), ['Weekend', 'Someday', 'Brain dump', 'Gift ideas']);
   assert.equal(await page.isVisible('#confirm-dialog') || await page.isVisible('#quick-dialog'), false);
 };
 
 const onlyListCannotGo = async page => {
   await page.click('#open-settings'); await page.click('#reset'); await page.click('#settings-confirm-yes');
-  for (let i = 0; i < 3; i++) { await page.focus('.tile-row:nth-child(1) .tile-open'); await page.keyboard.press('Delete'); await page.click('#confirm-yes'); await page.waitForTimeout(250); }
-  assert.equal(await page.locator('.tile-row').count(), 1);
-  await page.focus('.tile-row .tile-open'); await page.keyboard.press('Delete'); await page.waitForTimeout(200);
+  for (let i = 0; i < 3; i++) { await page.focus('#lists .tile-row:nth-child(1) .tile-open'); await page.keyboard.press('Delete'); await page.click('#confirm-yes'); await page.waitForTimeout(250); }
+  assert.equal(await page.locator('#lists .tile-row').count(), 1);
+  await page.focus('#lists .tile-row .tile-open'); await page.keyboard.press('Delete'); await page.waitForTimeout(200);
   assert.equal(await page.isVisible('#confirm-dialog'), false);
   assert.match(await page.textContent('#toast-text'), /only list/);
-  assert.equal(await page.locator('.tile-row').count(), 1);
+  assert.equal(await page.locator('#lists .tile-row').count(), 1);
   // keyboard quick add
-  await page.focus('.tile-row .tile-open'); await page.keyboard.press('+');
+  await page.focus('#lists .tile-row .tile-open'); await page.keyboard.press('+');
   await page.keyboard.type('From the keyboard'); await page.keyboard.press('Enter'); await page.keyboard.press('Escape');
-  assert.match(await page.textContent('.tile-row .tile-count'), /open/);
+  assert.match(await page.textContent('#lists .tile-row .tile-count'), /open/);
 };
 
 const soundRules = async page => {
@@ -764,7 +768,7 @@ const soundRules = async page => {
   assert.equal(await page.getAttribute('html', 'data-audio'), 'off');
   await page.tap('#settings-close'); await page.waitForTimeout(300);
   await cues(page);
-  await page.tap('.tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(400);
+  await page.tap('#lists .tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(400);
   await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(900);
   heard = await cues(page);
   assert.ok(heard.length > 0 && heard.every(c => c.endsWith(':skipped')), 'every cue is skipped when off: ' + heard);
@@ -804,9 +808,11 @@ const settingsSheet = keyboardOpen => async page => {
   await page.tap('#open-settings'); await page.waitForTimeout(300); await page.tap('#settings-close-x'); await page.waitForTimeout(300);
   assert.equal(await page.isVisible('#settings-dialog'), false);
   if (!keyboardOpen) {
-    await page.tap('#open-settings'); await page.waitForTimeout(500);
-    await page.touchscreen.tap(4, await page.evaluate(() => innerHeight - 3)); await page.waitForTimeout(300);
-    assert.equal(await page.isVisible('#settings-dialog'), false, 'tap outside closes');
+    await page.tap('#open-trophies'); await page.waitForTimeout(600);
+    const sheetTop = (await page.locator('#trophy-dialog').boundingBox()).y;
+    if (sheetTop > 30) { await page.touchscreen.tap(20, Math.floor(sheetTop / 2)); await page.waitForTimeout(350); assert.equal(await page.isVisible('#trophy-dialog'), false, 'tap outside closes'); }
+    else await page.tap('#trophy-dialog .sheet-head [data-close]');
+    await page.waitForTimeout(300);
     // appearance: light theme applies, persists, and keeps text readable
     await page.tap('#open-settings'); await page.waitForTimeout(300);
     await page.check('#theme-light', { force: true });
@@ -852,7 +858,7 @@ async function twoFingers(page, from, to, { steps = 12 } = {}) {
   await cdp.detach();
   await page.waitForTimeout(650);
 }
-const tileNames = page => page.$$eval('.tile-name', n => n.map(x => x.textContent));
+const tileNames = page => page.$$eval('#lists .tile-name', n => n.map(x => x.textContent));
 const zoomLevel = page => page.evaluate(() => window.visualViewport.scale);
 
 const spreadToInsertTask = async page => {
@@ -913,7 +919,7 @@ const listsScreenCreation = async page => {
   await page.tap('#back'); await page.waitForTimeout(500);
   const make = async name => { await page.keyboard.type(name); await page.keyboard.press('Enter'); await page.waitForTimeout(500); assert.equal(await title(page), name); await page.tap('#back'); await page.waitForTimeout(500); };
   // pull down: a new list at the top
-  const first = await center(page, '.tile-row:nth-child(1) .tile-open');
+  const first = await center(page, '#lists .tile-row:nth-child(1) .tile-open');
   await finger(page, [first, { x: first.x + 8, y: first.y + 190 }]);
   assert.equal(await page.isVisible('#list-dialog'), true, 'pull opened New list');
   await make('Top one');
@@ -930,14 +936,14 @@ const listsScreenCreation = async page => {
   await make('Last one');
   assert.equal((await tileNames(page)).at(-1), 'Last one');
   // tapping a list or the gaps between lists does not
-  const t2 = await page.locator('.tile-row:nth-child(2)').boundingBox();
+  const t2 = await page.locator('#lists .tile-row:nth-child(2)').boundingBox();
   await page.touchscreen.tap(200, t2.y + t2.height + 5); await page.waitForTimeout(300);
   assert.equal(await page.isVisible('#list-dialog'), false, 'the gap between two lists is not "empty space below"');
   // (Phones snap a tap in a narrow gap to the nearest list, so this may have opened one. Go back if so.)
   if (await page.getAttribute('#app', 'data-view') === 'list') { await page.tap('#back'); await page.waitForTimeout(500); }
   await page.evaluate(() => { document.getElementById('home-scroll').scrollTop = 0; });
   // spread two fingers between lists 2 and 3: a new list right there
-  const a = await center(page, '.tile-row:nth-child(2) .tile-open'), b = await center(page, '.tile-row:nth-child(3) .tile-open');
+  const a = await center(page, '#lists .tile-row:nth-child(2) .tile-open'), b = await center(page, '#lists .tile-row:nth-child(3) .tile-open');
   await twoFingers(page, [a, b], [{ x: a.x, y: a.y - 55 }, { x: b.x, y: b.y + 55 }]);
   assert.equal(await page.isVisible('#list-dialog'), true, 'spread opened New list');
   assert.equal(await zoomLevel(page), 1);
@@ -956,7 +962,7 @@ const listsScreenCreation = async page => {
   assert.deepEqual((await tileNames(page)).slice(0, 4), names.slice(0, 4), 'order survives a reload');
   // list swipes still work after all that (the screen had scrolled to show the newest list)
   await page.evaluate(() => { document.getElementById('home-scroll').scrollTop = 0; });
-  const t = await center(page, '.tile-row:nth-child(1) .tile-open');
+  const t = await center(page, '#lists .tile-row:nth-child(1) .tile-open');
   await finger(page, [t, { x: t.x - 170, y: t.y }]);
   assert.equal(await page.textContent('#confirm-title'), 'Delete “Top one”?');
   await page.tap('#confirm-no');
@@ -976,7 +982,7 @@ const runsAndRewards = async page => {
   assert.deepEqual(await page.evaluate(() => window.__steps.splice(0)), [0], 'a pause resets the run');
   // clearing a whole list: finale, banner, trophy, and the tally
   const clearList = async (n, text) => {
-    await page.tap('#back'); await page.waitForTimeout(450); await page.tap(`.tile-row:nth-child(${n}) .tile-open`); await page.waitForTimeout(500);
+    await page.tap('#back'); await page.waitForTimeout(450); await page.tap(`#lists .tile-row:nth-child(${n}) .tile-open`); await page.waitForTimeout(500);
     if (text) { await page.tap('#fab'); await page.keyboard.type(text); await page.keyboard.press('Enter'); await page.waitForTimeout(300); await page.tap('#title'); }
     while (await page.locator('#open .row').count()) { await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(760); }
     await page.waitForTimeout(300);
@@ -998,7 +1004,7 @@ const runsAndRewards = async page => {
   assert.equal(await page.isDisabled('#finale-fireworks'), true, 'Fireworks is locked until 3');
   assert.ok(await inView(page, '#trophy-dialog [data-close].solid-btn'));
   await page.tap('#trophy-dialog [data-close].solid-btn'); await page.waitForTimeout(300);
-  await page.tap('.tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(400);
+  await page.tap('#lists .tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(400);
   // two more clears unlock a finale
   await clearList(2); assert.match(await page.textContent('#banner-title'), /“Weekend” cleared/);
   await clearList(3); assert.equal(await page.textContent('#banner-title'), 'New finale: Fireworks');
@@ -1008,7 +1014,7 @@ const runsAndRewards = async page => {
   assert.equal(await page.isDisabled('#finale-fireworks'), false);
   await page.check('#finale-fireworks', { force: true });
   assert.deepEqual(await page.evaluate(() => window.__finales.splice(0)).then(f => f.at(-1)), 'fireworks', 'choosing a finale previews it');
-  await page.reload(); await page.waitForSelector('.tile-row');          // the app reopens on the Lists screen it was left on
+  await page.reload(); await page.waitForSelector('#lists .tile-row');          // the app reopens on the Lists screen it was left on
   assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
   await page.waitForTimeout(450); await page.tap('#open-trophies'); await page.waitForTimeout(400);
   assert.equal(await page.textContent('#tally-count'), '3', 'the tally survives a reload');
@@ -1034,7 +1040,7 @@ const searchMovePickBin = async page => {
   assert.deepEqual(await openTexts(page), now.slice(1));
   assert.match(await page.textContent('#toast-text'), /Moved to “Weekend”/);
   await page.tap('#back'); await page.waitForTimeout(450);
-  assert.equal(await page.textContent('.tile-row:nth-child(2) .tile-count'), '4 open');
+  assert.equal(await page.textContent('#lists .tile-row:nth-child(2) .tile-count'), '4 open');
   // search across lists
   await page.fill('#search-text', 'door'); await page.waitForTimeout(200);
   assert.equal(await page.textContent('#results-note'), '1 match');
@@ -1055,7 +1061,7 @@ const searchMovePickBin = async page => {
   await finger(page, [row, { x: row.x - 180, y: row.y }]);
   assert.deepEqual(await openTexts(page), now.slice(1));
   await page.tap('#back'); await page.waitForTimeout(450);
-  await page.focus('.tile-row:nth-child(3) .tile-open'); await page.keyboard.press('Delete'); await page.tap('#confirm-yes'); await page.waitForTimeout(400);
+  await page.focus('#lists .tile-row:nth-child(3) .tile-open'); await page.keyboard.press('Delete'); await page.tap('#confirm-yes'); await page.waitForTimeout(400);
   assert.deepEqual(await tileNames(page), ['Brain dump', 'Weekend', 'Gift ideas']);
   await page.tap('#open-settings'); await page.waitForTimeout(400);
   assert.equal(await page.textContent('#open-trash'), 'Recently deleted (2)');
@@ -1068,8 +1074,8 @@ const searchMovePickBin = async page => {
   assert.match(await page.textContent('#trash-note'), /Nothing here/);
   await page.tap('#trash-dialog [data-close].solid-btn'); await page.tap('#settings-close'); await page.waitForTimeout(300);
   assert.deepEqual(await tileNames(page), ['Brain dump', 'Weekend', 'Gift ideas', 'Someday'], 'the list is back, with its tasks');
-  assert.equal(await page.textContent('.tile-row:nth-child(4) .tile-count'), '3 open');
-  await page.tap('.tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(450);
+  assert.equal(await page.textContent('#lists .tile-row:nth-child(4) .tile-count'), '3 open');
+  await page.tap('#lists .tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(450);
   assert.equal((await openTexts(page))[0], now[0], 'the task is back in its list');
   await page.reload(); await page.waitForSelector('#open .row');
   assert.equal((await openTexts(page))[0], now[0]);
@@ -1083,7 +1089,7 @@ const themesAndTextSize = async page => {
     const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((p, q) => q - p); return (hi + 0.05) / (lo + 0.05); };
     const worst = {};
     // every list colour, against every surface text sits on
-    for (const tile of document.querySelectorAll('.tile-row')) {
+    for (const tile of document.querySelectorAll('#lists .tile-row')) {
       const s = getComputedStyle(tile), v = n => s.getPropertyValue(n).trim();
       const found = { text: ratio(v('--ink'), v('--surface-hi')), textLow: ratio(v('--ink'), v('--surface-lo')), muted: ratio(v('--muted'), v('--bg')), mutedOnSunk: ratio(v('--muted'), v('--sunk')), accent: ratio(v('--on-accent'), v('--accent')), tile: ratio(v('--on-tile'), v('--tile')), tileDeep: ratio(v('--on-tile'), v('--tile2')), accentOnBg: ratio(v('--accent'), v('--bg')) };
       for (const [k, x] of Object.entries(found)) worst[k] = Math.min(worst[k] ?? 99, x);
@@ -1114,6 +1120,213 @@ const themesAndTextSize = async page => {
   await layoutChecks(page);
 };
 
+
+/* ---------- this round: safe areas, bottom sheets, live colour preview, no-wait motion, card material ---------- */
+// Pretends to be an iPhone with a Dynamic Island: 59px at the top, 34px at the bottom.
+const withInsets = (page, top = 59, bottom = 34) => page.evaluate(([t, b]) => { const r = document.documentElement; r.style.setProperty('--sat', t + 'px'); r.style.setProperty('--sab', b + 'px'); }, [top, bottom]);
+const box = async (page, selector) => page.evaluate(sel => { const e = [...document.querySelectorAll(sel)].find(n => n.getClientRects().length); if (!e) return null; const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height, width: r.width }; }, selector);
+
+const safeAreas = async page => {
+  await withInsets(page);
+  const vh = await page.evaluate(() => innerHeight), SAT = 59, SAB = 34;
+  // the app itself sits below the island and above the home indicator
+  assert.ok((await box(page, '#back')).top >= SAT, 'header below the island');
+  assert.ok((await box(page, '#fab')).bottom <= vh - SAB, 'add button above the home indicator');
+  await page.tap('#back'); await page.waitForTimeout(450);
+  const check = async (name, dialog, { closeBy }) => {
+    await page.waitForTimeout(550);
+    const sheet = await box(page, dialog);
+    assert.ok(sheet, name + ' is open');
+    assert.ok(sheet.top >= SAT + 8, `${name}: top edge ${Math.round(sheet.top)} clears the island (${SAT})`);
+    assert.ok(Math.abs(sheet.bottom - vh) <= 1, `${name}: attached to the bottom edge`);
+    const title = await box(page, `${dialog} h2`);
+    assert.ok(title.top >= SAT + 8 && title.bottom <= vh, `${name}: title fully visible`);
+    const x = await box(page, `${dialog} .sheet-head .icon-btn`);
+    if (x) assert.ok(x.top >= SAT + 8 && x.height >= 44 && x.width >= 44 && x.right <= await page.evaluate(() => innerWidth), `${name}: close button visible and full size`);
+    for (const button of await page.$$eval(`${dialog} .sheet-foot button`, n => n.filter(b => b.getClientRects().length).map(b => { const r = b.getBoundingClientRect(); return { text: b.textContent, bottom: r.bottom, top: r.top }; }))) {
+      assert.ok(button.bottom <= vh - SAB && button.top >= SAT, `${name}: "${button.text}" clears the home indicator (${Math.round(button.bottom)} of ${vh})`);
+    }
+    const body = await page.evaluate(sel => { const b = document.querySelector(sel + ' .sheet-body'); return { scrolls: b.scrollHeight > b.clientHeight + 4, sheetScrolls: document.querySelector(sel).scrollHeight > document.querySelector(sel).clientHeight + 1 }; }, dialog);
+    assert.ok(!body.sheetScrolls, `${name}: only the middle scrolls`);
+    if (body.scrolls) {      // long content: its last element can be brought into view above the footer
+      await page.evaluate(sel => { const b = document.querySelector(sel + ' .sheet-body'); b.scrollTop = b.scrollHeight; }, dialog);
+      const last = await page.evaluate(sel => { const b = document.querySelector(sel + ' .sheet-body'); const r = b.lastElementChild.getBoundingClientRect(), v = b.getBoundingClientRect(); return r.bottom <= v.bottom + 1; }, dialog);
+      assert.ok(last, `${name}: the end of the content is reachable`);
+    }
+    await closeBy();
+    await page.waitForTimeout(450);
+    assert.equal(await page.isVisible(dialog), false, `${name}: dismissed`);
+    assert.equal(await page.locator('.sheet-ghost, .sheet-scrim').count(), 0, `${name}: nothing left behind`);
+  };
+  await page.tap('#open-settings');
+  await check('Settings', '#settings-dialog', { closeBy: () => page.tap('#settings-close-x') });
+  await page.tap('#open-settings');
+  await check('Settings again', '#settings-dialog', { closeBy: () => page.tap('#settings-close') });
+  await page.tap('#open-trophies');
+  await check('Trophies', '#trophy-dialog', { closeBy: () => page.tap('#trophy-dialog .sheet-foot [data-close]') });
+  await page.tap('#new-list');
+  await check('New list', '#list-dialog', { closeBy: () => page.keyboard.press('Escape') });
+  await page.focus('#lists .tile-row:nth-child(2) .tile-open'); await page.keyboard.press('+');
+  await check('Quick add', '#quick-dialog', { closeBy: () => page.tap('#quick-close-x') });
+  await page.focus('#lists .tile-row:nth-child(2) .tile-open'); await page.keyboard.press('Delete');
+  await check('Delete confirmation', '#confirm-dialog', { closeBy: () => page.tap('#confirm-no') });
+  await page.tap('#open-settings'); await page.waitForTimeout(500);
+  await page.evaluate(() => document.getElementById('open-trash').scrollIntoView()); await page.tap('#open-trash');
+  await check('Recently deleted', '#trash-dialog', { closeBy: () => page.tap('#trash-dialog .sheet-head [data-close]') });
+  await page.tap('#settings-close'); await page.waitForTimeout(450);
+  await page.tap('#lists .tile-row:nth-child(1) .tile-open'); await page.waitForTimeout(500);
+  await page.tap('#pick');
+  await check('Just this one', '#pick-dialog', { closeBy: () => page.tap('#pick-dialog .sheet-head [data-close]') });
+  await page.tap('#open .row:nth-child(1) button.text'); await page.tap('.tool-move');
+  await check('Move to', '#move-dialog', { closeBy: () => page.tap('#move-dialog .sheet-foot [data-close]') });
+  // the banner and the run counter also stay out of the island
+  await page.keyboard.press('Escape');
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(500); await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(300);
+  assert.ok((await box(page, '#combo')).top >= SAT, 'run counter below the island');
+};
+
+const sheetDismissal = async page => {
+  await withInsets(page);
+  await page.tap('#pick'); await page.waitForTimeout(600);
+  const grab = await box(page, '#pick-dialog .sheet-grab');
+  const start = { x: (grab.left + grab.right) / 2, y: (grab.top + grab.bottom) / 2 };
+  // a short tug springs back
+  await finger(page, [start, { x: start.x, y: start.y + 40 }], { steps: 14 });
+  assert.equal(await page.isVisible('#pick-dialog'), true, 'a short drag does not dismiss');
+  assert.equal(await page.evaluate(() => document.getElementById('pick-dialog').style.transform), '');
+  // a real drag down dismisses
+  await finger(page, [start, { x: start.x + 4, y: start.y + 190 }]);
+  assert.equal(await page.isVisible('#pick-dialog'), false, 'dragging the handle down dismisses');
+  // dragging by the title bar works too; the X inside it is still a button
+  await page.tap('#pick'); await page.waitForTimeout(600);
+  const head = await box(page, '#pick-dialog h2');
+  await finger(page, [{ x: head.left + 30, y: head.top + 10 }, { x: head.left + 30, y: head.top + 210 }]);
+  assert.equal(await page.isVisible('#pick-dialog'), false);
+  await page.tap('#pick'); await page.waitForTimeout(600);
+  await page.tap('#pick-dialog .sheet-head [data-close]'); await page.waitForTimeout(400);
+  assert.equal(await page.isVisible('#pick-dialog'), false, 'X closes');
+  // tap on the dimmed area above a short sheet
+  await page.tap('#pick'); await page.waitForTimeout(600);
+  const top = (await box(page, '#pick-dialog')).top;
+  assert.ok(top > 200, 'a short sheet leaves the screen above it visible');
+  await page.touchscreen.tap(60, Math.floor(top / 2)); await page.waitForTimeout(400);
+  assert.equal(await page.isVisible('#pick-dialog'), false, 'tap outside closes');
+  // focus returns to what opened it, and the list underneath works straight away
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'pick');
+  const n = (await openTexts(page)).length;
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(600);
+  assert.equal((await openTexts(page)).length, n - 1);
+  // with the keyboard up (less of the screen visible) a sheet still fits and its buttons are reachable
+  await page.tap('#back'); await page.waitForTimeout(400);
+  await page.setViewportSize({ width: 393, height: 420 }); await page.waitForTimeout(250);
+  await page.tap('#new-list'); await page.waitForTimeout(600);
+  const vh = await page.evaluate(() => innerHeight);
+  const sheet = await box(page, '#list-dialog'), save = await box(page, '#list-save'), name = await box(page, '#list-name');
+  assert.ok(sheet.top >= 59 + 8 && sheet.bottom <= vh + 1, `fits the visible area (${Math.round(sheet.top)}..${Math.round(sheet.bottom)} of ${vh})`);
+  assert.ok(save.bottom <= vh && save.top >= sheet.top, 'Create is on screen');
+  await page.evaluate(() => document.getElementById('list-name').scrollIntoView({ block: 'center' }));
+  assert.ok((await box(page, '#list-name')).bottom <= (await box(page, '#list-dialog .sheet-foot')).top + 1, 'the field being typed in is not under the buttons');
+  assert.ok(name.height >= 44);
+};
+
+const colourPreview = async page => {
+  await page.tap('#back'); await page.waitForTimeout(450);
+  const before = await page.$$eval('#lists .tile-name', n => n.length);
+  await page.tap('#new-list'); await page.waitForTimeout(500);
+  assert.ok(await inView(page, '#list-preview'), 'the preview card is on screen');
+  assert.deepEqual([await page.textContent('#preview-name'), await page.textContent('#preview-count')], ['New list', 'Empty']);
+  await page.keyboard.type('Gaming');
+  assert.equal(await page.textContent('#preview-name'), 'Gaming', 'the name is previewed as it is typed');
+  const look = sel => page.evaluate(s => { const t = document.querySelector(s); const c = getComputedStyle(t); return { bg: c.backgroundImage, color: c.color, radius: c.borderRadius, name: getComputedStyle(t.querySelector('.tile-name')).font }; }, sel);
+  const seen = new Set();
+  for (const [colour, gem, hue] of [['sky', 'Sapphire', '258'], ['rose', 'Ruby', '12'], ['sage', 'Emerald', '158'], ['teal', 'Lagoon', '200']]) {
+    await page.check('#color-' + colour, { force: true }); await page.waitForTimeout(350);
+    assert.equal(await page.textContent('#colour-name'), gem, 'the colour is named');
+    assert.equal(await page.evaluate(() => document.getElementById('list-preview').style.getPropertyValue('--h')), hue);
+    seen.add((await look('#list-preview .tile')).bg);
+  }
+  assert.equal(seen.size, 4, 'each colour visibly changes the preview');
+  assert.equal(await page.$$eval('#lists .tile-name', n => n.length), before, 'nothing is saved while previewing');
+  const preview = await look('#list-preview .tile');
+  await page.tap('#list-save'); await page.waitForTimeout(600);
+  assert.equal(await title(page), 'Gaming');
+  await page.tap('#back'); await page.waitForTimeout(700);
+  const made = await look('#lists .tile-row:last-child .tile');
+  assert.deepEqual(made, preview, 'the saved card is painted exactly like its preview');
+  // editing: the preview shows the real count; picking a colour and cancelling changes nothing
+  await page.tap('#lists .tile-row:nth-child(2) .tile-open'); await page.waitForTimeout(500);
+  await page.tap('#list-more'); await page.waitForTimeout(500);
+  assert.deepEqual([await page.textContent('#preview-name'), await page.textContent('#preview-count')], ['Weekend', '3 open']);
+  await page.check('#color-rose', { force: true }); await page.waitForTimeout(300);
+  assert.equal(await page.textContent('#colour-name'), 'Ruby');
+  await page.tap('#list-cancel'); await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--h')), '62', 'cancelled: the list keeps its colour');
+  await page.tap('#list-more'); await page.waitForTimeout(500);
+  assert.equal(await page.textContent('#colour-name'), 'Amber', 'reopening shows the saved colour, not the abandoned pick');
+  await page.check('#color-teal', { force: true }); await page.tap('#list-save'); await page.waitForTimeout(400);
+  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--h')), '200', 'saved: the list takes the new colour');
+  await page.reload(); await page.waitForSelector('#open .row');
+  assert.equal(await page.evaluate(() => document.documentElement.style.getPropertyValue('--h')), '200');
+};
+
+const noWaiting = async page => {
+  const start = await openTexts(page);
+  // the list has already moved on within a frame or two of the tap
+  await page.tap('#open .row:nth-child(1) .check');
+  await page.waitForTimeout(60);
+  assert.deepEqual(await openTexts(page), start.slice(1), 'the row is gone from the list at once');
+  assert.equal(await page.locator('.row-ghost').count(), 1, 'its leaving copy is still on its way out');
+  // three quick ticks in a row all land, each on a different task
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(90);
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(90);
+  await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(700);
+  assert.deepEqual(await openTexts(page), start.slice(4), 'rapid ticks are not swallowed by animation');
+  assert.equal(await page.locator('.row-ghost').count(), 0, 'leaving copies clean up after themselves');
+  assert.equal(await page.textContent('#combo'), '×4');
+  // swipe-complete and swipe-delete: also immediate
+  await page.tap('#fab'); for (const t of ['one', 'two', 'three']) { await page.keyboard.type(t); await page.keyboard.press('Enter'); await page.waitForTimeout(150); }
+  await page.tap('#title'); await page.waitForTimeout(300);
+  let row = await center(page, '#open .row:nth-child(1) .text');
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type, p) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: p ? [p] : [] });
+  await touch('touchStart', row); for (let i = 1; i <= 8; i++) { await touch('touchMove', { x: row.x + i * 22, y: row.y }); await page.waitForTimeout(10); } await touch('touchEnd');
+  await page.waitForTimeout(70);
+  assert.equal((await openTexts(page))[0], 'two', 'swipe-complete updates the list at once');
+  await page.waitForTimeout(600);
+  // going back folds the list into its tile and the Lists screen is usable immediately
+  await page.tap('#back'); await page.waitForTimeout(90);
+  assert.equal(await page.getAttribute('#app', 'data-view'), 'home');
+  await page.tap('#lists .tile-row:nth-child(2) .tile-open'); await page.waitForTimeout(600);
+  assert.equal(await title(page), 'Weekend', 'a tap during the fold animation is honoured');
+  // card material: no hard-edged split left, and the open-list marker is gone on phones
+  await page.tap('#back'); await page.waitForTimeout(600);
+  const paint = await page.evaluate(() => { const t = document.querySelector('#lists .tile-row[aria-current="true"] .tile'); return { before: getComputedStyle(t, '::before').backgroundImage, base: getComputedStyle(t).backgroundImage, outline: getComputedStyle(t).outlineStyle, afterWidth: getComputedStyle(t, '::after').width }; });
+  assert.ok(!/(\d+(\.\d+)?%)\s*,\s*[^,]+\s+\1/.test(paint.before) && !/34\.2%/.test(paint.before + paint.base), 'no two colour stops at the same position (that is what drew the hard line)');
+  assert.equal(paint.outline, 'none', 'no open-list marker on a phone');
+  assert.ok(parseFloat(paint.afterWidth) > 300, 'the old 5px bar is gone (the pseudo-element is now the full-width light pass)');
+};
+
+const frameTimes = async page => {
+  // A paging drag with the processor slowed 4x, as a rough stand-in for a mid-range phone.
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  await page.evaluate(() => { window.__frames = []; let last = performance.now(); const tick = now => { window.__frames.push(now - last); last = now; window.__raf = requestAnimationFrame(tick); }; window.__raf = requestAnimationFrame(tick); });
+  const y = (await page.locator('#open').boundingBox()); const from = { x: 320, y: y.y + y.height + 60 };
+  for (let round = 0; round < 3; round++) {
+    await finger(page, [from, { x: 60, y: from.y }], { steps: 24 });
+    await finger(page, [{ x: 80, y: from.y }, { x: 340, y: from.y }], { steps: 24 });
+  }
+  for (let i = 0; i < 3; i++) { await page.tap('#open .row:nth-child(1) .check'); await page.waitForTimeout(250); }
+  const frames = await page.evaluate(() => { cancelAnimationFrame(window.__raf); return window.__frames.slice(5); });
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  const sorted = [...frames].sort((a, b) => a - b);
+  const p = q => sorted[Math.floor(sorted.length * q)];
+  const report = { frames: frames.length, median: +p(0.5).toFixed(1), p95: +p(0.95).toFixed(1), worst: +sorted.at(-1).toFixed(1), over50ms: frames.filter(f => f > 50).length };
+  console.log('   frame times, CPU slowed 4x (ms):', JSON.stringify(report));
+  assert.ok(report.median <= 20, 'median frame within ~one 60Hz frame: ' + report.median);
+  assert.ok(report.p95 <= 50, '95% of frames under 50ms: ' + report.p95);
+};
+
 (async () => {
   const { startServer } = await import('../server/node.js');
   const running = await startServer({ port: 0, setupCode: SETUP, passwordIterations: 1000 });
@@ -1135,6 +1348,11 @@ const themesAndTextSize = async page => {
   await run('Lists screen: pull for top, tap empty space for end, spread for between', devices['Pixel 7'], listsScreenCreation);
   await run('Rising run, combo counter, trophies and finale unlocks', devices['iPhone 13'], runsAndRewards);
   await run('Pick one, move, search and Recently deleted', devices['Pixel 7'], searchMovePickBin);
+  await run('Safe areas: every sheet clears the island and home indicator', { ...devices['iPhone 13'], viewport: { width: 393, height: 852 } }, safeAreas);
+  await run('Sheet dismissal: drag down, X, tap outside, keyboard open', { ...devices['iPhone 13'], viewport: { width: 393, height: 852 } }, sheetDismissal);
+  await run('Colour preview is live and matches the saved card', devices['iPhone 13'], colourPreview);
+  await run('Nothing waits on animation; card material; marker', devices['iPhone 13'], noWaiting);
+  await run('Frame times while paging and completing, CPU slowed 4x', devices['Pixel 7'], frameTimes);
   await run('Six themes keep contrast; text size; persistence', { ...devices['iPhone 13'], viewport: { width: 375, height: 667 } }, themesAndTextSize);
   await run('Settings sheet on iPhone SE (375x667)', { ...devices['iPhone 13'], viewport: { width: 375, height: 667 } }, settingsSheet(false));
   await run('Settings sheet on a very small phone (320x568)', { ...devices['iPhone 13'], viewport: { width: 320, height: 568 } }, settingsSheet(false));

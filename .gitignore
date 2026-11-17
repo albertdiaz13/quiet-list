@@ -3,3 +3,5 @@ data/
 .wrangler/
 .dev.vars
 tests/fail-*.png
+.review/
+.impeccable/

@@ -40,6 +40,14 @@ counts again only after something new was added to it). Trophies arrive at 1, 5,
 unlock at 3, 10 and 25. The tally is stored with the lists, so it follows the account. Finishing tasks within about three seconds
 of each other climbs a scale and shows a ×2, ×3… counter.
 
+**Look and motion.** List cards are lit like polished stone: one soft light from above, colour deepening away from it, no hard
+edges. Sheets rise from the bottom edge, within thumb reach, and can be closed with the X, a Done/Cancel button, a tap outside,
+Escape, or by dragging the handle down. They never enter the phone's status bar / Dynamic Island or home-indicator areas, and sit
+on top of the keyboard when it is open. Nothing waits on an animation: a finished or deleted row leaves as a copy while the list
+has already closed up, so rapid taps always land. With Reduce Motion on, nothing slides, scales or sweeps; screens swap at once
+and sheets use a short fade. When creating or editing a list, the card at the top of the sheet is the real card, repainted live
+as you type and pick a colour. On wide screens the open list is outlined in the sidebar; on phones there is no such marker.
+
 **Settings** (top right of the Lists screen): Sound effects, Theme (Jewel, Velvet Noir, Neon Arcade, Aurora, Sunset Lacquer,
 Light, Match phone), Text size, Account, Backup and Recently deleted. Sounds are synthesized in the browser, play only in
 response to your own touches, never on load and never for changes arriving from another device.
@@ -146,7 +154,7 @@ npm run test:e2e
 ```
 
 - `npm test`: 31 tests. Model (including insert position, move, Recently deleted, cleared tally), server (sign-up gate, lockout, two-device sync, retry safety, cross-account isolation, cross-site refusal, OAuth attack cases, revoke, new operations, connector scope unchanged), and the official MCP client library end to end.
-- `npm run test:e2e` (needs Playwright + Chromium): 33 scenarios at emulated iPhone and Android sizes with real one- and two-finger touch events: every gesture and its non-gesture twin, gesture conflicts, zoom behaviour, sound rules, rising runs, trophies and finales, search, move, Recently deleted, six themes with contrast checks, text size, settings sheets on small screens and with the keyboard open, reduced motion, two phones syncing on one account (including the new features), offline catch-up, and the assistant flow. `ONLY=<pattern>` runs a subset.
+- `npm run test:e2e` (needs Playwright + Chromium): 38 scenarios (now also safe areas on every sheet with simulated 59px/34px insets, sheet dismissal, live colour preview matching the saved card, no-wait completion, and frame times with the processor slowed 4x) at emulated iPhone and Android sizes with real one- and two-finger touch events: every gesture and its non-gesture twin, gesture conflicts, zoom behaviour, sound rules, rising runs, trophies and finales, search, move, Recently deleted, six themes with contrast checks, text size, settings sheets on small screens and with the keyboard open, reduced motion, two phones syncing on one account (including the new features), offline catch-up, and the assistant flow. `ONLY=<pattern>` runs a subset.
 - `tests/worker-smoke.mjs`: the same server in Cloudflare's local Workers runtime with a local D1 database (`npm run cf:dev`).
 
 Not verified: real iPhone Safari or Android Chrome hardware (in particular the two-finger spread and whether Safari honours the zoom opt-out over the rows), home-screen install on a real phone, how the sounds actually sound, screen readers.

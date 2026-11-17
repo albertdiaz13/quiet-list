@@ -41,8 +41,13 @@ applyTheme();
 // Sheets size themselves to the part of the screen that is actually visible (the keyboard shrinks it).
 function syncViewport() {
   const view = window.visualViewport;
-  document.documentElement.style.setProperty('--vv-h', `${view ? view.height : innerHeight}px`);
-  document.documentElement.style.setProperty('--vv-top', `${view ? view.offsetTop : 0}px`);
+  const height = view ? view.height : innerHeight, top = view ? view.offsetTop : 0;
+  const covered = Math.max(0, innerHeight - (top + height));       // what the on-screen keyboard hides
+  const root = document.documentElement;
+  root.style.setProperty('--vv-h', `${height}px`);
+  root.style.setProperty('--vv-top', `${top}px`);
+  root.style.setProperty('--vv-bottom', `${covered}px`);
+  root.classList.toggle('kb-open', covered > 80);
 }
 syncViewport();
 addEventListener('resize', syncViewport);
@@ -177,12 +182,13 @@ function undo() {
 function measure() {
   const tops = new Map();
   for (const li of content.querySelectorAll('.row')) tops.set(li.dataset.id, li.getBoundingClientRect().top);
+  for (const node of [$('done-wrap'), $('empty')]) if (!node.hidden) tops.set('#' + node.id, node.getBoundingClientRect().top);
   for (const li of listsEl.children) tops.set(li.dataset.id, li.getBoundingClientRect().top);
   return tops;
 }
 function playFlip(before) {
-  for (const li of [...content.querySelectorAll('.row'), ...listsEl.children]) {
-    const old = before.get(li.dataset.id);
+  for (const li of [...content.querySelectorAll('.row'), ...listsEl.children, $('done-wrap'), $('empty')]) {
+    const old = before.get(li.dataset.id ?? '#' + li.id);
     if (old == null || li.classList.contains('entering')) continue;
     const dy = old - li.getBoundingClientRect().top;
     if (Math.abs(dy) > 1) {
@@ -302,6 +308,9 @@ function renderList() {
   $('count').textContent = countText(list);
   document.title = `${list.name} · Quiet List`;
   document.documentElement.style.setProperty('--h', hueOf(list));
+  // The Lists screen has its own copy, refreshed only while it is on show, so opening a list
+  // does not recolour the screen being left before the new one has covered it.
+  if (wide.matches || view === 'home') home.style.setProperty('--h', hueOf(list));
   paintBrowserChrome();
 
   openEl.replaceChildren(...openTasks.map((t, i) => rowEl(t, i, openTasks)));
@@ -341,6 +350,7 @@ function renderHome() {
     const li = el('li', 'tile-row hue');
     li.dataset.id = list.id;
     li.style.setProperty('--h', hueOf(list));
+    li.style.setProperty('--i', String(state.lists.indexOf(list)));
     if (list.id === activeId) li.setAttribute('aria-current', 'true');
     const left = el('span', 'reveal left'); left.append(icon('i-plus'));
     const right = el('span', 'reveal right'); right.append(icon('i-trash'));
@@ -392,18 +402,62 @@ function applyView() {
   home.inert = !wide.matches && view !== 'home';
   listPane.inert = !wide.matches && view !== 'list';
 }
+// The Lists screen's address. It must not equal any element's id: browsers scroll to the element
+// whose id matches the address, which is what used to push the search field out of view.
+const HOME_HASH = 'overview';
 function setHash(hash, replace) {
   try {
     if (location.hash === '#' + hash) return;
     if (replace) location.replace('#' + hash); else location.hash = hash;
   } catch { /* sandboxed frames may refuse; the view has already changed */ }
 }
-function showHome({ focus = true } = {}) {
+let lastGlint = -Infinity;
+function glint() {
+  if (calm.matches || performance.now() - lastGlint < 20000) return;       // an occasional touch, not a habit
+  lastGlint = performance.now();
+  listsEl.classList.remove('glint');
+  void listsEl.offsetWidth;
+  listsEl.classList.add('glint');
+  setTimeout(() => listsEl.classList.remove('glint'), 2200);
+}
+// Going back, the list folds into the tile it came from.
+function foldIntoTile() {
+  if (wide.matches || calm.matches) return;
+  const tile = listsEl.querySelector(`.tile-row[data-id="${CSS.escape(activeId)}"]`);
+  if (!tile) return;
+  const frame = app.getBoundingClientRect(), pane = home.getBoundingClientRect(), box = tile.getBoundingClientRect();
+  const scale = pane.width / home.offsetWidth || 1, cx = pane.left + pane.width / 2, cy = pane.top + pane.height / 2;
+  const at = (value, centre) => centre + (value - centre) / scale;          // where the tile will be once the screen has settled
+  const top = at(box.top, cy) - frame.top, left = at(box.left, cx) - frame.left, right = frame.right - at(box.right, cx), bottom = frame.bottom - at(box.bottom, cy);
+  if (top < 0 || bottom < 0) return;                                        // its tile is scrolled out of view: a plain fade is clearer
+  const small = `inset(${top}px ${right}px ${bottom}px ${left}px round 26px)`;
+  listPane.classList.add('closing-to-tile');
+  // The list's content goes at once (CSS); its coloured surface shrinks onto its own tile and then dissolves into it.
+  const fold = listPane.animate([
+    { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1, offset: 0, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+    { clipPath: small, opacity: 0.9, offset: 0.55, easing: 'ease-out' },
+    { clipPath: small, opacity: 0, offset: 1 },
+  ], { duration: 250 });
+  const done = () => {                        // hand back to the normal hidden state without replaying a fade
+    listPane.style.transition = 'none';
+    listPane.classList.remove('closing-to-tile');
+    void listPane.offsetWidth;
+    listPane.style.transition = '';
+  };
+  fold.finished.then(done, done);
+}
+function showHome({ focus = true, fold = false } = {}) {
+  const wasList = view === 'list';
+  const folding = fold && wasList && !wide.matches && !calm.matches;
   view = 'home';
   editingId = null; draft = null;
+  // When the list folds back into its tile, the Lists screen is already at rest underneath it.
+  if (folding) home.style.transition = 'none';
   applyView();
   render({ flip: false });
-  setHash('lists');
+  if (folding) { void home.offsetWidth; home.style.transition = ''; foldIntoTile(); }
+  if (wasList) setTimeout(glint, folding ? 270 : 0);                 // the light pass waits until the fold has gone
+  setHash(HOME_HASH);
   if (focus && !wide.matches) {
     const tile = document.querySelector(`[data-fk="l:${CSS.escape(activeId)}"]`);
     tile?.focus({ preventScroll: true });
@@ -441,7 +495,7 @@ function stepList(direction) {
 }
 function route() {
   const hash = location.hash.slice(1);
-  if (hash === 'lists') { if (view !== 'home') showHome({ focus: false }); return; }
+  if (hash === HOME_HASH || hash === 'lists') { if (view !== 'home') showHome({ focus: false }); return; }
   const listId = hash.startsWith('list-') ? hash.slice(5) : null;
   if (listId && state.lists.some(l => l.id === listId)) {
     if (view !== 'list' || listId !== activeId) openList(listId, { replace: true });
@@ -453,14 +507,42 @@ let usingKeyboard = false;
 addEventListener('keydown', () => { usingKeyboard = true; }, true);
 addEventListener('pointerdown', () => { usingKeyboard = false; }, true);
 
-function collapse(li) {
-  if (calm.matches || !li.isConnected) return Promise.resolve();
-  li.style.overflow = 'hidden';
-  const animation = li.animate(
-    [{ height: li.offsetHeight + 'px', opacity: 1, marginBottom: '0px' }, { height: '0px', opacity: 0, marginBottom: '-8px' }],
-    { duration: 200, easing: 'ease-in', fill: 'forwards' },
-  );
-  return Promise.race([animation.finished.catch(() => {}), wait(260)]);
+// A finished or deleted row leaves as a copy that floats above the list, while the real list
+// has already closed the gap. Nothing is ever waiting on an animation.
+function sendOff(li, kind) {
+  if (calm.matches || !li?.isConnected) return;
+  const from = li.getBoundingClientRect(), frame = app.getBoundingClientRect();
+  const liveCard = li.querySelector('.card');
+  const swipedAt = liveCard?.style.transform || '';
+  const ghost = li.cloneNode(true);
+  ghost.classList.add('row-ghost');
+  ghost.classList.remove('entering', 'found');
+  ghost.removeAttribute('data-id');
+  ghost.inert = true;
+  ghost.setAttribute('aria-hidden', 'true');
+  for (const node of ghost.querySelectorAll('[data-fk]')) node.removeAttribute('data-fk');
+  Object.assign(ghost.style, { position: 'absolute', left: `${from.left - frame.left}px`, top: `${from.top - frame.top}px`, width: `${from.width}px`, height: `${from.height}px` });
+  const card = ghost.querySelector('.card');
+  const done = kind === 'done';
+  if (done) { const box = ghost.querySelector('.check input'); if (box) box.checked = true; }
+  app.append(ghost);
+  const gone = () => ghost.remove();
+  if (swipedAt) {                                   // carry on in the direction of the swipe
+    card.classList.remove('spring', 'fling');
+    card.animate([{ transform: swipedAt }, { transform: `translateX(${done ? 112 : -112}%)` }], { duration: 190, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)', fill: 'forwards' });
+    ghost.animate([{ opacity: 1 }, { opacity: 1, offset: 0.55 }, { opacity: 0 }], { duration: 300, fill: 'forwards' }).finished.then(gone, gone);
+  } else {
+    // Stays solid the whole way (no see-through overlap with the rows closing up beneath it):
+    // a finished task shows its tick and strike for a beat, then slides off to the done side; a deleted one leaves the other way at once.
+    ghost.style.background = 'transparent';
+    if (done) requestAnimationFrame(() => ghost.classList.add('completing'));
+    const hold = done ? 0.34 : 0;
+    card.animate([
+      { transform: 'translateX(0)', offset: 0 },
+      { transform: 'translateX(0)', offset: hold, easing: 'cubic-bezier(0.5, 0, 0.9, 0.4)' },
+      { transform: `translateX(${done ? 112 : -112}%)`, offset: 1 },
+    ], { duration: done ? 330 : 200, fill: 'forwards' }).finished.then(gone, gone);
+  }
 }
 
 let run = 0, lastDoneAt = 0;       // tasks finished in quick succession
@@ -482,11 +564,7 @@ async function setDone(taskId, done, li, { swiped = false } = {}) {
   if (done) {
     buzz(12);
     showRun();
-    if (li) sparks(li);
-    if (!calm.matches && li) {
-      if (!swiped) { li.classList.add('completing'); await wait(340); }
-      await collapse(li);
-    }
+    if (li) { sparks(li); sendOff(li, 'done'); }
   }
   render({ focus: done ? null : 'c:' + taskId });
   if (cleared) celebrate(list, reward);
@@ -508,9 +586,10 @@ function sparks(li) {
   if (calm.matches) return;
   const from = li.querySelector('.check')?.getBoundingClientRect(), frame = app.getBoundingClientRect();
   if (!from) return;
-  for (let i = 0; i < 7; i++) {
+  const count = 6 + Math.min(run, 8) * 2;                 // a longer run throws more sparks
+  for (let i = 0; i < count; i++) {
     const spark = el('span', 'spark');
-    const angle = (i / 7) * Math.PI * 2 + Math.random() * 0.6, reach = 26 + Math.random() * 26;
+    const angle = (i / count) * Math.PI * 2 + Math.random() * 0.6, reach = 26 + Math.random() * 26;
     spark.style.left = `${from.left - frame.left + from.width / 2 - 3}px`;
     spark.style.top = `${from.top - frame.top + from.height / 2 - 3}px`;
     spark.style.setProperty('--bx', `${Math.cos(angle) * reach}px`);
@@ -531,7 +610,7 @@ async function removeTask(taskId, li) {
   if (!act({ type: 'delete_item', listId: list.id, itemId: taskId }, { toast: 'Deleted', undo: true })) return;
   sound.play('delete');
   if (editingId === taskId) editingId = null;
-  if (li) await collapse(li);
+  sendOff(li, 'delete');
   render();
   thoughtOrNext();
 }
@@ -736,12 +815,7 @@ function watchItems(container, { scrollBox, itemSelector, onDrop, swipe, cardSel
       if (!armed) { settle(); return; }
       const action = dx > 0 ? 'complete' : 'delete';
       if (!fling) { settle(); swipe(li, action); return; }     // the item stays; the action opens something
-      if (!calm.matches) {
-        card.classList.add('fling');
-        card.style.transform = `translateX(${dx > 0 ? 110 : -110}%)`;
-        await wait(190);
-      }
-      swipe(li, action);
+      swipe(li, action);                         // the row's exit continues from where the finger left it; nothing waits
     };
     const cancel = ev => {
       if (ev.pointerId !== event.pointerId) return;
@@ -895,6 +969,8 @@ document.addEventListener('gesturestart', event => { if (event.target.closest?.(
    - touches that start within 24px of the screen edge are left to the phone's own back gesture. */
 let navBusy = false;
 const DEPTH = 0.08;
+// How far a pane is from the front (0 to 1) drives its dimming and the lag of its title, in CSS.
+const setDepth = (pane, far, side) => { pane.style.setProperty('--far', String(far)); pane.style.setProperty('--side', String(side)); };
 
 // A stand-in for the neighbouring list, in its own colour, that travels in beside the open one.
 function ghostPane(list) {
@@ -932,6 +1008,7 @@ function landOnList(target, direction, ghost) {
   listPane.classList.remove('nav-settle');
   listPane.classList.add('nav-drag');
   listPane.style.transform = '';
+  setDepth(listPane, 0, 1);
   void listPane.offsetWidth;
   requestAnimationFrame(() => { listPane.classList.remove('nav-drag'); ghost?.remove(); navBusy = false; if (gesture === 'nav') gesture = null; });
   stagger();
@@ -949,14 +1026,16 @@ function settleNav(target, direction, ghost) {
   void listPane.offsetWidth;
   listPane.style.transform = `translateX(${-direction * width}px) scale(${1 - DEPTH})`;
   ghost.style.transform = 'translateX(0px) scale(1)';
-  setTimeout(() => landOnList(target, direction, ghost), 350);
+  setDepth(listPane, 1, direction); setDepth(ghost, 0, direction);
+  setTimeout(() => landOnList(target, direction, ghost), 330);
 }
 function cancelNav(direction, ghost) {
   const width = listPane.offsetWidth;
   for (const pane of [listPane, ghost]) { pane?.classList.remove('nav-drag'); pane?.classList.add('nav-settle'); }
   void listPane.offsetWidth;
   listPane.style.transform = '';
-  if (ghost) ghost.style.transform = `translateX(${direction * width}px) scale(${1 - DEPTH})`;
+  setDepth(listPane, 0, direction);
+  if (ghost) { ghost.style.transform = `translateX(${direction * width}px) scale(${1 - DEPTH})`; setDepth(ghost, 1, direction); }
   setTimeout(() => { ghost?.remove(); listPane.classList.remove('nav-settle'); if (gesture === 'nav') gesture = null; }, calm.matches ? 0 : 350);
 }
 // Used by the dots, the [ and ] keys, and anything else that is not a drag.
@@ -970,6 +1049,7 @@ function slideToList(target, direction) {
   }
   const ghost = ghostPane(target);
   ghost.style.transform = `translateX(${direction * listPane.offsetWidth}px) scale(${1 - DEPTH})`;
+  setDepth(ghost, 1, direction);
   app.append(ghost);
   listPane.classList.add('nav-drag');
   void ghost.offsetWidth;
@@ -1008,7 +1088,8 @@ listPane.addEventListener('pointerdown', event => {
     const shown = target ? dx : dx * 0.2;                                     // nothing that way: resist
     const far = Math.min(1, Math.abs(shown) / width);                          // the leaving list sinks back, the arriving one rises
     listPane.style.transform = `translateX(${shown}px) scale(${1 - far * DEPTH})`;
-    if (ghost) ghost.style.transform = `translateX(${shown + direction * width}px) scale(${1 - DEPTH + far * DEPTH})`;
+    setDepth(listPane, target ? far : 0, direction);
+    if (ghost) { ghost.style.transform = `translateX(${shown + direction * width}px) scale(${1 - DEPTH + far * DEPTH})`; setDepth(ghost, 1 - far, direction); }
   };
   const up = ev => {
     if (ev.pointerId !== event.pointerId) return;
@@ -1047,6 +1128,7 @@ $('capture').addEventListener('submit', event => {
   scroller.scrollTop = 0;
   thought.focus({ preventScroll: true });
   buzz(8); sound.play('add');
+  const field = $('capture'); field.classList.remove('pulse'); void field.offsetWidth; field.classList.add('pulse');
   announce('Added: ' + task.text);
 });
 // Pasting several lines drops each one in as its own thought.
@@ -1148,7 +1230,7 @@ $('clear-done').addEventListener('click', () => {
   const count = list.tasks.filter(t => t.done).length;
   if (act({ type: 'clear_done', listId: list.id }, { toast: `Cleared ${count} done`, undo: true })) { sound.play('delete'); render(); thought.focus({ preventScroll: true }); }
 });
-$('back').addEventListener('click', () => { sound.play('back'); showHome(); });
+$('back').addEventListener('click', () => { sound.play('back'); showHome({ fold: true }); });
 $('pager').addEventListener('click', event => {
   const dot = event.target.closest('button');
   if (!dot || dot.dataset.id === activeId) return;
@@ -1166,8 +1248,12 @@ listsEl.addEventListener('click', event => {
     openList(open.closest('.tile-row').dataset.id, { focus: !wide.matches });
     if (!wide.matches && !calm.matches) {
       const inset = `inset(${from.top - frame.top}px ${frame.right - from.right}px ${frame.bottom - from.bottom}px ${from.left - frame.left}px round 26px)`;
-      listPane.animate([{ clipPath: inset, opacity: 0.4 }, { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1 }], { duration: 440, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
-      listPane.animate([{ transform: 'scale(1)' }, { transform: 'scale(1)' }], { duration: 440 });     // hold full size while the reveal plays
+      listPane.animate([{ clipPath: inset, opacity: 1 }, { clipPath: 'inset(0px 0px 0px 0px round 0px)', opacity: 1 }], { duration: 400, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' });
+      listPane.animate([{ transform: 'scale(1)' }, { transform: 'scale(1)' }], { duration: 400 });
+      const tint = el('div', 'reveal-tint');
+      listPane.append(tint);
+      const drop = () => tint.remove();
+      tint.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 230, easing: 'cubic-bezier(0.4, 0, 0.6, 1)', fill: 'forwards' }).finished.then(drop, drop);     // hold full size while the reveal plays
     }
     stagger();
   }
@@ -1182,15 +1268,95 @@ listsEl.addEventListener('keydown', event => {
   else if (event.key === '+' || event.key === '=') { event.preventDefault(); openQuickAdd(row.dataset.id); }
 });
 
+// Light blooms under the finger while a list tile is pressed.
+listsEl.addEventListener('pointerdown', event => {
+  const tile = event.target.closest('.tile');
+  if (!tile || event.target.closest('.handle')) return;
+  const box = tile.getBoundingClientRect();
+  tile.style.setProperty('--lx', `${event.clientX - box.left}px`);
+  tile.style.setProperty('--ly', `${event.clientY - box.top}px`);
+  tile.classList.add('pressed');
+  const lift = () => { tile.classList.remove('pressed'); removeEventListener('pointerup', lift); removeEventListener('pointercancel', lift); };
+  addEventListener('pointerup', lift);
+  addEventListener('pointercancel', lift);
+});
+
 /* ---------- sheets ---------- */
 function openSheet(dialog) {
   if (dialog.open) return;
   syncViewport();
+  dialog.classList.remove('dragging', 'settling');
+  dialog.style.transform = '';
   dialog.showModal();
   dialog.dataset.openedAt = String(performance.now());
   sound.play('pop');
 }
 // Tapping the dimmed area outside a sheet closes it, like pressing Escape.
+// A closing sheet leaves as a copy sliding off the bottom; the real one is already closed, so focus,
+// keyboard and whatever happens next never wait for it.
+function leaveSheet(dialog) {
+  sound.play('close');
+  if (calm.matches || !dialog.open) return;
+  const copy = el('div', dialog.className + ' sheet-ghost');
+  copy.style.cssText = dialog.style.cssText;
+  copy.inert = true;
+  copy.setAttribute('aria-hidden', 'true');
+  for (const child of dialog.children) copy.append(child.cloneNode(true));
+  // Unnamed, so copied radio buttons cannot join (and silently change) the real groups.
+  for (const node of copy.querySelectorAll('[name]')) node.removeAttribute('name');
+  const scrim = el('div', 'sheet-scrim');
+  document.body.append(scrim, copy);
+  const scrolled = dialog.querySelector('.sheet-body')?.scrollTop;
+  if (scrolled) copy.querySelector('.sheet-body').scrollTop = scrolled;
+  const from = dialog.style.transform || 'translateY(0px)';
+  const exit = wide.matches
+    ? [{ transform: 'none', opacity: 1 }, { transform: 'translateY(-10px) scale(0.97)', opacity: 0 }]
+    : [{ transform: from }, { transform: 'translateY(104%)' }];
+  const drop = node => () => node.remove();
+  copy.animate(exit, { duration: 200, easing: 'cubic-bezier(0.3, 0, 0.8, 0.6)', fill: 'forwards' }).finished.then(drop(copy), drop(copy));
+  scrim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 210, fill: 'forwards' }).finished.then(drop(scrim), drop(scrim));
+}
+for (const dialog of document.querySelectorAll('dialog.sheet')) {
+  const frame = dialog.querySelector('.sheet-frame');
+  const grab = el('div', 'sheet-grab'); grab.setAttribute('aria-hidden', 'true');
+  frame.prepend(grab);
+  const nativeClose = dialog.close.bind(dialog);
+  dialog.close = value => {
+    if (!dialog.open) return;
+    leaveSheet(dialog);
+    nativeClose(value);
+    dialog.classList.remove('dragging', 'settling');
+    dialog.style.transform = '';
+  };
+  dialog.addEventListener('cancel', () => leaveSheet(dialog));          // Escape and the phone's back gesture
+  // Drag the handle or the title bar down to dismiss (phones). Buttons in the bar still work as buttons.
+  for (const zone of [grab, dialog.querySelector('.sheet-head')].filter(Boolean)) {
+    zone.addEventListener('pointerdown', event => {
+      if (event.button || wide.matches || event.target.closest('button, input, a')) return;
+      const y0 = event.clientY;
+      let dy = 0, lastY = y0, lastTime = event.timeStamp, speed = 0;
+      const move = ev => {
+        if (ev.pointerId !== event.pointerId) return;
+        dy = Math.max(0, ev.clientY - y0);
+        if (ev.timeStamp > lastTime) { speed = (ev.clientY - lastY) / (ev.timeStamp - lastTime); lastY = ev.clientY; lastTime = ev.timeStamp; }
+        if (dy > 4) { dialog.classList.remove('settling'); dialog.classList.add('dragging'); dialog.style.transform = `translateY(${dy}px)`; ev.preventDefault(); }
+      };
+      const up = ev => {
+        if (ev.pointerId !== event.pointerId) return;
+        removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+        if (!dialog.classList.contains('dragging')) return;
+        if (ev.type === 'pointerup' && (dy > 110 || (speed > 0.55 && dy > 24))) { dialog.close(); return; }
+        dialog.classList.remove('dragging');
+        dialog.classList.add('settling');
+        dialog.style.transform = '';
+        setTimeout(() => dialog.classList.remove('settling'), 320);
+      };
+      addEventListener('pointermove', move, { passive: false });
+      addEventListener('pointerup', up);
+      addEventListener('pointercancel', up);
+    });
+  }
+}
 for (const dialog of document.querySelectorAll('dialog.sheet')) {
   dialog.addEventListener('click', event => {
     // A sheet opened by a gesture can receive that same gesture's trailing tap; ignore it.
@@ -1280,6 +1446,29 @@ $('swatches').replaceChildren(...COLORS.map(color => {
   return label;
 }));
 let newListBefore = null;        // where a new list goes: before this list's id, or null for the end
+// The card at the top of the sheet is the real card component, repainted as you type and pick.
+function paintListPreview({ fade = false } = {}) {
+  const color = listDialog.querySelector('input[name="color"]:checked')?.value ?? COLORS[0];
+  const preview = $('list-preview'), tile = preview.querySelector('.tile');
+  if (fade && !calm.matches) {                      // the old colour dissolves into the new one
+    const old = tile.cloneNode(true);
+    old.classList.add('fade');
+    old.style.setProperty('--h', getComputedStyle(preview).getPropertyValue('--h'));
+    old.classList.add('hue');
+    preview.append(old);
+    const drop = () => old.remove();
+    old.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: 'ease-out', fill: 'forwards' }).finished.then(drop, drop);
+  }
+  preview.style.setProperty('--h', HUES[color]);
+  listDialog.style.setProperty('--h', HUES[color]);            // the sheet's own buttons and focus rings follow
+  const typed = $('list-name').value.trim();
+  $('preview-name').textContent = typed || 'New list';
+  $('preview-name').classList.toggle('is-empty', !typed);
+  $('preview-count').textContent = listDialogMode === 'new' ? 'Empty' : summary(current());
+  $('colour-name').textContent = GEMS[color];
+}
+$('swatches').addEventListener('change', () => { sound.play('tick'); paintListPreview({ fade: true }); });
+$('list-name').addEventListener('input', () => paintListPreview());
 function openListDialog(mode, { at = 'end', beforeId = null } = {}) {
   listDialogMode = mode;
   newListBefore = mode === 'new' ? (at === 'top' ? state.lists[0]?.id ?? null : beforeId) : null;
@@ -1293,6 +1482,7 @@ function openListDialog(mode, { at = 'end', beforeId = null } = {}) {
   $('list-delete').hidden = mode === 'new';
   $('list-delete').disabled = state.lists.length === 1;
   $('list-save').textContent = mode === 'new' ? 'Create' : 'Save';
+  paintListPreview();
   openSheet(listDialog);
   $('list-name').focus();
   if (mode !== 'new') $('list-name').select();

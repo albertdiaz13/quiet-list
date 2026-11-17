@@ -41,7 +41,7 @@
 </svg>
 
 <div id="app" data-view="list">
-  <section id="home" class="pane" aria-label="All lists">
+  <section id="home" class="pane hue" aria-label="All lists">
     <header class="bar">
       <div class="brand"><svg class="mark"><use href="#i-mark"/></svg><span>Quiet List</span></div>
       <button id="open-trophies" class="icon-btn" type="button" aria-label="Trophies"><svg><use href="#i-trophy"/></svg></button>
@@ -113,17 +113,20 @@
   <p id="live" class="sr" role="status" aria-live="polite"></p>
 </div>
 
-<dialog id="list-dialog" class="sheet" aria-labelledby="list-dialog-title">
+<dialog id="list-dialog" class="sheet hue" aria-labelledby="list-dialog-title">
   <form id="list-form" method="dialog" class="sheet-frame">
     <header class="sheet-head">
       <h2 id="list-dialog-title">New list</h2>
       <button type="button" id="list-cancel-x" class="icon-btn" aria-label="Close"><svg><use href="#i-close"/></svg></button>
     </header>
     <div class="sheet-body">
+      <div id="list-preview" class="tile-row hue preview" aria-hidden="true">
+        <div class="tile"><div class="tile-open"><span id="preview-name" class="tile-name"></span><span id="preview-count" class="tile-count"></span></div></div>
+      </div>
       <label for="list-name">Name</label>
       <input id="list-name" class="field" type="text" maxlength="80" autocomplete="off" enterkeyhint="done">
       <fieldset>
-        <legend>Colour</legend>
+        <legend>Colour: <b id="colour-name" aria-live="polite"></b></legend>
         <div id="swatches" class="swatches"></div>
       </fieldset>
       <p id="list-error" class="error" role="alert"></p>
@@ -188,6 +191,10 @@
       <p id="move-text" class="note"></p>
       <div id="move-targets" class="stack"></div>
     </div>
+    <footer class="sheet-foot">
+      <span class="spacer"></span>
+      <button type="button" class="quiet-btn" data-close>Cancel</button>
+    </footer>
   </div>
 </dialog>
 
